@@ -585,7 +585,7 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
     contactId = contact.id;
 
     if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
-    let conversation = store.whatsapp_conversations.find(c => c.business_id === numBusinessId && (c.customer_phone === formattedPhone || c.contact_id === contactId));
+    let conversation = store.whatsapp_conversations.find(c => c.business_id === numBusinessId && c.whatsapp_account_id === account.id && (c.customer_phone === formattedPhone || c.contact_id === contactId));
     if (!conversation) {
       conversation = {
         id: (store.whatsapp_conversations.length || 0) + 1,
@@ -653,8 +653,8 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
       }
 
       let convRows = await executeQuery(
-        'SELECT id FROM whatsapp_conversations WHERE business_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
-        [numBusinessId, formattedPhone, contactId]
+        'SELECT id FROM whatsapp_conversations WHERE business_id = ? AND whatsapp_account_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
+        [numBusinessId, account.id, formattedPhone, contactId]
       );
       if (!convRows || convRows.length === 0) {
         const insConv = await executeQuery(
@@ -669,9 +669,9 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
         conversationId = convRows[0].id;
         await executeQuery(
           `UPDATE whatsapp_conversations 
-           SET whatsapp_account_id = ?, last_message_text = ?, last_message_at = NOW(), updated_at = NOW() 
+           SET last_message_text = ?, last_message_at = NOW(), updated_at = NOW() 
            WHERE id = ?`,
-          [account.id, displayBody, conversationId]
+          [displayBody, conversationId]
         );
       }
 

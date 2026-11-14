@@ -388,10 +388,12 @@ export async function processWebhookPayload(payload) {
               });
             }
 
-            // Match or create conversation in whatsapp_conversations by phone
+            // Match or create conversation in whatsapp_conversations by account & phone
             if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
             let conversation = store.whatsapp_conversations.find(
-              c => c.business_id === matchedBusinessId && c.customer_phone === from
+              c => c.business_id === matchedBusinessId &&
+                   (!matchedAccountId || c.whatsapp_account_id === matchedAccountId) &&
+                   (c.customer_phone === from || c.contact_id === contact.id)
             );
 
             const isNewConversation = !conversation;
@@ -523,11 +525,19 @@ export async function processWebhookPayload(payload) {
                 );
               }
 
-              // 2. Find or create conversation
-              let convRows = await executeQuery(
-                'SELECT * FROM whatsapp_conversations WHERE business_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
-                [matchedBusinessId, from, contactId]
-              );
+              // 2. Find or create conversation scoped to receiving WhatsApp account
+              let convRows = [];
+              if (matchedAccountId) {
+                convRows = await executeQuery(
+                  'SELECT * FROM whatsapp_conversations WHERE business_id = ? AND whatsapp_account_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
+                  [matchedBusinessId, matchedAccountId, from, contactId]
+                );
+              } else {
+                convRows = await executeQuery(
+                  'SELECT * FROM whatsapp_conversations WHERE business_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
+                  [matchedBusinessId, from, contactId]
+                );
+              }
 
               let conversationId = null;
               let conversation = null;
@@ -545,10 +555,10 @@ export async function processWebhookPayload(payload) {
                 conversationId = convRows[0].id;
                 await executeQuery(
                   `UPDATE whatsapp_conversations 
-                   SET whatsapp_account_id = COALESCE(?, whatsapp_account_id), status = 'open', unread_count = unread_count + 1, last_message_text = ?, 
+                   SET status = 'open', unread_count = unread_count + 1, last_message_text = ?, 
                        last_message_at = NOW(), last_incoming_message_at = NOW(), service_window_expires_at = ?, updated_at = NOW()
                    WHERE id = ?`,
-                  [matchedAccountId || null, textBody, windowExpiresAt, conversationId]
+                  [textBody, windowExpiresAt, conversationId]
                 );
               }
 
