@@ -355,6 +355,7 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
   const messageType = payload.messageType || (payload.textBody ? 'text' : 'template');
   const textBody = payload.textBody;
   const templateName = payload.templateName || payload.name || 'hello_world';
+  const bodyVariables = payload.bodyVariables || payload.variables || {};
 
   if (!rawRecipient) {
     const err = new Error('Recipient phone number is required (with country code, e.g. 918601467210)');
@@ -389,6 +390,9 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
   logger.info(`[TestMessenger] Dispatching test ${messageType} from ${account.phone_number} to ${cleanRecipient}...`);
 
   let response;
+  let targetName = templateName || '';
+  let targetComponents = Array.isArray(payload.components) ? payload.components : [];
+
   if (messageType === 'text') {
     response = await client.sendTextMessage({
       recipientPhone: cleanRecipient,
@@ -396,7 +400,9 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
     });
   } else {
     const isSandboxSender = account.phone_number?.includes('555-199') || account.phone_number?.startsWith('+1 555');
-    let targetName = templateName || (isSandboxSender ? 'hello_world' : 'welcome_msg');
+    if (!targetName) {
+      targetName = isSandboxSender ? 'hello_world' : 'welcome_msg';
+    }
 
     // Live phone numbers (+91) cannot send hello_world or dummy test templates via Meta Cloud API
     if (!isSandboxSender && (targetName === 'hello_world' || targetName === 'test' || targetName === 'account_update_v1')) {
@@ -405,7 +411,6 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
     }
 
     let targetLang = payload.language || payload.languageCode || 'en';
-    let targetComponents = Array.isArray(payload.components) ? payload.components : [];
 
     // If frontend sends formatted parameters array [{ type: 'text', text: 'val' }]
     if (Array.isArray(payload.parameters) && payload.parameters.length > 0 && targetComponents.length === 0) {
