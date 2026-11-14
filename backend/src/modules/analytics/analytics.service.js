@@ -408,6 +408,60 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     ]
   };
 
+  // 9b. All Messages Delivery Overview (Donut chart data for combined campaigns + inbox + tests)
+  let allMessagesOverview = {
+    total: 0,
+    breakdown: [
+      { name: 'Delivered', pct: 0, count: 0, color: '#10b981' },
+      { name: 'Sent', pct: 0, count: 0, color: '#3b82f6' },
+      { name: 'Received', pct: 0, count: 0, color: '#8b5cf6' },
+      { name: 'Failed', pct: 0, count: 0, color: '#ef4444' }
+    ]
+  };
+
+  try {
+    const wmOverviewRows = await executeQuery(
+      `SELECT 
+        COUNT(CASE WHEN direction = 'OUTBOUND' THEN 1 END) as out_sent,
+        COUNT(CASE WHEN direction = 'OUTBOUND' AND message_status IN ('delivered', 'read') THEN 1 END) as out_delivered,
+        COUNT(CASE WHEN direction = 'OUTBOUND' AND message_status = 'failed' THEN 1 END) as out_failed,
+        COUNT(CASE WHEN direction = 'INBOUND' THEN 1 END) as in_received
+       FROM whatsapp_messages 
+       WHERE business_id = ? ${dateFilter}`,
+      [businessId]
+    );
+
+    const wmOutSent = Number(wmOverviewRows[0]?.out_sent || 0);
+    const wmOutDelivered = Number(wmOverviewRows[0]?.out_delivered || 0);
+    const wmOutFailed = Number(wmOverviewRows[0]?.out_failed || 0);
+    const wmInReceived = Number(wmOverviewRows[0]?.in_received || 0);
+
+    const combSent = totalSent + wmOutSent;
+    const combDelivered = totalDelivered + wmOutDelivered;
+    const combFailed = totalFailed + wmOutFailed;
+    const combReceived = wmInReceived;
+    const combTotal = combSent + combReceived;
+
+    const combInTransit = Math.max(0, combSent - combDelivered - combFailed);
+
+    const combDeliveredPct = combTotal > 0 ? Math.round((combDelivered / combTotal) * 100) : 0;
+    const combReceivedPct = combTotal > 0 ? Math.round((combReceived / combTotal) * 100) : 0;
+    const combFailedPct = combTotal > 0 ? Math.round((combFailed / combTotal) * 100) : 0;
+    const combSentPct = combTotal > 0 ? Math.max(0, 100 - combDeliveredPct - combReceivedPct - combFailedPct) : 0;
+
+    allMessagesOverview = {
+      total: combTotal,
+      breakdown: [
+        { name: 'Delivered', pct: combDeliveredPct, count: combDelivered, color: '#10b981' },
+        { name: 'Sent', pct: combSentPct, count: combInTransit, color: '#3b82f6' },
+        { name: 'Received', pct: combReceivedPct, count: combReceived, color: '#8b5cf6' },
+        { name: 'Failed', pct: combFailedPct, count: combFailed, color: '#ef4444' }
+      ]
+    };
+  } catch (err) {
+    console.error('Error fetching all messages overview from DB:', err);
+  }
+
   // 10. Contact Growth (Cumulative contacts growth fetched directly from MySQL contacts table)
   let contactGrowth = [];
   try {
@@ -466,6 +520,7 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     deliveryTrend,
     allMessagesTrend,
     deliveryOverview,
+    allMessagesOverview,
     contactGrowth,
     whatsappAccounts: {
       summary: accountsHeaderSummary,

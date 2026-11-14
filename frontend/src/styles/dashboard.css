@@ -450,7 +450,7 @@
 
 .aiwavo-charts-row-secondary {
   display: grid;
-  grid-template-columns: minmax(320px, 1.2fr) minmax(0, 1.8fr);
+  grid-template-columns: minmax(310px, 1fr) minmax(310px, 1fr) minmax(0, 1.25fr);
   gap: 1.25rem;
   margin-bottom: 1.25rem;
 }
@@ -1112,6 +1112,15 @@
 }
 
 /* ================= Responsive Breakpoints ================= */
+@media (max-width: 1400px) and (min-width: 993px) {
+  .aiwavo-charts-row-secondary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .aiwavo-charts-row-secondary > :last-child {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 1200px) {
   .aiwavo-kpi-grid {
     grid-template-columns: repeat(3, 1fr);
