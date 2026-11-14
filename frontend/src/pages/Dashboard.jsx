@@ -218,7 +218,7 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('Last 30 Days');
+  const [timeRange, setTimeRange] = useState('Last 7 Days');
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboardData = useCallback(async (isManual = false) => {

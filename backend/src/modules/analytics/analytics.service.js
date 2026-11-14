@@ -1,7 +1,7 @@
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
 
-export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') {
-  const normalizedRange = String(timeRange || 'Last 30 Days').trim();
+export async function getDashboardStats(businessId, timeRange = 'Last 7 Days') {
+  const normalizedRange = String(timeRange || 'Last 7 Days').trim();
 
   // Construct SQL date conditions according to selected timeRange
   let dateFilter = '';

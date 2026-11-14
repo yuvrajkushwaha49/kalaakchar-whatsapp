@@ -222,13 +222,13 @@ export default function AiwavoHeader({
             <i className="bi bi-calendar3 aiwavo-date-icon"></i>
             <select
               className="aiwavo-date-select"
-              value={timeRange || 'Last 30 Days'}
+              value={timeRange || 'Last 7 Days'}
               onChange={(e) => setTimeRange && setTimeRange(e.target.value)}
             >
-              <option value="Last 30 Days">Last 30 Days</option>
-              <option value="Today">Today</option>
               <option value="Last 7 Days">Last 7 Days</option>
+              <option value="Today">Today</option>
               <option value="This Month">This Month</option>
+              <option value="Last 30 Days">Last 30 Days</option>
               <option value="All Time">All Time</option>
             </select>
           </div>
