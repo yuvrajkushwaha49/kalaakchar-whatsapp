@@ -309,6 +309,89 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
     console.error('Error fetching delivery trend from DB:', err);
   }
 
+  // 8b. All Messages Delivery Trend (Combined: Campaigns + WhatsApp Inbox + Test Messages)
+  let allMessagesTrend = [];
+  try {
+    const allTrendMap = {};
+    const allDateLabels = [];
+    const totalDays = normalizedRange === 'Today' ? 1 : (normalizedRange === 'Last 7 Days' ? 7 : (normalizedRange === 'This Month' ? new Date().getDate() : 30));
+    const step = normalizedRange === 'Last 30 Days' ? 3 : 1;
+
+    for (let i = totalDays; i >= 0; i -= step) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+      allTrendMap[key] = { date: label, sent: 0, delivered: 0, failed: 0, received: 0 };
+      allDateLabels.push(key);
+    }
+
+    // 1. Fetch campaigns
+    const campTrendRows = await executeQuery(
+      `SELECT 
+        DATE(created_at) as dt,
+        COALESCE(SUM(sent_count), 0) as sent,
+        COALESCE(SUM(delivered_count), 0) as delivered,
+        COALESCE(SUM(failed_count), 0) as failed
+       FROM campaigns 
+       WHERE business_id = ? AND status != 'scheduled' ${dateFilter}
+       GROUP BY dt
+       ORDER BY dt ASC`,
+      [businessId]
+    );
+
+    // 2. Fetch whatsapp_messages (Outbound sent/delivered/failed and Inbound received)
+    const wmTrendRows = await executeQuery(
+      `SELECT 
+        DATE(created_at) as dt,
+        COUNT(CASE WHEN direction = 'OUTBOUND' THEN 1 END) as out_sent,
+        COUNT(CASE WHEN direction = 'OUTBOUND' AND message_status IN ('delivered', 'read') THEN 1 END) as out_delivered,
+        COUNT(CASE WHEN direction = 'OUTBOUND' AND message_status = 'failed' THEN 1 END) as out_failed,
+        COUNT(CASE WHEN direction = 'INBOUND' THEN 1 END) as in_received
+       FROM whatsapp_messages 
+       WHERE business_id = ? ${dateFilter}
+       GROUP BY dt
+       ORDER BY dt ASC`,
+      [businessId]
+    );
+
+    if (Array.isArray(campTrendRows)) {
+      for (const r of campTrendRows) {
+        if (!r.dt) continue;
+        const dStr = new Date(r.dt).toISOString().split('T')[0];
+        if (!allTrendMap[dStr]) {
+          const label = new Date(r.dt).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+          allTrendMap[dStr] = { date: label, sent: 0, delivered: 0, failed: 0, received: 0 };
+          allDateLabels.push(dStr);
+        }
+        allTrendMap[dStr].sent += Number(r.sent || 0);
+        allTrendMap[dStr].delivered += Number(r.delivered || 0);
+        allTrendMap[dStr].failed += Number(r.failed || 0);
+      }
+    }
+
+    if (Array.isArray(wmTrendRows)) {
+      for (const r of wmTrendRows) {
+        if (!r.dt) continue;
+        const dStr = new Date(r.dt).toISOString().split('T')[0];
+        if (!allTrendMap[dStr]) {
+          const label = new Date(r.dt).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+          allTrendMap[dStr] = { date: label, sent: 0, delivered: 0, failed: 0, received: 0 };
+          allDateLabels.push(dStr);
+        }
+        allTrendMap[dStr].sent += Number(r.out_sent || 0);
+        allTrendMap[dStr].delivered += Number(r.out_delivered || 0);
+        allTrendMap[dStr].failed += Number(r.out_failed || 0);
+        allTrendMap[dStr].received += Number(r.in_received || 0);
+      }
+    }
+
+    allDateLabels.sort();
+    allMessagesTrend = allDateLabels.map(key => allTrendMap[key]);
+  } catch (err) {
+    console.error('Error fetching all messages trend from DB:', err);
+  }
+
   // 9. Delivery Overview (Donut chart data calculated directly from MySQL campaign aggregations)
   const deliveryTotal = totalSent;
   const deliveredPct = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
@@ -381,6 +464,7 @@ export async function getDashboardStats(businessId, timeRange = 'Last 30 Days') 
       failedMessagesGrowth: totalFailed > 0 ? '+2.1%' : '+0%'
     },
     deliveryTrend,
+    allMessagesTrend,
     deliveryOverview,
     contactGrowth,
     whatsappAccounts: {

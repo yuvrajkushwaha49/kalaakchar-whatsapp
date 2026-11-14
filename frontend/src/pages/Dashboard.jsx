@@ -77,8 +77,8 @@ function DashboardSkeleton() {
           ))}
         </div>
 
-        {/* Row 3: 3 Analytics / Chart Cards Skeleton */}
-        <div className="aiwavo-charts-row">
+        {/* Row 3: Dual Charts Skeleton (Campaigns & All Messages) */}
+        <div className="aiwavo-charts-row-dual">
           {/* Chart 1: Message Delivery Trend */}
           <div className="aiwavo-chart-card">
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -88,7 +88,19 @@ function DashboardSkeleton() {
             <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
           </div>
 
-          {/* Chart 2: Delivery Overview Donut */}
+          {/* Chart 2: All Messages Delivery Trend */}
+          <div className="aiwavo-chart-card">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="aiwavo-skeleton" style={{ width: '190px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '150px', height: '14px' }}></div>
+            </div>
+            <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
+          </div>
+        </div>
+
+        {/* Row 3b: Delivery Overview Donut & Contact Growth Skeleton */}
+        <div className="aiwavo-charts-row-secondary">
+          {/* Chart 3: Delivery Overview Donut */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-skeleton mb-3" style={{ width: '140px', height: '18px' }}></div>
             <div className="d-flex align-items-center justify-content-around py-3">
@@ -101,7 +113,7 @@ function DashboardSkeleton() {
             </div>
           </div>
 
-          {/* Chart 3: Contact Growth */}
+          {/* Chart 4: Contact Growth */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-skeleton mb-3" style={{ width: '130px', height: '18px' }}></div>
             <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '190px', borderRadius: '12px' }}></div>
@@ -239,6 +251,7 @@ export default function Dashboard() {
 
   // Trend & Chart Data
   const deliveryTrendData = stats?.deliveryTrend || [];
+  const allMessagesTrendData = stats?.allMessagesTrend || [];
 
   // Delivery Overview (Donut chart data)
   const overviewBreakdown = stats?.deliveryOverview?.breakdown || [
@@ -411,31 +424,34 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ================= Row 3: 3 Analytics / Chart Cards ================= */}
-        <div className="aiwavo-charts-row">
-          {/* Chart 1: Message Delivery Trend */}
+        {/* ================= Row 3: Dual Trend Charts (Campaigns + All Messages) ================= */}
+        <div className="aiwavo-charts-row-dual">
+          {/* Chart 1: Campaigns Delivery Trend */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
-              <h3 className="aiwavo-chart-title">
-                <i className="bi bi-bar-chart-fill aiwavo-chart-title-icon"></i>
-                Message Delivery Trend
-              </h3>
+              <div className="d-flex align-items-center gap-2">
+                <h3 className="aiwavo-chart-title">
+                  <i className="bi bi-bar-chart-fill aiwavo-chart-title-icon"></i>
+                  Campaigns Delivery Trend
+                </h3>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Campaigns</span>
+              </div>
               <div className="aiwavo-legend-row">
                 <div>
-                  <span className="aiwavo-legend-dot" style={{ background: '#10b981' }}></span>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-sent"></span>
                   <span>Sent</span>
                 </div>
                 <div>
-                  <span className="aiwavo-legend-dot" style={{ background: '#3b82f6' }}></span>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-delivered"></span>
                   <span>Delivered</span>
                 </div>
                 <div>
-                  <span className="aiwavo-legend-dot" style={{ background: '#ef4444' }}></span>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-failed"></span>
                   <span>Failed</span>
                 </div>
               </div>
             </div>
-            <div style={{ width: '100%', height: 210 }}>
+            <div className="aiwavo-chart-h210">
               <ResponsiveContainer width="100%" height={210}>
                 <AreaChart data={deliveryTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
@@ -506,7 +522,123 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Chart 2: Delivery Overview (Donut Chart) */}
+          {/* Chart 2: All Messages Delivery Trend (Combined Traffic) */}
+          <div className="aiwavo-chart-card">
+            <div className="aiwavo-chart-header">
+              <div className="d-flex align-items-center gap-2">
+                <h3 className="aiwavo-chart-title">
+                  <i className="bi bi-chat-square-text-fill aiwavo-chart-title-icon"></i>
+                  All Messages Delivery Trend
+                </h3>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-all">All Traffic</span>
+              </div>
+              <div className="aiwavo-legend-row">
+                <div>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-sent"></span>
+                  <span>Sent</span>
+                </div>
+                <div>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-delivered"></span>
+                  <span>Delivered</span>
+                </div>
+                <div>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-received"></span>
+                  <span>Received</span>
+                </div>
+                <div>
+                  <span className="aiwavo-legend-dot aiwavo-legend-dot-failed"></span>
+                  <span>Failed</span>
+                </div>
+              </div>
+            </div>
+            <div className="aiwavo-chart-h210">
+              <ResponsiveContainer width="100%" height={210}>
+                <AreaChart data={allMessagesTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorAllSentAiwavo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="colorAllDeliveredAiwavo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="colorAllReceivedAiwavo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="colorAllFailedAiwavo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                    tickFormatter={(val) => (val >= 1000 ? `${val / 1000}K` : val)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Area
+                    isAnimationActive={false}
+                    type="monotone"
+                    dataKey="sent"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAllSentAiwavo)"
+                  />
+                  <Area
+                    isAnimationActive={false}
+                    type="monotone"
+                    dataKey="delivered"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAllDeliveredAiwavo)"
+                  />
+                  <Area
+                    isAnimationActive={false}
+                    type="monotone"
+                    dataKey="received"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAllReceivedAiwavo)"
+                  />
+                  <Area
+                    isAnimationActive={false}
+                    type="monotone"
+                    dataKey="failed"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorAllFailedAiwavo)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= Row 3b: Delivery Overview & Contact Growth ================= */}
+        <div className="aiwavo-charts-row-secondary">
+          {/* Chart 3: Delivery Overview (Donut Chart) */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
               <h3 className="aiwavo-chart-title">Delivery Overview</h3>
@@ -557,7 +689,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Chart 3: Contact Growth */}
+          {/* Chart 4: Contact Growth */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
               <h3 className="aiwavo-chart-title">
@@ -565,7 +697,7 @@ export default function Dashboard() {
                 Contact Growth
               </h3>
             </div>
-            <div style={{ width: '100%', height: 190 }}>
+            <div className="aiwavo-chart-h190">
               <ResponsiveContainer width="100%" height={190}>
                 <AreaChart data={contactGrowthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
