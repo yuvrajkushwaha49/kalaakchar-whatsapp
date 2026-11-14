@@ -350,7 +350,7 @@ export async function verifyAccount(businessId, accountId) {
  */
 export async function sendTestMessage(businessId, accountId, payload = {}) {
   const numBusinessId = Number(businessId);
-  const numAccountId = accountId ? Number(accountId) : null;
+  const numAccountId = accountId ? Number(accountId) : (payload.accountId ? Number(payload.accountId) : null);
   const rawRecipient = payload.recipientPhone || payload.phoneNumber || payload.to || '';
   const messageType = payload.messageType || (payload.textBody ? 'text' : 'template');
   const textBody = payload.textBody;
@@ -427,12 +427,29 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
 
     // Find template if available in local store or db to get exact language and parameters
     let matchedTemplate = null;
+    const reqLang = payload.language || payload.languageCode;
+    const reqTplId = payload.templateId || payload.id;
+
     if (isUsingFallback()) {
       const store = getMemoryStore();
-      matchedTemplate = store.templates?.find(t => t.name === targetName);
+      matchedTemplate = store.templates?.find(t => 
+        (reqTplId && t.id === Number(reqTplId)) ||
+        (t.name === targetName && (!reqLang || t.language === reqLang)) ||
+        t.name === targetName
+      );
     } else {
-      const rows = await executeQuery('SELECT * FROM templates WHERE name = ? LIMIT 1', [targetName]);
-      matchedTemplate = rows?.[0] || null;
+      if (reqTplId) {
+        const rows = await executeQuery('SELECT * FROM templates WHERE id = ? LIMIT 1', [reqTplId]);
+        matchedTemplate = rows?.[0] || null;
+      }
+      if (!matchedTemplate && reqLang) {
+        const rows = await executeQuery('SELECT * FROM templates WHERE name = ? AND language = ? LIMIT 1', [targetName, reqLang]);
+        matchedTemplate = rows?.[0] || null;
+      }
+      if (!matchedTemplate) {
+        const rows = await executeQuery('SELECT * FROM templates WHERE name = ? LIMIT 1', [targetName]);
+        matchedTemplate = rows?.[0] || null;
+      }
     }
 
     if (matchedTemplate) {

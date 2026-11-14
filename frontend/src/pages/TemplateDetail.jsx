@@ -120,8 +120,12 @@ export default function TemplateDetail() {
 
   const handleSendTestMessage = async (e) => {
     e.preventDefault();
-    if (!testRecipient.trim()) {
-      setFeedback({ type: 'danger', text: 'Please enter a valid recipient WhatsApp number.' });
+    const cleanPhone = (testRecipient || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setTestResult({
+        success: false,
+        message: 'Please enter a valid recipient WhatsApp number with country code (e.g. 919565763089).'
+      });
       return;
     }
 
@@ -129,16 +133,26 @@ export default function TemplateDetail() {
       setSendingTest(true);
       setTestResult(null);
 
-      const parameters = Object.keys(sampleVariables).map(k => ({
-        type: 'text',
-        text: sampleVariables[k]
-      }));
+      // Preserve numerical ordering of parameters: {{1}}, {{2}}, etc.
+      const parameters = Object.keys(sampleVariables)
+        .sort((a, b) => {
+          const numA = Number(a);
+          const numB = Number(b);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.localeCompare(b);
+        })
+        .map(k => ({
+          type: 'text',
+          text: sampleVariables[k] ?? ''
+        }));
 
       const payload = {
-        phoneNumber: testRecipient.replace(/[^0-9]/g, ''),
+        templateId: template.id,
+        phoneNumber: cleanPhone,
         templateName: template.name,
         language: template.language || 'en',
         parameters: parameters.length > 0 ? parameters : undefined,
+        bodyVariables: sampleVariables,
         accountId: template.whatsapp_account_id || undefined
       };
 
@@ -146,7 +160,7 @@ export default function TemplateDetail() {
       if (res.data?.success) {
         setTestResult({
           success: true,
-          message: `Test message dispatched to +${testRecipient}! Message ID: ${res.data.data?.messageId || 'Generated'}`
+          message: `Test message dispatched to +${cleanPhone}! Message ID: ${res.data.data?.messageId || 'Generated'}`
         });
       } else {
         setTestResult({
@@ -325,7 +339,12 @@ export default function TemplateDetail() {
 
               <button
                 type="button"
-                onClick={() => setActiveTab('test')}
+                onClick={() => {
+                  setActiveTab('test');
+                  setTimeout(() => {
+                    document.getElementById('td-test-sender-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 60);
+                }}
                 className="td-btn-test-send"
               >
                 <i className="bi bi-send"></i>
@@ -758,7 +777,7 @@ export default function TemplateDetail() {
 
             {/* Tab 4: Live Test Sender */}
             {activeTab === 'test' && (
-              <div className="td-blueprint-card">
+              <div id="td-test-sender-section" className="td-blueprint-card">
                 <h6 className="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
                   <i className="bi bi-send text-success"></i>
                   <span>Send Real-Time WhatsApp Test Message</span>
@@ -773,19 +792,70 @@ export default function TemplateDetail() {
                 )}
                 <form onSubmit={handleSendTestMessage}>
                   <div className="mb-3">
-                    <label className="form-label small fw-bold text-dark">Recipient Phone Number</label>
-                    <input
-                      type="tel"
-                      className="form-control"
-                      placeholder="e.g. 918601467210"
-                      value={testRecipient}
-                      onChange={(e) => setTestRecipient(e.target.value)}
-                      required
-                    />
+                    <label className="form-label small fw-bold text-dark">Recipient Phone Number *</label>
+                    <div className="input-group">
+                      <span className="input-group-text td-test-phone-prefix">
+                        <i className="bi bi-whatsapp text-success me-1"></i>+
+                      </span>
+                      <input
+                        type="tel"
+                        className="form-control"
+                        placeholder="e.g. 919565763089"
+                        value={testRecipient}
+                        onChange={(e) => setTestRecipient(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-text small text-muted">
+                      Include country code without "+" or spaces (e.g. 919565763089 for India).
+                    </div>
                   </div>
+
+                  {Object.keys(sampleVariables).length > 0 && (
+                    <div className="mb-3">
+                      <label className="form-label small fw-bold text-dark d-flex align-items-center justify-content-between mb-2">
+                        <span>Template Dynamic Variables</span>
+                        <span className="td-var-sublabel">Updates phone simulator in real-time</span>
+                      </label>
+                      <div className="d-flex flex-column gap-2">
+                        {Object.keys(sampleVariables)
+                          .sort((a, b) => {
+                            const numA = Number(a);
+                            const numB = Number(b);
+                            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                            return a.localeCompare(b);
+                          })
+                          .map((key) => (
+                            <div key={key} className="input-group input-group-sm">
+                              <span className="input-group-text font-monospace td-var-tag">
+                                {`{{${key}}}`}
+                              </span>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={sampleVariables[key] || ''}
+                                onChange={(e) => setSampleVariables(prev => ({ ...prev, [key]: e.target.value }))}
+                                placeholder={`Enter value for {{${key}}}`}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="d-flex justify-content-end">
-                    <button type="submit" disabled={sendingTest} className="btn btn-success btn-sm">
-                      {sendingTest ? 'Sending...' : 'Send Live Test'}
+                    <button type="submit" disabled={sendingTest} className="btn btn-success btn-sm d-inline-flex align-items-center gap-1">
+                      {sendingTest ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-send-fill me-1"></i>
+                          Send Live Test
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>

@@ -2291,3 +2291,29 @@
   align-items: center;
   gap: 8px;
 }
+
+.td-var-sublabel {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.td-var-tag {
+  min-width: 65px;
+  font-size: 0.78rem;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.td-test-phone-input-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.td-test-phone-prefix {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #475569;
+  border-right: none;
+}
