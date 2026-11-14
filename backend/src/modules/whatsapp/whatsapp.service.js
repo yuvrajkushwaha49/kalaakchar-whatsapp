@@ -349,44 +349,37 @@ export async function verifyAccount(businessId, accountId) {
  */
 export async function sendTestMessage(businessId, accountId, payload = {}) {
   const numBusinessId = Number(businessId);
-  const numAccountId = Number(accountId);
-  const { recipientPhone, messageType = 'template', textBody, templateName = 'hello_world' } = payload;
+  const numAccountId = accountId ? Number(accountId) : null;
+  const rawRecipient = payload.recipientPhone || payload.phoneNumber || payload.to || '';
+  const messageType = payload.messageType || (payload.textBody ? 'text' : 'template');
+  const textBody = payload.textBody;
+  const templateName = payload.templateName || payload.name || 'hello_world';
 
-  if (!recipientPhone) {
+  if (!rawRecipient) {
     const err = new Error('Recipient phone number is required (with country code, e.g. 918601467210)');
     err.statusCode = 400;
     throw err;
   }
 
-  const cleanRecipient = recipientPhone.replace(/\D/g, '');
+  const cleanRecipient = rawRecipient.replace(/\D/g, '');
   if (cleanRecipient.length < 10) {
     const err = new Error('Please enter a valid phone number with country code (e.g. 918601467210)');
     err.statusCode = 400;
     throw err;
   }
 
-  // Fetch account
-  let account = null;
-  if (isUsingFallback()) {
-    const store = getMemoryStore();
-    account = store.whatsapp_accounts?.find(a => a.id === numAccountId && a.business_id === numBusinessId);
-  } else {
-    const rows = await executeQuery(
-      'SELECT * FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1',
-      [numAccountId, numBusinessId]
-    );
-    account = rows?.[0] || null;
-  }
+  // Fetch account with credentials (handles primary fallback and safe decryption)
+  const account = await getAccountWithCredentials(numBusinessId, numAccountId);
 
   if (!account) {
-    const err = new Error('WhatsApp Account not found');
+    const err = new Error('WhatsApp Account not found or unauthorized for this business.');
     err.statusCode = 404;
     throw err;
   }
 
-  const token = decryptToken(account.access_token_encrypted) || account.access_token_encrypted;
-  if (!token) {
-    const err = new Error('WhatsApp access token missing in database for this account. Please reconnect.');
+  const token = account.decryptedToken;
+  if (!token || token.includes(':')) {
+    const err = new Error('WhatsApp access token missing or invalid for this account. Please reconnect.');
     err.statusCode = 400;
     throw err;
   }
@@ -410,8 +403,21 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
       targetName = 'welcome_msg';
     }
 
-    let targetLang = payload.languageCode || 'en';
+    let targetLang = payload.language || payload.languageCode || 'en';
     let targetComponents = Array.isArray(payload.components) ? payload.components : [];
+
+    // If frontend sends formatted parameters array [{ type: 'text', text: 'val' }]
+    if (Array.isArray(payload.parameters) && payload.parameters.length > 0 && targetComponents.length === 0) {
+      targetComponents = [
+        {
+          type: 'body',
+          parameters: payload.parameters.map(p => ({
+            type: p.type || 'text',
+            text: String(p.text ?? '')
+          }))
+        }
+      ];
+    }
 
     // Find template if available in local store or db to get exact language and parameters
     let matchedTemplate = null;
@@ -424,26 +430,47 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
     }
 
     if (matchedTemplate) {
-      targetLang = matchedTemplate.language || targetLang;
+      targetLang = payload.language || payload.languageCode || matchedTemplate.language || targetLang;
+      const comps = Array.isArray(matchedTemplate.components)
+        ? matchedTemplate.components
+        : (typeof matchedTemplate.components === 'string' ? JSON.parse(matchedTemplate.components || '[]') : []);
+
       if (targetComponents.length === 0) {
-        const comps = Array.isArray(matchedTemplate.components)
-          ? matchedTemplate.components
-          : (typeof matchedTemplate.components === 'string' ? JSON.parse(matchedTemplate.components || '[]') : []);
         const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
         if (bodyComp?.text) {
           const placeholders = Array.from(new Set(bodyComp.text.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []));
           if (placeholders.length > 0) {
             const bodyParams = placeholders.map(ph => {
               const clean = ph.replace(/[{}]/g, '');
-              const param = { type: 'text', text: 'Yuvraj' };
+              const param = { type: 'text', text: 'Sample' };
               if (matchedTemplate.parameter_format === 'NAMED' || isNaN(Number(clean)) || clean === 'customer_name') {
                 param.parameter_name = clean;
               }
               return param;
             });
-            targetComponents = [{ type: 'body', parameters: bodyParams }];
+            targetComponents.push({ type: 'body', parameters: bodyParams });
           }
         }
+      }
+
+      // Automatically satisfy dynamic button URL parameters if required by Meta
+      const buttonComp = comps.find(c => (c.type || '').toUpperCase() === 'BUTTONS');
+      if (buttonComp && Array.isArray(buttonComp.buttons)) {
+        buttonComp.buttons.forEach((btn, idx) => {
+          if (btn.type === 'URL' && btn.url && btn.url.includes('{{')) {
+            const alreadyHasBtn = targetComponents.some(c => c.type === 'button' && String(c.index) === String(idx));
+            if (!alreadyHasBtn) {
+              targetComponents.push({
+                type: 'button',
+                sub_type: 'url',
+                index: String(idx),
+                parameters: [
+                  { type: 'text', text: 'confirm' }
+                ]
+              });
+            }
+          }
+        });
       }
     } else if (targetName === 'welcome_msg') {
       targetLang = 'en';

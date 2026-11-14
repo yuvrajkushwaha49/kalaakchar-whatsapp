@@ -28,6 +28,8 @@ router.post('/accounts/:id/verify', requireRole(['owner', 'admin', 'marketer']),
 router.post('/accounts/:id/reconnect', requireRole(['owner', 'admin', 'marketer']), whatsappController.verifyAccount);
 router.post('/accounts/:id/primary', requireRole(['owner', 'admin', 'marketer']), whatsappController.setPrimaryAccount);
 router.post('/accounts/:id/test-message', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
+router.post('/send-test', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
+router.post('/templates/send-test', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
 router.delete('/accounts/:id/permanent', requireRole(['owner', 'admin']), whatsappController.deleteAccount);
 router.delete('/accounts/:id', requireRole(['owner', 'admin', 'marketer']), (req, res, next) => {
   if (req.query.permanent === 'true') {

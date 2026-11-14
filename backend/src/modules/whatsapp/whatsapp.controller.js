@@ -167,7 +167,8 @@ export async function deleteTemplate(req, res, next) {
 
 export async function sendTestMessage(req, res, next) {
   try {
-    const result = await whatsappService.sendTestMessage(req.businessId, req.params.id, req.body);
+    const accountId = req.params.id || req.body.accountId || req.query.accountId;
+    const result = await whatsappService.sendTestMessage(req.businessId, accountId, req.body);
     res.json({
       success: true,
       message: 'Test WhatsApp message sent successfully via Meta Cloud API!',
