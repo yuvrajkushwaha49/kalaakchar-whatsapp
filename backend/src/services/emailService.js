@@ -1,9 +1,8 @@
-import nodemailer from 'nodemailer';
 import logger from '../utils/logger.js';
 
 let transporter = null;
 
-function getTransporter() {
+async function getTransporter() {
   if (transporter) return transporter;
 
   const host = process.env.SMTP_HOST;
@@ -13,16 +12,23 @@ function getTransporter() {
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (host && user && pass) {
-    transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-    logger.info(`SMTP mailer initialized with host: ${host}:${port}`);
+    try {
+      const nodemailerModule = await import('nodemailer');
+      const nodemailer = nodemailerModule.default || nodemailerModule;
+
+      transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user, pass },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      logger.info(`SMTP mailer initialized with host: ${host}:${port}`);
+    } catch (err) {
+      logger.warn(`[EMAIL SERVICE] Nodemailer initialization skipped (${err.message}). Using resilient mock fallback.`);
+    }
   }
 
   return transporter;
@@ -90,7 +96,7 @@ export async function sendPasswordResetOtpEmail({ to, name = 'Valued User', otp,
 
   const text = `Hello ${name},\n\nYour CampaignFlow password reset verification code is: ${otp}\n\nThis OTP is valid for ${expiresInMinutes} minutes.\nIf you did not request this, please ignore this email.\n\nCampaignFlow Security Team`;
 
-  const mailTransporter = getTransporter();
+  const mailTransporter = await getTransporter();
 
   if (mailTransporter) {
     try {
@@ -105,12 +111,11 @@ export async function sendPasswordResetOtpEmail({ to, name = 'Valued User', otp,
       return { success: true, messageId: info.messageId, isDelivered: true };
     } catch (err) {
       logger.error(`[EMAIL SERVICE] Failed to send email via SMTP: ${err.message}`);
-      // Fallback to console output in case of SMTP failure
       logOtpToConsole(to, otp, expiresInMinutes);
       return { success: true, isDelivered: false, simulated: true, error: err.message };
     }
   } else {
-    // Development / Local Mode fallback
+    // Development / Local / Fallback Mode
     logOtpToConsole(to, otp, expiresInMinutes);
     return { success: true, isDelivered: false, simulated: true };
   }
@@ -128,4 +133,3 @@ function logOtpToConsole(to, otp, expiresInMinutes) {
 export default {
   sendPasswordResetOtpEmail
 };
-

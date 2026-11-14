@@ -729,6 +729,22 @@ export async function checkConnection() {
       }
     } catch (_) {}
 
+    // Check and create password_resets table if not exists
+    try {
+      await p.execute(`CREATE TABLE IF NOT EXISTS password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        otp VARCHAR(10) NOT NULL,
+        reset_token VARCHAR(255) NULL,
+        attempts INT DEFAULT 0,
+        is_verified TINYINT(1) DEFAULT 0,
+        expires_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_email (email),
+        INDEX idx_reset_token (reset_token)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+    } catch (_) {}
+
     // Ensure live Indian WhatsApp account has active encrypted access token
     try {
       const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
@@ -736,7 +752,7 @@ export async function checkConnection() {
       await p.execute(`
         UPDATE whatsapp_accounts 
         SET access_token_encrypted = ?, status = 'connected', connection_status = 'CONNECTED'
-        WHERE id = 45 OR (business_id = 1 AND is_primary = 1)
+        WHERE business_id = 1 AND (id IN (45, 94, 85) OR is_primary = 1)
       `, [encToken]);
     } catch (_) {}
 
