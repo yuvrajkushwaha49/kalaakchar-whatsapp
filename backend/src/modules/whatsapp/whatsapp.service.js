@@ -3,6 +3,7 @@ import { MetaCloudApiClient } from './metaClient.js';
 import { encryptToken, decryptToken } from '../../utils/crypto.js';
 import { ensureAllowedNumbersColumn } from '../admin/admin.service.js';
 import logger from '../../utils/logger.js';
+import { emitToTenant } from '../../socket.js';
 
 /**
  * Return Meta Embedded Signup configuration required by the frontend Facebook JS SDK
@@ -510,6 +511,201 @@ export async function sendTestMessage(businessId, accountId, payload = {}) {
   }
 
   const messageId = response?.messages?.[0]?.id || `wamid.${Date.now()}`;
+
+  // Reconstruct display text for WhatsApp Inbox
+  let displayBody = messageType === 'template' ? `[Template: ${targetName}]` : (textBody || 'Hello! This is a test message from CampaignFlow.');
+  if (messageType === 'template') {
+    try {
+      let tplRecord = null;
+      if (isUsingFallback()) {
+        tplRecord = getMemoryStore().templates?.find(t => t.name === targetName);
+      } else {
+        const rows = await executeQuery('SELECT components FROM templates WHERE name = ? AND business_id = ? LIMIT 1', [targetName, numBusinessId]);
+        tplRecord = rows?.[0];
+      }
+      if (tplRecord) {
+        const comps = Array.isArray(tplRecord.components) ? tplRecord.components : (typeof tplRecord.components === 'string' ? JSON.parse(tplRecord.components || '[]') : []);
+        const bComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+        if (bComp?.text) {
+          let interpolated = bComp.text;
+          Object.keys(bodyVariables || {}).forEach(k => {
+            interpolated = interpolated.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), bodyVariables[k]);
+          });
+          displayBody = interpolated;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Persist outbound test message into WhatsApp Inbox (conversations & messages)
+  const formattedPhone = cleanRecipient.startsWith('+') ? cleanRecipient : `+${cleanRecipient}`;
+  let contactId = null;
+  let conversationId = null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.contacts) store.contacts = [];
+    let contact = store.contacts.find(c => c.business_id === numBusinessId && c.phone === formattedPhone);
+    if (!contact) {
+      contact = {
+        id: (store.contacts.length || 0) + 1,
+        business_id: numBusinessId,
+        first_name: formattedPhone,
+        phone: formattedPhone,
+        status: 'active',
+        is_opted_in: 1,
+        tags: ['test', 'whatsapp'],
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      store.contacts.push(contact);
+    }
+    contactId = contact.id;
+
+    if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
+    let conversation = store.whatsapp_conversations.find(c => c.business_id === numBusinessId && (c.customer_phone === formattedPhone || c.contact_id === contactId));
+    if (!conversation) {
+      conversation = {
+        id: (store.whatsapp_conversations.length || 0) + 1,
+        business_id: numBusinessId,
+        whatsapp_account_id: account.id,
+        contact_id: contactId,
+        customer_phone: formattedPhone,
+        assigned_user_id: null,
+        status: 'open',
+        unread_count: 0,
+        last_message_text: displayBody,
+        last_message_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      store.whatsapp_conversations.push(conversation);
+    } else {
+      conversation.last_message_text = displayBody;
+      conversation.last_message_at = new Date();
+      conversation.whatsapp_account_id = account.id;
+      conversation.updated_at = new Date();
+    }
+    conversationId = conversation.id;
+
+    if (!store.whatsapp_messages) store.whatsapp_messages = [];
+    const newMsg = {
+      id: (store.whatsapp_messages.length || 0) + 1,
+      business_id: numBusinessId,
+      conversation_id: conversationId,
+      contact_id: contactId,
+      whatsapp_account_id: account.id,
+      meta_message_id: messageId,
+      direction: 'OUTBOUND',
+      message_type: messageType,
+      message_body: displayBody,
+      template_name: messageType === 'template' ? targetName : null,
+      template_components_json: messageType === 'template' ? JSON.stringify(targetComponents) : null,
+      message_status: 'sent',
+      sent_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+    store.whatsapp_messages.push(newMsg);
+    conversation.last_message_id = newMsg.id;
+    saveMemoryStore();
+
+    emitToTenant(numBusinessId, 'inbox:new_message', {
+      conversationId: conversation.id,
+      message: newMsg
+    });
+    emitToTenant(numBusinessId, 'inbox:conversation_updated', {
+      conversation
+    });
+  } else {
+    try {
+      const contactRows = await executeQuery('SELECT id FROM contacts WHERE business_id = ? AND phone = ? LIMIT 1', [numBusinessId, formattedPhone]);
+      if (contactRows && contactRows.length > 0) {
+        contactId = contactRows[0].id;
+      } else {
+        const insContact = await executeQuery(
+          'INSERT INTO contacts (business_id, phone, first_name, status, is_opted_in, tags, created_at, updated_at) VALUES (?, ?, ?, "active", 1, \'["test","whatsapp"]\', NOW(), NOW())',
+          [numBusinessId, formattedPhone, formattedPhone]
+        );
+        contactId = insContact.insertId;
+      }
+
+      let convRows = await executeQuery(
+        'SELECT id FROM whatsapp_conversations WHERE business_id = ? AND (customer_phone = ? OR contact_id = ?) LIMIT 1',
+        [numBusinessId, formattedPhone, contactId]
+      );
+      if (!convRows || convRows.length === 0) {
+        const insConv = await executeQuery(
+          `INSERT INTO whatsapp_conversations 
+           (business_id, whatsapp_account_id, contact_id, customer_phone, status, unread_count, 
+            last_message_text, last_message_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'open', 0, ?, NOW(), NOW(), NOW())`,
+          [numBusinessId, account.id, contactId, formattedPhone, displayBody]
+        );
+        conversationId = insConv.insertId;
+      } else {
+        conversationId = convRows[0].id;
+        await executeQuery(
+          `UPDATE whatsapp_conversations 
+           SET whatsapp_account_id = ?, last_message_text = ?, last_message_at = NOW(), updated_at = NOW() 
+           WHERE id = ?`,
+          [account.id, displayBody, conversationId]
+        );
+      }
+
+      const insMsg = await executeQuery(
+        `INSERT INTO whatsapp_messages 
+         (business_id, conversation_id, contact_id, whatsapp_account_id, meta_message_id, 
+          direction, message_type, message_body, template_name, template_components_json, 
+          message_status, sent_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'OUTBOUND', ?, ?, ?, ?, 'sent', NOW(), NOW(), NOW())`,
+        [
+          numBusinessId,
+          conversationId,
+          contactId,
+          account.id,
+          messageId,
+          messageType,
+          displayBody,
+          messageType === 'template' ? targetName : null,
+          messageType === 'template' ? JSON.stringify(targetComponents) : null
+        ]
+      );
+
+      await executeQuery(
+        'UPDATE whatsapp_conversations SET last_message_id = ? WHERE id = ?',
+        [insMsg.insertId, conversationId]
+      );
+
+      const fullConv = await executeQuery('SELECT * FROM whatsapp_conversations WHERE id = ? LIMIT 1', [conversationId]);
+
+      emitToTenant(numBusinessId, 'inbox:new_message', {
+        conversationId,
+        message: {
+          id: insMsg.insertId,
+          business_id: numBusinessId,
+          conversation_id: conversationId,
+          contact_id: contactId,
+          whatsapp_account_id: account.id,
+          meta_message_id: messageId,
+          direction: 'OUTBOUND',
+          message_type: messageType,
+          message_body: displayBody,
+          template_name: messageType === 'template' ? targetName : null,
+          template_components_json: messageType === 'template' ? JSON.stringify(targetComponents) : null,
+          message_status: 'sent',
+          sender_name: 'Test Sender',
+          sent_at: new Date(),
+          created_at: new Date()
+        }
+      });
+      emitToTenant(numBusinessId, 'inbox:conversation_updated', {
+        conversation: fullConv?.[0] || { id: conversationId, last_message_text: displayBody, last_message_at: new Date() }
+      });
+    } catch (saveErr) {
+      logger.error('[sendTestMessage] Failed to save test message to inbox conversation:', saveErr);
+    }
+  }
 
   return {
     success: true,

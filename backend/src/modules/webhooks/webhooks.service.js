@@ -66,7 +66,7 @@ export async function processWebhookPayload(payload) {
           (metaPhoneId && String(metaPhoneId) === '1341070215765610')
         ) {
           matchedBusinessId = 1;
-          matchedAccountId = 1;
+          matchedAccountId = 45;
         } else if (process.env.NODE_ENV === 'test' && !metaPhoneId) {
           matchedBusinessId = 1;
           matchedAccountId = 1;
@@ -79,7 +79,15 @@ export async function processWebhookPayload(payload) {
               matchedBusinessId = cr[0].business_id;
             } else {
               const msg = await executeQuery('SELECT business_id FROM messages WHERE provider_message_id = ? LIMIT 1', [firstMsgId]);
-              if (msg && msg.length > 0) matchedBusinessId = msg[0].business_id;
+              if (msg && msg.length > 0) {
+                matchedBusinessId = msg[0].business_id;
+              } else {
+                const wm = await executeQuery('SELECT business_id, whatsapp_account_id FROM whatsapp_messages WHERE meta_message_id = ? LIMIT 1', [firstMsgId]);
+                if (wm && wm.length > 0) {
+                  matchedBusinessId = wm[0].business_id;
+                  matchedAccountId = wm[0].whatsapp_account_id;
+                }
+              }
             }
           } catch (_) {}
         }
@@ -88,6 +96,30 @@ export async function processWebhookPayload(payload) {
           logger.warn(`[Webhook] Unrecognized WhatsApp account: phone_number_id="${metaPhoneId}", waba_id="${entryWabaId}". Safely dropping event for strict tenant isolation.`);
           continue;
         }
+      }
+
+      // Ensure matchedAccountId is always a valid ID from whatsapp_accounts to avoid FK constraint errors
+      if (!isUsingFallback() && matchedBusinessId) {
+        try {
+          const accCheck = await executeQuery('SELECT id FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1', [matchedAccountId || 0, matchedBusinessId]);
+          if (!accCheck || accCheck.length === 0) {
+            const realAcc = await executeQuery(
+              'SELECT id FROM whatsapp_accounts WHERE business_id = ? AND (phone_number_id = ? OR waba_id = ?) ORDER BY (phone_number_id = ?) DESC LIMIT 1',
+              [matchedBusinessId, metaPhoneId || '', entryWabaId || '', metaPhoneId || '']
+            );
+            if (realAcc && realAcc.length > 0) {
+              matchedAccountId = realAcc[0].id;
+            } else {
+              const primaryAcc = await executeQuery(
+                'SELECT id FROM whatsapp_accounts WHERE business_id = ? ORDER BY is_primary DESC, id ASC LIMIT 1',
+                [matchedBusinessId]
+              );
+              if (primaryAcc && primaryAcc.length > 0) {
+                matchedAccountId = primaryAcc[0].id;
+              }
+            }
+          }
+        } catch (_) {}
       }
 
       // 1. Process Message Status Updates (sent, delivered, read, failed)
