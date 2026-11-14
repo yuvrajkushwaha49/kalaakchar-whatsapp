@@ -63,9 +63,52 @@ export async function verifyPassword(req, res, next) {
   }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    const result = await authService.requestPasswordResetOtp(req.body);
+    res.json({
+      success: true,
+      message: 'Verification OTP has been sent to your email address.',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyOtp(req, res, next) {
+  try {
+    const result = await authService.verifyPasswordResetOtp(req.body);
+    res.json({
+      success: true,
+      message: 'OTP verified successfully.',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const result = await authService.resetPasswordWithToken(req.body);
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. Please log in with your new password.',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   register,
   login,
   logout,
-  me
+  me,
+  verifyPassword,
+  forgotPassword,
+  verifyOtp,
+  resetPassword
 };

@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
 import { signAccessToken, signRefreshToken } from '../../utils/jwt.js';
+import { sendPasswordResetOtpEmail } from '../../services/emailService.js';
 
 export async function register({ businessName, name, email, password, timezone = 'UTC' }) {
   // Check if email already exists
@@ -188,9 +190,179 @@ export async function verifyUserPassword(userId, password) {
   return { verified: true };
 }
 
+export async function requestPasswordResetOtp({ email }) {
+  const cleanEmail = email.trim().toLowerCase();
+
+  let user = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    user = store.users.find(u => u.email.toLowerCase() === cleanEmail);
+  } else {
+    const users = await executeQuery('SELECT id, name, email, business_id FROM users WHERE LOWER(email) = ? LIMIT 1', [cleanEmail]);
+    user = users[0] || null;
+  }
+
+  if (!user) {
+    const error = new Error('No account found with this email address.');
+    error.statusCode = 404;
+    error.code = 'USER_NOT_FOUND';
+    throw error;
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresInMinutes = 10;
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.password_resets) store.password_resets = [];
+    store.password_resets.push({
+      id: store.password_resets.length + 1,
+      email: cleanEmail,
+      otp,
+      reset_token: null,
+      attempts: 0,
+      is_verified: 0,
+      expires_at: expiresAt,
+      created_at: new Date()
+    });
+  } else {
+    await executeQuery(
+      'INSERT INTO password_resets (email, otp, attempts, is_verified, expires_at) VALUES (?, ?, 0, 0, ?)',
+      [cleanEmail, otp, expiresAt]
+    );
+  }
+
+  const emailRes = await sendPasswordResetOtpEmail({
+    to: user.email,
+    name: user.name,
+    otp,
+    expiresInMinutes
+  });
+
+  return {
+    email: user.email,
+    expiresInMinutes,
+    ...(emailRes.simulated || process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {})
+  };
+}
+
+export async function verifyPasswordResetOtp({ email, otp }) {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = String(otp).trim();
+
+  let resetRecord = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.password_resets) store.password_resets = [];
+    const active = store.password_resets
+      .filter(r => r.email.toLowerCase() === cleanEmail && !r.is_verified && new Date(r.expires_at) > new Date())
+      .sort((a, b) => b.id - a.id);
+    resetRecord = active[0] || null;
+  } else {
+    const rows = await executeQuery(
+      'SELECT * FROM password_resets WHERE LOWER(email) = ? AND is_verified = 0 AND expires_at > NOW() ORDER BY id DESC LIMIT 1',
+      [cleanEmail]
+    );
+    resetRecord = rows[0] || null;
+  }
+
+  if (!resetRecord) {
+    const error = new Error('Verification code has expired or is invalid. Please request a new code.');
+    error.statusCode = 400;
+    error.code = 'OTP_EXPIRED';
+    throw error;
+  }
+
+  if (resetRecord.attempts >= 5) {
+    const error = new Error('Too many invalid attempts. Please request a new verification code.');
+    error.statusCode = 429;
+    error.code = 'TOO_MANY_ATTEMPTS';
+    throw error;
+  }
+
+  if (resetRecord.otp !== cleanOtp) {
+    if (isUsingFallback()) {
+      resetRecord.attempts = (resetRecord.attempts || 0) + 1;
+    } else {
+      await executeQuery('UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?', [resetRecord.id]);
+    }
+    const currentAttempts = (resetRecord.attempts || 0) + 1;
+    const remaining = Math.max(0, 5 - currentAttempts);
+    const error = new Error(`Invalid verification code. ${remaining > 0 ? remaining + ' attempts remaining.' : 'Please request a new code.'}`);
+    error.statusCode = 400;
+    error.code = 'INVALID_OTP';
+    throw error;
+  }
+
+  const resetToken = crypto.randomUUID();
+
+  if (isUsingFallback()) {
+    resetRecord.is_verified = 1;
+    resetRecord.reset_token = resetToken;
+  } else {
+    await executeQuery(
+      'UPDATE password_resets SET is_verified = 1, reset_token = ? WHERE id = ?',
+      [resetToken, resetRecord.id]
+    );
+  }
+
+  return {
+    verified: true,
+    resetToken
+  };
+}
+
+export async function resetPasswordWithToken({ email, resetToken, newPassword }) {
+  const cleanEmail = email.trim().toLowerCase();
+
+  let resetRecord = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.password_resets) store.password_resets = [];
+    resetRecord = store.password_resets.find(
+      r => r.email.toLowerCase() === cleanEmail && r.reset_token === resetToken && r.is_verified && new Date(r.expires_at) > new Date()
+    );
+  } else {
+    const rows = await executeQuery(
+      'SELECT * FROM password_resets WHERE LOWER(email) = ? AND reset_token = ? AND is_verified = 1 AND expires_at > NOW() ORDER BY id DESC LIMIT 1',
+      [cleanEmail, resetToken]
+    );
+    resetRecord = rows[0] || null;
+  }
+
+  if (!resetRecord) {
+    const error = new Error('Reset session has expired or is invalid. Please request a new verification code.');
+    error.statusCode = 400;
+    error.code = 'INVALID_RESET_SESSION';
+    throw error;
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const user = store.users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (user) {
+      user.password_hash = passwordHash;
+      user.updated_at = new Date();
+    }
+    resetRecord.reset_token = null;
+    resetRecord.expires_at = new Date();
+  } else {
+    await executeQuery('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE LOWER(email) = ?', [passwordHash, cleanEmail]);
+    await executeQuery('UPDATE password_resets SET expires_at = NOW(), reset_token = NULL WHERE id = ?', [resetRecord.id]);
+  }
+
+  return { success: true, message: 'Password has been reset successfully' };
+}
+
 export default {
   register,
   login,
   getCurrentUser,
-  verifyUserPassword
+  verifyUserPassword,
+  requestPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPasswordWithToken
 };

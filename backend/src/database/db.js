@@ -44,7 +44,8 @@ const memoryStore = {
   whatsapp_message_media: [],
   whatsapp_conversation_assignments: [],
   whatsapp_conversation_notes: [],
-  whatsapp_conversation_events: []
+  whatsapp_conversation_events: [],
+  password_resets: []
 };
 
 // Real Meta Approved Templates for live Cloud API sending

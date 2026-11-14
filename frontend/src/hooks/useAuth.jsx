@@ -70,6 +70,21 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const forgotPassword = async (email) => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  };
+
+  const verifyOtp = async (email, otp) => {
+    const res = await api.post('/auth/verify-otp', { email, otp });
+    return res.data;
+  };
+
+  const resetPassword = async (email, resetToken, newPassword) => {
+    const res = await api.post('/auth/reset-password', { email, resetToken, newPassword });
+    return res.data;
+  };
+
   const hasRole = (allowedRoles = []) => {
     if (!user) return false;
     if (user.role === 'superadmin') return true;
@@ -79,7 +94,21 @@ export function AuthProvider({ children }) {
   const isSuperAdmin = () => user?.role === 'superadmin';
 
   return (
-    <AuthContext.Provider value={{ user, business, subscription, loading, login, register, logout, hasRole, isSuperAdmin, checkAuth }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      business, 
+      subscription, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      forgotPassword,
+      verifyOtp,
+      resetPassword,
+      hasRole, 
+      isSuperAdmin, 
+      checkAuth 
+    }}>
       {children}
     </AuthContext.Provider>
   );

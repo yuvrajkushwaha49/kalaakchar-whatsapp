@@ -80,6 +80,7 @@ export default function App() {
       <Route path="/whatsapp/callback" element={<WhatsAppOAuthCallback />} />
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<Login initialView="forgot" />} />
         <Route path="/register" element={<Register />} />
       </Route>
 

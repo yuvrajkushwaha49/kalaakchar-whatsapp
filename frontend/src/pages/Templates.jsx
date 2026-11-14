@@ -90,13 +90,24 @@ export default function Templates() {
       if (res.data?.success && Array.isArray(res.data.data)) {
         setAccounts(res.data.data);
         if (res.data.data.length > 0) {
-          const defaultAcc = res.data.data.find(a => a.is_default) || res.data.data[0];
+          const defaultAcc = res.data.data.find(a => a.is_primary) || res.data.data.find(a => a.is_default) || res.data.data[0];
           setFormAccountId(defaultAcc.id);
         }
       }
     } catch (err) {
       console.error('Failed to load accounts for templates', err);
     }
+  };
+
+  const handleOpenCreateModal = () => {
+    setFormError('');
+    if (selectedAccountId && selectedAccountId !== 'ALL') {
+      setFormAccountId(selectedAccountId);
+    } else if (accounts.length > 0) {
+      const defaultAcc = accounts.find(a => a.is_primary) || accounts.find(a => a.is_default) || accounts[0];
+      setFormAccountId(defaultAcc.id);
+    }
+    setShowCreateModal(true);
   };
 
   const fetchTemplates = async () => {
@@ -321,7 +332,7 @@ export default function Templates() {
         name: cleanName,
         category: formCategory,
         language: formLanguage,
-        accountId: formAccountId || undefined,
+        accountId: formAccountId ? Number(formAccountId) : undefined,
         header: headerType !== 'NONE' ? {
           type: headerType,
           text: headerText,
@@ -510,7 +521,7 @@ export default function Templates() {
             </button>
             <button
               type="button"
-              onClick={() => { setShowCreateModal(true); setFormError(''); }}
+              onClick={handleOpenCreateModal}
               className="mt-btn-create"
             >
               <i className="bi bi-plus-lg"></i>
@@ -721,7 +732,7 @@ export default function Templates() {
               <button onClick={handleSyncFromMeta} className="btn btn-outline-success btn-sm">
                 <i className="bi bi-arrow-repeat me-1"></i> Sync from Meta
               </button>
-              <button onClick={() => setShowCreateModal(true)} className="btn btn-success btn-sm">
+              <button onClick={handleOpenCreateModal} className="btn btn-success btn-sm">
                 <i className="bi bi-plus-circle me-1"></i> Create New Template
               </button>
             </div>

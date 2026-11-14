@@ -34,8 +34,11 @@ api.interceptors.response.use(
   (error) => {
     const isVerifyPassword = error.config?.url?.includes('/verify-password');
     const isLogin = error.config?.url?.includes('/login');
+    const isAuthRecovery = error.config?.url?.includes('/forgot-password') || 
+                           error.config?.url?.includes('/verify-otp') || 
+                           error.config?.url?.includes('/reset-password');
 
-    if (error.response && error.response.status === 401 && !isVerifyPassword && !isLogin) {
+    if (error.response && error.response.status === 401 && !isVerifyPassword && !isLogin && !isAuthRecovery) {
       // Clear token if expired or invalid
       localStorage.removeItem('cf_token');
       localStorage.removeItem('cf_user');

@@ -825,8 +825,31 @@ export async function getAccountWithCredentials(businessId, accountId = null) {
     return null;
   }
 
-  const decryptedToken = decryptToken(account.access_token_encrypted) || 
-                         account.access_token_encrypted;
+  let decryptedToken = decryptToken(account.access_token_encrypted);
+
+  // If token cannot be decrypted or is still formatted as ciphertext, try finding a working token from sibling accounts of same business
+  if (!decryptedToken || (typeof decryptedToken === 'string' && decryptedToken.includes(':'))) {
+    if (!isUsingFallback()) {
+      const siblingRows = await executeQuery(
+        'SELECT access_token_encrypted FROM whatsapp_accounts WHERE business_id = ? AND id != ? AND status = "connected"',
+        [numBusinessId, account.id]
+      );
+      for (const sib of siblingRows) {
+        const testDec = decryptToken(sib.access_token_encrypted);
+        if (testDec && !testDec.includes(':')) {
+          decryptedToken = testDec;
+          break;
+        }
+      }
+    }
+  }
+
+  // If still invalid, throw informative error instead of sending ciphertext to Meta
+  if (!decryptedToken || decryptedToken.includes(':')) {
+    const error = new Error('WhatsApp Access Token for this account is missing or expired. Please re-enter your Meta Access Token.');
+    error.statusCode = 401;
+    throw error;
+  }
 
   return {
     ...account,
