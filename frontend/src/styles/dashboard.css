@@ -455,6 +455,17 @@
   margin-bottom: 1.25rem;
 }
 
+.aiwavo-charts-row-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1.15fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.aiwavo-chart-row-full {
+  margin-bottom: 1.25rem;
+}
+
 .aiwavo-chart-badge {
   font-size: 0.68rem;
   font-weight: 700;
@@ -558,7 +569,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  height: 190px;
+  height: 210px;
 }
 
 .aiwavo-donut-wrapper {
@@ -1128,7 +1139,8 @@
 
   .aiwavo-charts-row,
   .aiwavo-charts-row-dual,
-  .aiwavo-charts-row-secondary {
+  .aiwavo-charts-row-secondary,
+  .aiwavo-charts-row-pair {
     grid-template-columns: 1fr;
   }
 

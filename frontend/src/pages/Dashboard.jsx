@@ -77,53 +77,53 @@ function DashboardSkeleton() {
           ))}
         </div>
 
-        {/* Row 3: Dual Charts Skeleton (Campaigns & All Messages) */}
-        <div className="aiwavo-charts-row-dual">
-          {/* Chart 1: Message Delivery Trend */}
+        {/* Row 3: Campaigns Pair Skeleton (Trend + Delivery Overview) */}
+        <div className="aiwavo-charts-row-pair">
+          {/* Chart 1: Campaigns Trend */}
           <div className="aiwavo-chart-card">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="aiwavo-skeleton" style={{ width: '170px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '190px', height: '18px' }}></div>
               <div className="aiwavo-skeleton" style={{ width: '120px', height: '14px' }}></div>
             </div>
             <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
           </div>
 
-          {/* Chart 2: All Messages Delivery Trend */}
+          {/* Chart 2: Campaigns Delivery Overview Donut */}
           <div className="aiwavo-chart-card">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="aiwavo-skeleton" style={{ width: '190px', height: '18px' }}></div>
-              <div className="aiwavo-skeleton" style={{ width: '150px', height: '14px' }}></div>
-            </div>
-            <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
-          </div>
-        </div>
-
-        {/* Row 3b: Delivery Overview Donuts & Contact Growth Skeleton */}
-        <div className="aiwavo-charts-row-secondary">
-          {/* Chart 3: Campaigns Delivery Overview Donut */}
-          <div className="aiwavo-chart-card">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="aiwavo-skeleton" style={{ width: '130px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '140px', height: '18px' }}></div>
               <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '60px', height: '16px' }}></div>
             </div>
             <div className="d-flex align-items-center justify-content-around py-3">
-              <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '120px', height: '120px' }}></div>
+              <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '130px', height: '130px' }}></div>
               <div className="d-flex flex-column gap-2" style={{ width: '110px' }}>
                 <div className="aiwavo-skeleton" style={{ width: '100%', height: '14px' }}></div>
                 <div className="aiwavo-skeleton" style={{ width: '80%', height: '14px' }}></div>
                 <div className="aiwavo-skeleton" style={{ width: '90%', height: '14px' }}></div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Row 3b: All Messages Pair Skeleton (Trend + Delivery Overview) */}
+        <div className="aiwavo-charts-row-pair">
+          {/* Chart 3: All Messages Trend */}
+          <div className="aiwavo-chart-card">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="aiwavo-skeleton" style={{ width: '200px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '150px', height: '14px' }}></div>
+            </div>
+            <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '210px', borderRadius: '12px' }}></div>
           </div>
 
           {/* Chart 4: All Messages Delivery Overview Donut */}
           <div className="aiwavo-chart-card">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="aiwavo-skeleton" style={{ width: '130px', height: '18px' }}></div>
+              <div className="aiwavo-skeleton" style={{ width: '140px', height: '18px' }}></div>
               <div className="aiwavo-skeleton aiwavo-skeleton-pill" style={{ width: '60px', height: '16px' }}></div>
             </div>
             <div className="d-flex align-items-center justify-content-around py-3">
-              <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '120px', height: '120px' }}></div>
+              <div className="aiwavo-skeleton aiwavo-skeleton-circle" style={{ width: '130px', height: '130px' }}></div>
               <div className="d-flex flex-column gap-2" style={{ width: '110px' }}>
                 <div className="aiwavo-skeleton" style={{ width: '100%', height: '14px' }}></div>
                 <div className="aiwavo-skeleton" style={{ width: '80%', height: '14px' }}></div>
@@ -131,10 +131,12 @@ function DashboardSkeleton() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Chart 5: Contact Growth */}
+        {/* Row 3c: Contact Growth Skeleton */}
+        <div className="aiwavo-chart-row-full">
           <div className="aiwavo-chart-card">
-            <div className="aiwavo-skeleton mb-3" style={{ width: '130px', height: '18px' }}></div>
+            <div className="aiwavo-skeleton mb-3" style={{ width: '140px', height: '18px' }}></div>
             <div className="aiwavo-skeleton aiwavo-skeleton-block" style={{ height: '190px', borderRadius: '12px' }}></div>
           </div>
         </div>
@@ -452,8 +454,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ================= Row 3: Dual Trend Charts (Campaigns + All Messages) ================= */}
-        <div className="aiwavo-charts-row-dual">
+        {/* ================= Row 3: Campaigns Pair (Trend + Delivery Overview) ================= */}
+        <div className="aiwavo-charts-row-pair">
           {/* Chart 1: Campaigns Delivery Trend */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
@@ -550,7 +552,64 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Chart 2: All Messages Delivery Trend (Combined Traffic) */}
+          {/* Chart 2: Campaigns Delivery Overview (Donut Chart) */}
+          <div className="aiwavo-chart-card">
+            <div className="aiwavo-chart-header">
+              <div className="d-flex align-items-center gap-2">
+                <h3 className="aiwavo-chart-title">Delivery Overview</h3>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Campaigns</span>
+              </div>
+            </div>
+            <div className="aiwavo-donut-container">
+              <div className="aiwavo-donut-wrapper">
+                <ResponsiveContainer width={130} height={130}>
+                  <PieChart>
+                    <Pie
+                      isAnimationActive={false}
+                      data={overviewTotal > 0 ? overviewBreakdown : [{ name: 'No Messages', pct: 100, count: 0, color: '#e2e8f0' }]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={63}
+                      dataKey="pct"
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      {(overviewTotal > 0 ? overviewBreakdown : [{ color: '#e2e8f0' }]).map((entry, index) => (
+                        <Cell key={`donut-camp-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="aiwavo-donut-center">
+                  <div className="aiwavo-donut-number">{overviewTotal.toLocaleString()}</div>
+                  <div className="aiwavo-donut-subtext">Message</div>
+                </div>
+              </div>
+
+              <div className="aiwavo-donut-legend">
+                {overviewBreakdown.map((item, idx) => (
+                  <div key={`legend-camp-${idx}`} className="aiwavo-donut-legend-item">
+                    <div className="aiwavo-donut-legend-left">
+                      <span
+                        className="aiwavo-legend-dot"
+                        style={{ background: item.color }}
+                      ></span>
+                      <span>{item.name}</span>
+                    </div>
+                    <div className="aiwavo-donut-legend-val">
+                      {item.pct}% ({item.count.toLocaleString()})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= Row 3b: All Messages Pair (Trend + Delivery Overview) ================= */}
+        <div className="aiwavo-charts-row-pair">
+          {/* Chart 3: All Messages Delivery Trend */}
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
               <div className="d-flex align-items-center gap-2">
@@ -662,63 +721,6 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
-
-        {/* ================= Row 3b: Delivery Overviews & Contact Growth ================= */}
-        <div className="aiwavo-charts-row-secondary">
-          {/* Chart 3: Campaigns Delivery Overview (Donut Chart) */}
-          <div className="aiwavo-chart-card">
-            <div className="aiwavo-chart-header">
-              <div className="d-flex align-items-center gap-2">
-                <h3 className="aiwavo-chart-title">Delivery Overview</h3>
-                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Campaigns</span>
-              </div>
-            </div>
-            <div className="aiwavo-donut-container">
-              <div className="aiwavo-donut-wrapper">
-                <ResponsiveContainer width={130} height={130}>
-                  <PieChart>
-                    <Pie
-                      isAnimationActive={false}
-                      data={overviewTotal > 0 ? overviewBreakdown : [{ name: 'No Messages', pct: 100, count: 0, color: '#e2e8f0' }]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={48}
-                      outerRadius={63}
-                      dataKey="pct"
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      {(overviewTotal > 0 ? overviewBreakdown : [{ color: '#e2e8f0' }]).map((entry, index) => (
-                        <Cell key={`donut-camp-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="aiwavo-donut-center">
-                  <div className="aiwavo-donut-number">{overviewTotal.toLocaleString()}</div>
-                  <div className="aiwavo-donut-subtext">Message</div>
-                </div>
-              </div>
-
-              <div className="aiwavo-donut-legend">
-                {overviewBreakdown.map((item, idx) => (
-                  <div key={`legend-camp-${idx}`} className="aiwavo-donut-legend-item">
-                    <div className="aiwavo-donut-legend-left">
-                      <span
-                        className="aiwavo-legend-dot"
-                        style={{ background: item.color }}
-                      ></span>
-                      <span>{item.name}</span>
-                    </div>
-                    <div className="aiwavo-donut-legend-val">
-                      {item.pct}% ({item.count.toLocaleString()})
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* Chart 4: All Messages Delivery Overview (Donut Chart) */}
           <div className="aiwavo-chart-card">
@@ -773,14 +775,19 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Chart 5: Contact Growth */}
+        {/* ================= Row 3c: Contact Growth ================= */}
+        <div className="aiwavo-chart-row-full">
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
-              <h3 className="aiwavo-chart-title">
-                <i className="bi bi-megaphone-fill aiwavo-chart-title-icon"></i>
-                Contact Growth
-              </h3>
+              <div className="d-flex align-items-center gap-2">
+                <h3 className="aiwavo-chart-title">
+                  <i className="bi bi-megaphone-fill aiwavo-chart-title-icon"></i>
+                  Contact Growth
+                </h3>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Audience</span>
+              </div>
             </div>
             <div className="aiwavo-chart-h190">
               <ResponsiveContainer width="100%" height={190}>
