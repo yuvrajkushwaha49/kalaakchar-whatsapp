@@ -50,6 +50,9 @@ export default function Inbox() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [templateVariables, setTemplateVariables] = useState({});
   const [sendingTemplate, setSendingTemplate] = useState(false);
+  const [templateFilterAcc, setTemplateFilterAcc] = useState('all');
+  const [templateSearchTerm, setTemplateSearchTerm] = useState('');
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   // Media Modal
   const [showMediaModal, setShowMediaModal] = useState(false);
@@ -190,6 +193,22 @@ export default function Inbox() {
       return true;
     });
   }, [messages]);
+
+  // Filtered Templates for Template Modal
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      const matchAcc = templateFilterAcc === 'all' || Number(t.whatsapp_account_id) === Number(templateFilterAcc);
+      if (!matchAcc) return false;
+      if (!templateSearchTerm.trim()) return true;
+      const q = templateSearchTerm.trim().toLowerCase();
+      const body = t.body_text || (Array.isArray(t.components) ? t.components.find(c => c.type === 'BODY')?.text : '') || '';
+      return (
+        t.name?.toLowerCase().includes(q) ||
+        t.category?.toLowerCase().includes(q) ||
+        body.toLowerCase().includes(q)
+      );
+    });
+  }, [templates, templateFilterAcc, templateSearchTerm]);
 
   // Auto-resize composer textarea
   useEffect(() => {
@@ -332,14 +351,19 @@ export default function Inbox() {
 
   const loadTemplates = async () => {
     try {
+      setLoadingTemplates(true);
       const res = await inboxApi.getApprovedTemplates();
       if (res.data?.success) {
         const approvedOnly = (res.data.data || []).filter(t => t.status === 'APPROVED');
         setTemplates(approvedOnly);
+        return approvedOnly;
       }
     } catch (err) {
       console.error('[Inbox] Error loading templates:', err);
+    } finally {
+      setLoadingTemplates(false);
     }
+    return [];
   };
 
   const loadMessages = async (convId) => {
@@ -564,7 +588,7 @@ export default function Inbox() {
         type: 'warning',
         text: 'The 24-hour customer service window has expired. You can only send approved WhatsApp Templates.'
       });
-      setShowTemplateModal(true);
+      handleOpenTemplateModal();
       return;
     }
 
@@ -597,7 +621,7 @@ export default function Inbox() {
       });
       if (isExpired) {
         setSelectedConversation(prev => ({ ...prev, is_window_open: false }));
-        setShowTemplateModal(true);
+        handleOpenTemplateModal();
       }
     } finally {
       setSending(false);
@@ -631,11 +655,48 @@ export default function Inbox() {
     return initial;
   };
 
-  const handleOpenTemplateModal = () => {
-    const defaultTpl = templates.find(t => t.name === 'welcome_msg') || templates[0] || null;
+  const handleOpenTemplateModal = async () => {
+    const convAccId = selectedConversation?.whatsapp_account_id;
+    const initialAcc = convAccId ? String(convAccId) : 'all';
+    setTemplateFilterAcc(initialAcc);
+    setTemplateSearchTerm('');
+
+    // If we already have templates in memory, initialize right away
+    let initialMatching = templates;
+    if (convAccId) {
+      const accMatches = templates.filter(t => Number(t.whatsapp_account_id) === Number(convAccId));
+      if (accMatches.length > 0) {
+        initialMatching = accMatches;
+      } else {
+        setTemplateFilterAcc('all');
+      }
+    }
+    const defaultTpl = initialMatching.find(t => t.name === 'welcome_msg') || initialMatching[0] || null;
     setSelectedTemplate(defaultTpl);
     setTemplateVariables(initTemplateVars(defaultTpl));
     setShowTemplateModal(true);
+
+    // Refresh approved templates from backend in background
+    try {
+      const freshTemplates = await loadTemplates();
+      if (freshTemplates && freshTemplates.length > 0) {
+        let freshMatching = freshTemplates;
+        if (convAccId) {
+          const accMatches = freshTemplates.filter(t => Number(t.whatsapp_account_id) === Number(convAccId));
+          if (accMatches.length > 0) {
+            freshMatching = accMatches;
+          }
+        }
+        setSelectedTemplate(prev => {
+          if (prev && freshTemplates.some(t => t.id === prev.id)) return prev;
+          const newDef = freshMatching.find(t => t.name === 'welcome_msg') || freshMatching[0] || null;
+          setTemplateVariables(initTemplateVars(newDef));
+          return newDef;
+        });
+      }
+    } catch (e) {
+      console.error('[Inbox] Error refreshing templates on modal open:', e);
+    }
   };
 
   const handleSendTemplate = async () => {
@@ -1711,15 +1772,84 @@ export default function Inbox() {
                 <div className="row g-3">
                   {/* Template Picker */}
                   <div className="col-md-5">
-                    <label className="form-label fw-semibold small text-dark mb-1">Choose Template</label>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <label className="form-label fw-semibold small text-dark mb-0">Choose Template</label>
+                      <span className="badge bg-light text-secondary border small">
+                        {loadingTemplates && (
+                          <span className="spinner-border spinner-border-sm me-1" style={{ width: '0.65rem', height: '0.65rem' }}></span>
+                        )}
+                        {filteredTemplates.length} Available
+                      </span>
+                    </div>
+
+                    {/* Channel & Search Filter */}
+                    <div className="mb-2 d-flex flex-column gap-1">
+                      {accounts && accounts.length > 1 && (
+                        <div className="input-group input-group-sm">
+                          <span className="input-group-text bg-light text-muted border-end-0 py-1" style={{ fontSize: '0.75rem' }}>
+                            <i className="bi bi-funnel"></i>
+                          </span>
+                          <select
+                            className="form-select form-select-sm border-start-0"
+                            style={{ fontSize: '0.8rem' }}
+                            value={templateFilterAcc}
+                            onChange={(e) => {
+                              const nextAcc = e.target.value;
+                              setTemplateFilterAcc(nextAcc);
+                              const match = templates.filter(t => {
+                                const mAcc = nextAcc === 'all' || Number(t.whatsapp_account_id) === Number(nextAcc);
+                                if (!mAcc) return false;
+                                if (!templateSearchTerm.trim()) return true;
+                                return t.name?.toLowerCase().includes(templateSearchTerm.toLowerCase());
+                              });
+                              if (match.length > 0 && (!selectedTemplate || !match.some(m => m.id === selectedTemplate.id))) {
+                                setSelectedTemplate(match[0]);
+                                setTemplateVariables(initTemplateVars(match[0]));
+                              }
+                            }}
+                          >
+                            <option value="all">All Channels ({templates.length})</option>
+                            {accounts.map(acc => {
+                              const cnt = templates.filter(t => Number(t.whatsapp_account_id) === Number(acc.id)).length;
+                              return (
+                                <option key={acc.id} value={acc.id}>
+                                  {acc.display_name || acc.verified_name || acc.account_name || 'Channel'} ({cnt})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      )}
+                      <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-white border-end-0 text-muted"><i className="bi bi-search"></i></span>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm border-start-0 ps-0"
+                          style={{ fontSize: '0.82rem' }}
+                          placeholder="Search templates..."
+                          value={templateSearchTerm}
+                          onChange={(e) => setTemplateSearchTerm(e.target.value)}
+                        />
+                        {templateSearchTerm && (
+                          <button
+                            className="btn btn-outline-secondary btn-sm"
+                            type="button"
+                            onClick={() => setTemplateSearchTerm('')}
+                          >
+                            <i className="bi bi-x"></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="list-group rounded-3 border" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                      {templates.length === 0 ? (
+                      {filteredTemplates.length === 0 ? (
                         <div className="p-4 text-center text-muted small">
                           <i className="bi bi-card-text fs-3 d-block mb-1 text-secondary opacity-50"></i>
-                          No approved templates found.
+                          {loadingTemplates ? 'Loading approved templates...' : 'No approved templates found.'}
                         </div>
                       ) : (
-                        templates.map((t) => (
+                        filteredTemplates.map((t) => (
                           <button
                             key={t.id}
                             type="button"
@@ -1732,9 +1862,16 @@ export default function Inbox() {
                             <div className="fw-bold small">{t.name}</div>
                             <div className="d-flex justify-content-between align-items-center small mt-1">
                               <span className="opacity-75">{t.category}</span>
-                              <span className={`badge ${selectedTemplate?.id === t.id ? 'bg-white text-dark' : 'bg-success-subtle text-success'}`}>
-                                Approved
-                              </span>
+                              <div className="d-flex align-items-center gap-1">
+                                {t.language && (
+                                  <span className={`badge ${selectedTemplate?.id === t.id ? 'bg-light text-dark' : 'bg-secondary-subtle text-secondary'}`} style={{ fontSize: '0.65rem' }}>
+                                    {t.language}
+                                  </span>
+                                )}
+                                <span className={`badge ${selectedTemplate?.id === t.id ? 'bg-white text-dark' : 'bg-success-subtle text-success'}`}>
+                                  Approved
+                                </span>
+                              </div>
                             </div>
                           </button>
                         ))

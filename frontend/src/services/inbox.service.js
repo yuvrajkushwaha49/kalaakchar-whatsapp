@@ -25,7 +25,7 @@ export const inboxApi = {
 
   // Analytics & Reference Data
   getStats: (params = {}) => api.get('/whatsapp/inbox/stats', { params }),
-  getApprovedTemplates: () => api.get('/whatsapp/templates'),
+  getApprovedTemplates: (params = {}) => api.get('/whatsapp/templates', { params: { status: 'APPROVED', limit: 100, ...params } }),
   getTeamMembers: () => api.get('/users')
 };
 
