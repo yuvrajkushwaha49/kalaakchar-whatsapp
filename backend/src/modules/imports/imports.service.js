@@ -81,7 +81,7 @@ export async function previewCsv(csvText) {
 /**
  * Execute CSV Import Job with row-level validation and consent protection
  */
-export async function executeImport(businessId, userId, { csvText, fileName = 'contacts.csv', columnMapping, consentSource = 'csv_verified_records', defaultCountryCode = '91' }) {
+export async function executeImport(businessId, userId, { csvText, fileName = 'contacts.csv', columnMapping, consentSource = 'csv_verified_records', defaultCountryCode = '91', batchTag = '' }) {
   const { headers, rows } = parseCsvText(csvText);
 
   const phoneCol = columnMapping.phone;
@@ -130,6 +130,46 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
   let duplicates = 0;
   const contactIds = [];
   const rowReports = [];
+
+  const applyTagsToContact = async (contactId, rowTag) => {
+    const tagsToApply = [];
+    if (batchTag && String(batchTag).trim()) {
+      const splitTags = String(batchTag).split(',').map(t => t.trim()).filter(Boolean);
+      tagsToApply.push(...splitTags);
+    }
+    if (rowTag && String(rowTag).trim()) {
+      tagsToApply.push(String(rowTag).trim());
+    }
+    const uniqueTags = Array.from(new Set(tagsToApply));
+    if (uniqueTags.length === 0) return;
+
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      for (const tagName of uniqueTags) {
+        let tagRecord = store.tags.find(t => t.business_id === Number(businessId) && t.name.toLowerCase() === tagName.toLowerCase());
+        if (!tagRecord) {
+          tagRecord = { id: store.tags.length + 1, business_id: Number(businessId), name: tagName, color: '#0d6efd', created_at: new Date() };
+          store.tags.push(tagRecord);
+        }
+        const already = store.contact_tags.some(ct => ct.business_id === Number(businessId) && ct.contact_id === contactId && ct.tag_id === tagRecord.id);
+        if (!already) {
+          store.contact_tags.push({ id: store.contact_tags.length + 1, business_id: Number(businessId), contact_id: contactId, tag_id: tagRecord.id });
+        }
+      }
+    } else {
+      for (const tagName of uniqueTags) {
+        let tagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ? LIMIT 1', [businessId, tagName]);
+        let tagId;
+        if (tagRows.length === 0) {
+          const tRes = await executeQuery('INSERT INTO tags (business_id, name) VALUES (?, ?)', [businessId, tagName]);
+          tagId = tRes.insertId;
+        } else {
+          tagId = tagRows[0].id;
+        }
+        await executeQuery('INSERT IGNORE INTO contact_tags (business_id, contact_id, tag_id) VALUES (?, ?, ?)', [businessId, contactId, tagId]);
+      }
+    }
+  };
 
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 1;
@@ -193,6 +233,9 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
         );
       }
 
+      // Apply batch & row tags to existing contact
+      await applyTagsToContact(Number(existing.id), tag);
+
       successful++;
       contactIds.push(Number(existing.id));
       rowReports.push({ row_number: rowNum, phone, status: 'imported', error_reason: 'Existing contact updated' });
@@ -244,14 +287,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       });
 
       // Handle tag
-      if (tag) {
-        let tagRecord = store.tags.find(t => t.business_id === Number(businessId) && t.name.toLowerCase() === tag.toLowerCase());
-        if (!tagRecord) {
-          tagRecord = { id: store.tags.length + 1, business_id: Number(businessId), name: tag, color: '#0d6efd', created_at: new Date() };
-          store.tags.push(tagRecord);
-        }
-        store.contact_tags.push({ id: store.contact_tags.length + 1, business_id: Number(businessId), contact_id: newContactId, tag_id: tagRecord.id });
-      }
+      await applyTagsToContact(newContactId, tag);
     } else {
       const insertRes = await executeQuery(
         `INSERT INTO contacts (business_id, phone, country_code, name, email, is_opted_in, status)
@@ -267,17 +303,8 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
         [businessId, contactId, consentSource, `Import file: ${fileName}, Row ${rowNum}`]
       );
 
-      if (tag) {
-        let tagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ? LIMIT 1', [businessId, tag]);
-        let tagId;
-        if (tagRows.length === 0) {
-          const tRes = await executeQuery('INSERT INTO tags (business_id, name) VALUES (?, ?)', [businessId, tag]);
-          tagId = tRes.insertId;
-        } else {
-          tagId = tagRows[0].id;
-        }
-        await executeQuery('INSERT IGNORE INTO contact_tags (business_id, contact_id, tag_id) VALUES (?, ?, ?)', [businessId, contactId, tagId]);
-      }
+      // Handle tag
+      await applyTagsToContact(contactId, tag);
     }
 
     successful++;

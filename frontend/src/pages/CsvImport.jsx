@@ -4,13 +4,13 @@ import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
 import '../styles/dashboard.css';
 
-const SAMPLE_CSV = `phone,name,email,tag,consent
-9811122233,Ananya Gupta,ananya@test.com,VIP Customer,yes
-9822233344,Vikram Malhotra,vikram@test.com,Diwali Festival 2026,yes
-9833344455,Sunita Rao,sunita@test.com,Weekend Shopper,yes
-9844455566,Rohan Mehra,rohan@test.com,VIP Customer,yes
-9844455566,Rohan Duplicate,rohan@test.com,VIP Customer,yes
-9877700011,Karan Johar,karan@test.com,Unverified Lead,no`;
+const SAMPLE_CSV = `phone,name,email,consent
+9811122233,Ananya Gupta,ananya@test.com,yes
+9822233344,Vikram Malhotra,vikram@test.com,yes
+9833344455,Sunita Rao,sunita@test.com,yes
+9844455566,Rohan Mehra,rohan@test.com,yes
+9844455566,Rohan Duplicate,rohan@test.com,yes
+9877700011,Karan Johar,karan@test.com,no`;
 
 export default function CsvImport() {
   const outletContext = useOutletContext();
@@ -33,10 +33,24 @@ export default function CsvImport() {
   const [importHistory, setImportHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [batchTag, setBatchTag] = useState('');
+  const [availableTags, setAvailableTags] = useState([]);
 
   useEffect(() => {
     fetchHistory();
+    fetchTags();
   }, []);
+
+  const fetchTags = async () => {
+    try {
+      const res = await api.get('/contacts/tags');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAvailableTags(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Failed to load existing tags', err);
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -101,6 +115,7 @@ export default function CsvImport() {
         csvText,
         fileName,
         columnMapping,
+        batchTag: batchTag.trim(),
         consentSource: 'csv_upload_batch',
         defaultCountryCode: '91'
       });
@@ -261,7 +276,7 @@ export default function CsvImport() {
               <textarea
                 className="em-textarea"
                 rows="6"
-                placeholder="phone,name,email,tag,consent..."
+                placeholder="phone,name,email,consent..."
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
               ></textarea>
@@ -340,17 +355,83 @@ export default function CsvImport() {
               </div>
 
               <div className="col-12 col-md-6 col-lg-3">
-                <label className="form-label fw-bold text-dark small">Segment Tag Column</label>
+                <label className="form-label fw-bold text-dark small">Segment Tag Column (Optional)</label>
                 <select
                   className="form-select rounded-3 shadow-none"
                   value={columnMapping.tag}
                   onChange={(e) => setColumnMapping({ ...columnMapping, tag: e.target.value })}
                 >
-                  <option value="">-- None / Skip --</option>
+                  <option value="">-- None / Skip (Use Batch Tag) --</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <div className="form-text small text-muted">Audience clustering tag</div>
+                <div className="form-text small text-muted">Leave empty if using batch tag</div>
               </div>
+            </div>
+
+            {/* Batch Tag Input for Entire CSV */}
+            <div className="p-3 bg-light rounded-3 border mb-4">
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px', fontSize: '0.85rem' }}>
+                    <i className="bi bi-tags-fill"></i>
+                  </div>
+                  <div>
+                    <label className="form-label fw-bold text-dark small mb-0">
+                      Assign Tag(s) to Entire CSV Import
+                    </label>
+                    <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                      Pure CSV ke sabhi contacts ko ek sath ye tag assign ho jayega (broadcast campaigns & audience segmentation ke liye).
+                    </div>
+                  </div>
+                </div>
+                <span className="badge bg-white text-secondary border small">Batch Tagging</span>
+              </div>
+
+              <div className="input-group input-group-sm mb-2">
+                <span className="input-group-text bg-white text-muted"><i className="bi bi-tag"></i></span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Diwali Festival 2026, VIP Customer, New Leads..."
+                  value={batchTag}
+                  onChange={(e) => setBatchTag(e.target.value)}
+                />
+                {batchTag && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setBatchTag('')}
+                  >
+                    <i className="bi bi-x"></i>
+                  </button>
+                )}
+              </div>
+
+              {availableTags && availableTags.length > 0 && (
+                <div className="d-flex align-items-center flex-wrap gap-1 mt-1">
+                  <span className="text-muted small me-1" style={{ fontSize: '0.75rem' }}>Select existing tag:</span>
+                  {availableTags.map(t => {
+                    const isSelected = batchTag.includes(t.name);
+                    return (
+                      <button
+                        key={t.id || t.name}
+                        type="button"
+                        className={`btn btn-sm py-0 px-2 rounded-pill ${isSelected ? 'btn-success text-white' : 'btn-outline-secondary bg-white'}`}
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => {
+                          if (!batchTag) {
+                            setBatchTag(t.name);
+                          } else if (!batchTag.includes(t.name)) {
+                            setBatchTag(`${batchTag}, ${t.name}`);
+                          }
+                        }}
+                      >
+                        {isSelected ? '✓ ' : '+ '}{t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Consent Notice */}

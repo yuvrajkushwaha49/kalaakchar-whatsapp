@@ -15,7 +15,7 @@ export async function preview(req, res, next) {
 
 export async function execute(req, res, next) {
   try {
-    const { csvText, fileName, columnMapping, consentSource, defaultCountryCode } = req.body;
+    const { csvText, fileName, columnMapping, consentSource, defaultCountryCode, batchTag } = req.body;
     if (!csvText || !columnMapping) {
       return res.status(400).json({ success: false, error: { message: 'csvText and columnMapping are required' } });
     }
@@ -24,7 +24,8 @@ export async function execute(req, res, next) {
       fileName,
       columnMapping,
       consentSource,
-      defaultCountryCode
+      defaultCountryCode,
+      batchTag
     });
     res.json({ success: true, message: 'Import processed successfully', data: result });
   } catch (error) {
