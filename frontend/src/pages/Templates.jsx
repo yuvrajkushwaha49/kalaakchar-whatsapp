@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
@@ -76,6 +76,8 @@ export default function Templates() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const isFirstMountRef = useRef(true);
+
   useEffect(() => {
     fetchAccounts();
   }, []);
@@ -83,6 +85,18 @@ export default function Templates() {
   useEffect(() => {
     fetchTemplates();
   }, [activeFilter, categoryFilter, languageFilter, selectedAccountId]);
+
+  // Debounce search query so typing automatically updates templates and stats
+  useEffect(() => {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetchTemplates();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchAccounts = async () => {
     try {

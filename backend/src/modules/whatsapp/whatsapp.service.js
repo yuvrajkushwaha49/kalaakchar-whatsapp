@@ -1231,42 +1231,43 @@ export async function listTemplates(businessId, query = {}) {
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const allBusinessTemplates = store.templates.filter(t => t.business_id === Number(businessId));
-
-    // Calculate real stats for this business
-    const stats = {
-      total: allBusinessTemplates.length,
-      approved: allBusinessTemplates.filter(t => t.status === 'APPROVED').length,
-      pending: allBusinessTemplates.filter(t => t.status === 'PENDING').length,
-      rejected: allBusinessTemplates.filter(t => t.status === 'REJECTED').length,
-      paused_or_disabled: allBusinessTemplates.filter(t => t.status === 'PAUSED' || t.status === 'DISABLED').length
-    };
-
-    let filtered = [...allBusinessTemplates];
+    let contextualTemplates = store.templates.filter(t => t.business_id === Number(businessId));
 
     if (accountId && accountId !== 'ALL') {
-      filtered = filtered.filter(t => t.whatsapp_account_id === Number(accountId));
+      contextualTemplates = contextualTemplates.filter(t => t.whatsapp_account_id === Number(accountId));
     }
     if (category && category !== 'ALL') {
-      filtered = filtered.filter(t => t.category?.toUpperCase() === category.toUpperCase());
+      contextualTemplates = contextualTemplates.filter(t => t.category?.toUpperCase() === category.toUpperCase());
     }
+    if (language && language !== 'ALL') {
+      contextualTemplates = contextualTemplates.filter(t => t.language?.toLowerCase() === language.toLowerCase());
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      contextualTemplates = contextualTemplates.filter(t => 
+        t.name?.toLowerCase().includes(q) || 
+        t.meta_template_id?.toLowerCase().includes(q) ||
+        JSON.stringify(t.components || []).toLowerCase().includes(q)
+      );
+    }
+
+    // Calculate real stats for this business matching active contextual filters
+    const stats = {
+      total: contextualTemplates.length,
+      approved: contextualTemplates.filter(t => t.status === 'APPROVED').length,
+      pending: contextualTemplates.filter(t => t.status === 'PENDING').length,
+      rejected: contextualTemplates.filter(t => t.status === 'REJECTED').length,
+      paused_or_disabled: contextualTemplates.filter(t => t.status === 'PAUSED' || t.status === 'DISABLED').length
+    };
+
+    let filtered = [...contextualTemplates];
+
     if (status && status !== 'ALL') {
       if (status === 'PAUSED_DISABLED') {
         filtered = filtered.filter(t => t.status === 'PAUSED' || t.status === 'DISABLED');
       } else {
         filtered = filtered.filter(t => t.status?.toUpperCase() === status.toUpperCase());
       }
-    }
-    if (language && language !== 'ALL') {
-      filtered = filtered.filter(t => t.language?.toLowerCase() === language.toLowerCase());
-    }
-    if (search && search.trim()) {
-      const q = search.trim().toLowerCase();
-      filtered = filtered.filter(t => 
-        t.name?.toLowerCase().includes(q) || 
-        t.meta_template_id?.toLowerCase().includes(q) ||
-        JSON.stringify(t.components || []).toLowerCase().includes(q)
-      );
     }
 
     const totalFiltered = filtered.length;
@@ -1285,7 +1286,29 @@ export async function listTemplates(businessId, query = {}) {
   }
 
   // MySQL Execution
-  // 1. Compute stats
+  // 1. Compute stats respecting active filters (accountId, category, language, search)
+  let statsWhereClauses = ['business_id = ?'];
+  const statsParams = [businessId];
+
+  if (accountId && accountId !== 'ALL') {
+    statsWhereClauses.push('whatsapp_account_id = ?');
+    statsParams.push(Number(accountId));
+  }
+  if (category && category !== 'ALL') {
+    statsWhereClauses.push('category = ?');
+    statsParams.push(category);
+  }
+  if (language && language !== 'ALL') {
+    statsWhereClauses.push('language = ?');
+    statsParams.push(language);
+  }
+  if (search && search.trim()) {
+    statsWhereClauses.push('(name LIKE ? OR meta_template_id LIKE ?)');
+    statsParams.push(`%${search.trim()}%`, `%${search.trim()}%`);
+  }
+
+  const statsWhereSql = statsWhereClauses.join(' AND ');
+
   const statsRows = await executeQuery(
     `SELECT 
       COUNT(*) AS total,
@@ -1294,8 +1317,8 @@ export async function listTemplates(businessId, query = {}) {
       SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) AS rejected,
       SUM(CASE WHEN status IN ('PAUSED', 'DISABLED') THEN 1 ELSE 0 END) AS paused_or_disabled
      FROM templates 
-     WHERE business_id = ?`,
-    [businessId]
+     WHERE ${statsWhereSql}`,
+    statsParams
   );
 
   const stats = {
