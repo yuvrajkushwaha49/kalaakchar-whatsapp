@@ -447,9 +447,10 @@ h6,
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: calc(100vw - 260px);
-  max-width: calc(100vw - 260px);
+  width: calc(100% - 260px);
+  max-width: calc(100% - 260px);
   min-width: 0;
+  box-sizing: border-box;
   background-color: var(--cf-light-bg);
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -844,8 +845,8 @@ h6,
 
   .app-wrapper.sidebar-open .main-content {
     margin-left: 260px;
-    width: calc(100vw - 260px);
-    max-width: calc(100vw - 260px);
+    width: calc(100% - 260px);
+    max-width: calc(100% - 260px);
   }
 
   /* When Collapsed: Small Navbar Mode (Desktop) */
@@ -856,8 +857,8 @@ h6,
 
   .app-wrapper.sidebar-collapsed .main-content {
     margin-left: 86px;
-    width: calc(100vw - 86px);
-    max-width: calc(100vw - 86px);
+    width: calc(100% - 86px);
+    max-width: calc(100% - 86px);
   }
 
   /* Small Navbar: Brand Header (Icon centered, Close BTN on edge in front of Icon) */
@@ -1032,8 +1033,8 @@ h6,
 
   .main-content {
     margin-left: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .content-container {

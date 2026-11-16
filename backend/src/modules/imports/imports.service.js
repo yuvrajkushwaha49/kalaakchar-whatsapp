@@ -131,6 +131,36 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
   const contactIds = [];
   const rowReports = [];
 
+  // Cache existing contacts and tags to eliminate thousands of slow round-trips
+  const existingContactsMap = new Map();
+  const tagCache = new Map();
+
+  if (!isUsingFallback()) {
+    try {
+      const existingRows = await executeQuery(
+        'SELECT id, phone, status, is_opted_in FROM contacts WHERE business_id = ?',
+        [businessId]
+      );
+      for (const row of existingRows) {
+        existingContactsMap.set(String(row.phone), row);
+      }
+    } catch (err) {
+      console.warn('[Imports] Pre-fetch contacts warning:', err.message);
+    }
+
+    try {
+      const tagRows = await executeQuery(
+        'SELECT id, name FROM tags WHERE business_id = ?',
+        [businessId]
+      );
+      for (const t of tagRows) {
+        tagCache.set(String(t.name).toLowerCase(), t.id);
+      }
+    } catch (err) {
+      console.warn('[Imports] Pre-fetch tags warning:', err.message);
+    }
+  }
+
   const applyTagsToContact = async (contactId, rowTag) => {
     const tagsToApply = [];
     if (batchTag && String(batchTag).trim()) {
@@ -158,13 +188,12 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       }
     } else {
       for (const tagName of uniqueTags) {
-        let tagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ? LIMIT 1', [businessId, tagName]);
-        let tagId;
-        if (tagRows.length === 0) {
+        const lowerName = tagName.toLowerCase();
+        let tagId = tagCache.get(lowerName);
+        if (!tagId) {
           const tRes = await executeQuery('INSERT INTO tags (business_id, name) VALUES (?, ?)', [businessId, tagName]);
           tagId = tRes.insertId;
-        } else {
-          tagId = tagRows[0].id;
+          tagCache.set(lowerName, tagId);
         }
         await executeQuery('INSERT IGNORE INTO contact_tags (business_id, contact_id, tag_id) VALUES (?, ?, ?)', [businessId, contactId, tagId]);
       }
@@ -198,14 +227,16 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
     }
     seenPhonesInFile.add(phone);
 
-    // 3. Database lookup for tenant
-    const existingContacts = await executeQuery(
-      'SELECT id, status, is_opted_in FROM contacts WHERE business_id = ? AND phone = ? LIMIT 1',
-      [businessId, phone]
-    );
+    // 3. In-memory fast contact lookup for tenant
+    let existing = null;
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      existing = store.contacts.find(c => c.business_id === Number(businessId) && c.phone === phone);
+    } else {
+      existing = existingContactsMap.get(phone);
+    }
 
-    if (existingContacts && existingContacts.length > 0) {
-      const existing = existingContacts[0];
+    if (existing) {
       // CRITICAL COMPLIANCE RULE: If previously unsubscribed, NEVER auto-resubscribe
       if (existing.status === 'unsubscribed' || Number(existing.is_opted_in) === 0) {
         duplicates++;
@@ -262,7 +293,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       const store = getMemoryStore();
       const newContactId = store.contacts.length + 1;
       insertedContactId = newContactId;
-      store.contacts.push({
+      const newContact = {
         id: newContactId,
         business_id: Number(businessId),
         phone,
@@ -273,7 +304,8 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
         status: 'active',
         custom_fields: {},
         created_at: new Date()
-      });
+      };
+      store.contacts.push(newContact);
 
       store.contact_consents.push({
         id: store.contact_consents.length + 1,
@@ -296,6 +328,9 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       );
       const contactId = insertRes.insertId;
       insertedContactId = contactId;
+
+      // Add to in-memory map so subsequent rows in same import recognize it
+      existingContactsMap.set(phone, { id: contactId, phone, status: 'active', is_opted_in: 1 });
 
       await executeQuery(
         `INSERT INTO contact_consents (business_id, contact_id, consent_status, consent_source, consent_category, proof_notes)
@@ -332,11 +367,17 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       [rows.length, successful, failed, duplicates, `${successful} imported, ${duplicates} duplicates skipped, ${failed} failed`, jobId]
     );
 
-    // Save row-level error reports (for failed or skipped)
-    for (const rep of rowReports.filter(r => r.status !== 'imported').slice(0, 100)) {
+    // Save row-level error reports (for failed or skipped) in a fast single batch query
+    const failedOrSkipped = rowReports.filter(r => r.status !== 'imported').slice(0, 100);
+    if (failedOrSkipped.length > 0) {
+      const placeholders = failedOrSkipped.map(() => '(?, ?, ?, ?, ?)').join(', ');
+      const values = [];
+      for (const rep of failedOrSkipped) {
+        values.push(jobId, rep.row_number, rep.phone || '', rep.status, rep.error_reason || '');
+      }
       await executeQuery(
-        'INSERT INTO import_rows (job_id, `row_number`, phone, status, error_reason) VALUES (?, ?, ?, ?, ?)',
-        [jobId, rep.row_number, rep.phone || '', rep.status, rep.error_reason]
+        `INSERT INTO import_rows (job_id, \`row_number\`, phone, status, error_reason) VALUES ${placeholders}`,
+        values
       );
     }
   }
