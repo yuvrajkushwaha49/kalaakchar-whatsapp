@@ -968,10 +968,39 @@ function executeFallbackQuery(sql, params = []) {
     if (memoryStore[insertTable]) {
       const newId = memoryStore[insertTable].length > 0 ? Math.max(...memoryStore[insertTable].map(x => x.id || 0)) + 1 : 1;
       const newRecord = { id: newId, created_at: new Date(), updated_at: new Date() };
+      if (insertTable === 'import_jobs') {
+        newRecord.business_id = Number(params[0]);
+        newRecord.user_id = Number(params[1]);
+        newRecord.file_name = params[2];
+        newRecord.file_size = params[3];
+        newRecord.total_rows = params[4];
+        newRecord.processed_rows = 0;
+        newRecord.successful_rows = 0;
+        newRecord.failed_rows = 0;
+        newRecord.duplicate_rows = 0;
+        newRecord.status = 'processing';
+      }
       memoryStore[insertTable].push(newRecord);
       return { insertId: newId, affectedRows: 1 };
     }
     return { insertId: 1, affectedRows: 1 };
+  }
+
+  // 8. UPDATE import_jobs
+  if (upper.startsWith('UPDATE IMPORT_JOBS')) {
+    const lastParam = params[params.length - 1];
+    const job = memoryStore.import_jobs?.find(j => j.id === Number(lastParam));
+    if (job) {
+      job.processed_rows = params[0];
+      job.successful_rows = params[1];
+      job.failed_rows = params[2];
+      job.duplicate_rows = params[3];
+      if (params.length > 5) {
+        job.status = params[4];
+        job.error_summary = params[5];
+      }
+    }
+    return { affectedRows: 1, changedRows: 1 };
   }
 
   // 8. Generic UPDATE

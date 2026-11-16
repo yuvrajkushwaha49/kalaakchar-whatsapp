@@ -41,6 +41,55 @@ export default function CsvImport() {
     fetchTags();
   }, []);
 
+  // Polling for active background import job progress
+  useEffect(() => {
+    let timer = null;
+    const activeJobId = importResult?.id || importResult?.jobId;
+    const isProcessing = importResult?.status === 'processing';
+
+    if (activeJobId && isProcessing) {
+      timer = setInterval(async () => {
+        try {
+          const res = await api.get(`/imports/${activeJobId}`);
+          if (res.data?.success && res.data.data) {
+            const job = res.data.data;
+            setImportResult(prev => ({
+              ...prev,
+              ...job,
+              totalRows: job.total_rows,
+              processedRows: job.processed_rows,
+              successful: job.successful_rows,
+              duplicates: job.duplicate_rows,
+              failed: job.failed_rows,
+              status: job.status
+            }));
+
+            if (job.status === 'completed' || job.status === 'failed') {
+              clearInterval(timer);
+              // Fetch error rows audit report
+              try {
+                const errRes = await api.get(`/imports/${activeJobId}/errors`);
+                if (errRes.data?.success) {
+                  setImportResult(prev => ({
+                    ...prev,
+                    rowReports: errRes.data.data || []
+                  }));
+                }
+              } catch (_) {}
+              fetchHistory();
+            }
+          }
+        } catch (e) {
+          console.warn('[Imports] Polling error:', e);
+        }
+      }, 1500);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [importResult?.id, importResult?.jobId, importResult?.status]);
+
   const fetchTags = async () => {
     try {
       const res = await api.get('/contacts/tags');
@@ -500,35 +549,74 @@ export default function CsvImport() {
         {step === 3 && importResult && (
           <div className="em-card">
             <div className="em-card-header">
-              <h2 className="em-card-title text-success d-flex align-items-center gap-2">
-                <i className="bi bi-check-circle-fill"></i>
-                Import Completed Successfully
-              </h2>
+              {importResult.status === 'processing' ? (
+                <h2 className="em-card-title text-primary d-flex align-items-center gap-2">
+                  <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
+                  Import Processing in Background...
+                </h2>
+              ) : importResult.status === 'failed' ? (
+                <h2 className="em-card-title text-danger d-flex align-items-center gap-2">
+                  <i className="bi bi-x-circle-fill"></i>
+                  Import Failed
+                </h2>
+              ) : (
+                <h2 className="em-card-title text-success d-flex align-items-center gap-2">
+                  <i className="bi bi-check-circle-fill"></i>
+                  Import Completed Successfully
+                </h2>
+              )}
             </div>
+
+            {/* Background Live Progress Bar */}
+            {importResult.status === 'processing' && (
+              <div className="mb-4 p-3 bg-light rounded-3 border">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-semibold text-dark small">
+                    Processing Contacts: {importResult.processed_rows || importResult.processedRows || 0} / {importResult.total_rows || importResult.totalRows || 0} rows
+                  </span>
+                  <span className="badge bg-primary text-white">
+                    {Math.min(100, Math.round(((importResult.processed_rows || importResult.processedRows || 0) / (importResult.total_rows || importResult.totalRows || 1)) * 100))}%
+                  </span>
+                </div>
+                <div className="progress" style={{ height: '10px', borderRadius: '6px' }}>
+                  <div
+                    className="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                    role="progressbar"
+                    style={{
+                      width: `${Math.min(100, Math.round(((importResult.processed_rows || importResult.processedRows || 0) / (importResult.total_rows || importResult.totalRows || 1)) * 100))}%`
+                    }}
+                  ></div>
+                </div>
+                <div className="text-muted small mt-2 d-flex align-items-center gap-1">
+                  <i className="bi bi-info-circle text-primary"></i>
+                  <span>Aap is page par reh sakte hain ya doosre tab par jaa sakte hain — contacts background me aaram se securely save ho rahe hain.</span>
+                </div>
+              </div>
+            )}
             
             <div className="row g-3 text-center mb-4">
               <div className="col-3">
                 <div className="p-3 border rounded-3 bg-light">
                   <div className="text-muted small">Total Rows</div>
-                  <div className="fs-3 fw-bold text-dark">{importResult.totalRows}</div>
+                  <div className="fs-3 fw-bold text-dark">{importResult.total_rows || importResult.totalRows || 0}</div>
                 </div>
               </div>
               <div className="col-3">
                 <div className="p-3 border rounded-3 bg-success-subtle">
                   <div className="text-success small fw-semibold">Imported / Updated</div>
-                  <div className="fs-3 fw-bold text-success">{importResult.successful}</div>
+                  <div className="fs-3 fw-bold text-success">{importResult.successful_rows ?? importResult.successful ?? 0}</div>
                 </div>
               </div>
               <div className="col-3">
                 <div className="p-3 border rounded-3 bg-warning-subtle">
                   <div className="text-warning small fw-semibold">Duplicates Skipped</div>
-                  <div className="fs-3 fw-bold text-warning">{importResult.duplicates}</div>
+                  <div className="fs-3 fw-bold text-warning">{importResult.duplicate_rows ?? importResult.duplicates ?? 0}</div>
                 </div>
               </div>
               <div className="col-3">
                 <div className="p-3 border rounded-3 bg-danger-subtle">
                   <div className="text-danger small fw-semibold">Failed / Ineligible</div>
-                  <div className="fs-3 fw-bold text-danger">{importResult.failed}</div>
+                  <div className="fs-3 fw-bold text-danger">{importResult.failed_rows ?? importResult.failed ?? 0}</div>
                 </div>
               </div>
             </div>
@@ -619,10 +707,19 @@ export default function CsvImport() {
                       <td className="text-warning fw-bold">{job.duplicate_rows}</td>
                       <td className="text-danger fw-bold">{job.failed_rows}</td>
                       <td>
-                        <span className="badge-status badge-approved">{job.status}</span>
+                        {job.status === 'processing' ? (
+                          <span className="badge bg-primary d-inline-flex align-items-center gap-1">
+                            <span className="spinner-border spinner-border-sm" style={{ width: '10px', height: '10px' }} role="status"></span>
+                            Processing ({job.processed_rows || 0}/{job.total_rows})
+                          </span>
+                        ) : job.status === 'completed' ? (
+                          <span className="badge bg-success">completed</span>
+                        ) : (
+                          <span className="badge bg-danger">{job.status}</span>
+                        )}
                       </td>
                       <td className="text-muted small">
-                        {new Date(job.created_at).toLocaleDateString()}
+                        {new Date(job.created_at).toLocaleString()}
                       </td>
                     </tr>
                   ))

@@ -51,9 +51,22 @@ export async function errors(req, res, next) {
   }
 }
 
+export async function getJob(req, res, next) {
+  try {
+    const job = await importsService.getImportJob(req.businessId, req.params.id);
+    if (!job) {
+      return res.status(404).json({ success: false, error: { message: 'Import job not found' } });
+    }
+    res.json({ success: true, data: job });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   preview,
   execute,
   list,
+  getJob,
   errors
 };

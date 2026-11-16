@@ -11,5 +11,6 @@ router.post('/preview', requireRole(['owner', 'admin', 'marketer']), importsCont
 router.post('/execute', requireRole(['owner', 'admin', 'marketer']), importsController.execute);
 router.get('/', importsController.list);
 router.get('/:id/errors', importsController.errors);
+router.get('/:id', importsController.getJob);
 
 export default router;
