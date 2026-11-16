@@ -10,7 +10,7 @@ const SAMPLE_CSV = `phone,name,email,consent
 9833344455,Sunita Rao,sunita@test.com,yes
 9844455566,Rohan Mehra,rohan@test.com,yes
 9844455566,Rohan Duplicate,rohan@test.com,yes
-9877700011,Karan Johar,karan@test.com,no`;
+9877700011,Karan Johar,karan@test.com,yes`;
 
 export default function CsvImport() {
   const outletContext = useOutletContext();
@@ -311,8 +311,8 @@ export default function CsvImport() {
               </div>
             </div>
 
-            <div className="row g-4 mb-4">
-              <div className="col-12 col-md-6 col-lg-3">
+            <div className="row g-3 mb-4">
+              <div className="col-12 col-md-6 col-lg-4">
                 <label className="form-label fw-bold text-dark small">
                   Phone Column <span className="text-danger">*</span>
                 </label>
@@ -328,7 +328,7 @@ export default function CsvImport() {
                 <div className="form-text small text-muted">Mandatory for WhatsApp sending</div>
               </div>
 
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-md-6 col-lg-4">
                 <label className="form-label fw-bold text-dark small">Name Column</label>
                 <select
                   className="form-select rounded-3 shadow-none"
@@ -341,7 +341,7 @@ export default function CsvImport() {
                 <div className="form-text small text-muted">Used for template variable substitution</div>
               </div>
 
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-md-6 col-lg-4">
                 <label className="form-label fw-bold text-dark small">Email Column</label>
                 <select
                   className="form-select rounded-3 shadow-none"
@@ -354,17 +354,30 @@ export default function CsvImport() {
                 <div className="form-text small text-muted">Secondary contact identifier</div>
               </div>
 
-              <div className="col-12 col-md-6 col-lg-3">
+              <div className="col-12 col-md-6 col-lg-6">
                 <label className="form-label fw-bold text-dark small">Segment Tag Column (Optional)</label>
                 <select
                   className="form-select rounded-3 shadow-none"
                   value={columnMapping.tag}
                   onChange={(e) => setColumnMapping({ ...columnMapping, tag: e.target.value })}
                 >
-                  <option value="">-- None / Skip (Use Batch Tag) --</option>
+                  <option value="">-- None / Skip (Use Batch Tag Below) --</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
                 <div className="form-text small text-muted">Leave empty if using batch tag</div>
+              </div>
+
+              <div className="col-12 col-md-6 col-lg-6">
+                <label className="form-label fw-bold text-dark small">Consent / Opt-In Column (Optional)</label>
+                <select
+                  className="form-select rounded-3 shadow-none"
+                  value={columnMapping.consent || ''}
+                  onChange={(e) => setColumnMapping({ ...columnMapping, consent: e.target.value })}
+                >
+                  <option value="">-- Auto Opt-In All (Recommended) --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+                <div className="form-text small text-muted">Keep as Auto Opt-In unless CSV has explicit Yes/No values</div>
               </div>
             </div>
 

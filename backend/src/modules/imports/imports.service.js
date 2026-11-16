@@ -65,8 +65,6 @@ export async function previewCsv(csvText) {
       mappingSuggestions.email = h;
     } else if (lower.includes('tag')) {
       mappingSuggestions.tag = h;
-    } else if (lower.includes('consent') || lower.includes('optin')) {
-      mappingSuggestions.consent = h;
     }
   });
 
@@ -273,16 +271,23 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
       continue;
     }
 
-    // 4. Verify explicit consent from CSV record
-    const hasConsent = rowConsentRaw === 'yes' || rowConsentRaw === 'true' || rowConsentRaw === '1' || rowConsentRaw === 'opted_in';
-    if (!hasConsent) {
-      // Ineligible contact due to missing consent
+    // 4. Verify consent: reject ONLY if explicitly opted-out in CSV ('no', 'false', '0', 'opted_out', 'unsubscribed')
+    let isExplicitOptOut = false;
+    if (consentCol && row[consentCol] !== undefined && row[consentCol] !== null) {
+      const rawVal = String(row[consentCol]).toLowerCase().trim();
+      if (rawVal === 'no' || rawVal === 'false' || rawVal === '0' || rawVal === 'opted_out' || rawVal === 'unsubscribed' || rawVal === 'rejected') {
+        isExplicitOptOut = true;
+      }
+    }
+
+    if (isExplicitOptOut) {
+      // Ineligible contact due to explicit opt-out
       failed++;
       rowReports.push({
         row_number: rowNum,
         phone,
         status: 'failed',
-        error_reason: 'Consent record missing or rejected in CSV (must be explicitly opted in).'
+        error_reason: 'Explicitly marked as opt-out/no in CSV consent column.'
       });
       continue;
     }
