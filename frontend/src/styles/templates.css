@@ -977,6 +977,9 @@
   padding: 0rem 1rem 1rem 1rem;
   background: #f8fafc;
   min-height: calc(100vh - 72px);
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 @media (max-width: 991px) {
@@ -1084,14 +1087,16 @@
 /* 2. 5 KPI Stat Cards */
 .mt-stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.85rem;
   margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1200px) {
   .mt-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1283,13 +1288,22 @@
 /* 4. Template Cards Grid */
 .mt-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* When left sidebar is open on laptop/desktop screens (<= 1400px), 3 columns cause card clipping. Switch smoothly to 2 columns */
+@media (max-width: 1399px) {
+  .app-wrapper.sidebar-open .mt-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1100px) {
   .mt-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1309,6 +1323,9 @@
   justify-content: space-between;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   transition: all 0.2s ease;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mt-template-card:hover {
@@ -1535,6 +1552,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .mt-btn-quick-test {
