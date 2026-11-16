@@ -2838,6 +2838,30 @@
   gap: 0.45rem;
 }
 
+.cnt-btn-chat {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #059669;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cnt-btn-chat:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
 .cnt-btn-view {
   background: #ffffff;
   border: 1px solid #60a5fa;

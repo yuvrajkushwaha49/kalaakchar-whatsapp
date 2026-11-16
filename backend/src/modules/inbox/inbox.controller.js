@@ -45,6 +45,17 @@ export async function getConversation(req, res, next) {
   }
 }
 
+export async function initiateConversation(req, res, next) {
+  try {
+    const businessId = req.businessId;
+    const { contactId, phone, name, accountId } = req.body;
+    const conversation = await inboxService.initiateConversation(businessId, { contactId, phone, name, accountId });
+    res.json({ success: true, data: conversation });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getMessages(req, res, next) {
   try {
     const businessId = req.businessId;

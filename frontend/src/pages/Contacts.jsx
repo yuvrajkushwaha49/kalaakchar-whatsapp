@@ -397,6 +397,15 @@ export default function Contacts() {
                         <td className="text-end">
                           <div className="cnt-actions-wrap">
                             <Link
+                              to={`/inbox?contactId=${c.id}&phone=${encodeURIComponent(c.phone || '')}&name=${encodeURIComponent(c.name || '')}`}
+                              className="cnt-btn-chat"
+                              title="Open in WhatsApp Inbox & Send Template"
+                            >
+                              <i className="bi bi-whatsapp"></i>
+                              <span>Template / Chat</span>
+                            </Link>
+
+                            <Link
                               to={`/contacts/${c.id}`}
                               className="cnt-btn-view"
                               title="View Contact Profile & History"

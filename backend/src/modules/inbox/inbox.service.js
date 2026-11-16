@@ -1382,9 +1382,124 @@ export async function getInboxStats(businessId, user, accountId = null) {
   };
 }
 
+/**
+ * 15. Initiate or find an existing conversation by Contact / Phone number
+ */
+export async function initiateConversation(businessId, payload = {}) {
+  const numBusinessId = Number(businessId);
+  const { contactId, phone, name, accountId } = payload;
+  let cleanPhone = String(phone || '').trim();
+  if (cleanPhone && !cleanPhone.startsWith('+')) cleanPhone = `+${cleanPhone}`;
+
+  let targetContactId = contactId ? Number(contactId) : null;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    if (!store.contacts) store.contacts = [];
+    let contact = store.contacts.find(c => c.business_id === numBusinessId && (c.id === targetContactId || (cleanPhone && c.phone === cleanPhone)));
+    if (!contact && cleanPhone) {
+      contact = {
+        id: (store.contacts.length || 0) + 1,
+        business_id: numBusinessId,
+        name: name || cleanPhone,
+        phone: cleanPhone,
+        status: 'active',
+        is_opted_in: 1,
+        created_at: new Date()
+      };
+      store.contacts.push(contact);
+    }
+    if (contact) targetContactId = contact.id;
+
+    if (!store.whatsapp_accounts) store.whatsapp_accounts = [];
+    const accounts = store.whatsapp_accounts.filter(a => a.business_id === numBusinessId && (a.status === 'connected' || a.connection_status === 'CONNECTED'));
+    const targetAccount = accountId ? accounts.find(a => a.id === Number(accountId)) : (accounts.find(a => a.is_primary) || accounts[0] || store.whatsapp_accounts[0]);
+    if (!targetAccount) {
+      throw new Error('No WhatsApp account found to initiate conversation. Please connect a WhatsApp number first.');
+    }
+
+    if (!store.whatsapp_conversations) store.whatsapp_conversations = [];
+    let conv = store.whatsapp_conversations.find(c => c.business_id === numBusinessId && c.whatsapp_account_id === targetAccount.id && (c.customer_phone === cleanPhone || (targetContactId && c.contact_id === targetContactId)));
+    if (!conv) {
+      const maxId = Math.max(0, ...store.whatsapp_conversations.map(c => c.id || 0));
+      conv = {
+        id: maxId + 1,
+        business_id: numBusinessId,
+        whatsapp_account_id: targetAccount.id,
+        contact_id: targetContactId,
+        customer_phone: cleanPhone,
+        status: 'open',
+        unread_count: 0,
+        last_message_text: 'Conversation initiated',
+        last_message_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      store.whatsapp_conversations.push(conv);
+    }
+
+    return getConversation(numBusinessId, conv.id);
+  } else {
+    // MySQL implementation
+    let contact = null;
+    if (targetContactId) {
+      const cRows = await executeQuery('SELECT * FROM contacts WHERE id = ? AND business_id = ? LIMIT 1', [targetContactId, numBusinessId]);
+      contact = cRows?.[0];
+    }
+    if (!contact && cleanPhone) {
+      const cRows = await executeQuery('SELECT * FROM contacts WHERE phone = ? AND business_id = ? LIMIT 1', [cleanPhone, numBusinessId]);
+      contact = cRows?.[0];
+      if (!contact) {
+        const ins = await executeQuery('INSERT INTO contacts (business_id, name, phone, status, is_opted_in, created_at, updated_at) VALUES (?, ?, ?, "active", 1, NOW(), NOW())', [numBusinessId, name || cleanPhone, cleanPhone]);
+        targetContactId = ins.insertId;
+      } else {
+        targetContactId = contact.id;
+      }
+    }
+
+    // Resolve WhatsApp Account for sending
+    let accRows = [];
+    if (accountId) {
+      accRows = await executeQuery('SELECT id, phone_number, display_name FROM whatsapp_accounts WHERE id = ? AND business_id = ? LIMIT 1', [Number(accountId), numBusinessId]);
+    }
+    if (!accRows || accRows.length === 0) {
+      accRows = await executeQuery('SELECT id, phone_number, display_name FROM whatsapp_accounts WHERE business_id = ? AND (status = "connected" OR connection_status = "CONNECTED") ORDER BY is_primary DESC, id ASC LIMIT 1', [numBusinessId]);
+    }
+    if (!accRows || accRows.length === 0) {
+      accRows = await executeQuery('SELECT id, phone_number, display_name FROM whatsapp_accounts WHERE business_id = ? ORDER BY is_primary DESC, id ASC LIMIT 1', [numBusinessId]);
+    }
+    if (!accRows || accRows.length === 0) {
+      throw new Error('No WhatsApp account found to initiate conversation. Please connect a WhatsApp number in Manage Your WhatsApp Accounts.');
+    }
+    const targetAccount = accRows[0];
+
+    // Find or create conversation
+    let convRows = await executeQuery(
+      'SELECT id FROM whatsapp_conversations WHERE business_id = ? AND whatsapp_account_id = ? AND (customer_phone = ? OR (contact_id IS NOT NULL AND contact_id = ?)) LIMIT 1',
+      [numBusinessId, targetAccount.id, cleanPhone, targetContactId]
+    );
+
+    let convId;
+    if (convRows && convRows.length > 0) {
+      convId = convRows[0].id;
+    } else {
+      const insConv = await executeQuery(
+        `INSERT INTO whatsapp_conversations 
+         (business_id, whatsapp_account_id, contact_id, customer_phone, status, unread_count, last_message_text, last_message_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'open', 0, 'Conversation started', NOW(), NOW(), NOW())`,
+        [numBusinessId, targetAccount.id, targetContactId, cleanPhone]
+      );
+      convId = insConv.insertId;
+    }
+
+    return getConversation(numBusinessId, convId);
+  }
+}
+
 export default {
   listConversations,
   getConversation,
+  initiateConversation,
   getMessages,
   sendTextMessage,
   sendTemplateMessage,

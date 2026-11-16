@@ -13,6 +13,7 @@ router.get('/inbox/stats', inboxController.getStats);
 
 // Conversations Routes
 router.get('/conversations', inboxController.getConversations);
+router.post('/conversations/initiate', inboxController.initiateConversation);
 router.get('/conversations/:id', inboxController.getConversation);
 
 // Conversation Actions

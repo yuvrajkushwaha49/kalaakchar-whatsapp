@@ -279,25 +279,14 @@ export default function ContactDetail() {
 
         {/* Action Controls */}
         <div className="d-flex flex-wrap align-items-center gap-2">
-          {conversationId ? (
-            <Link
-              to="/inbox"
-              className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
-              title="Open WhatsApp chat with this contact"
-            >
-              <i className="bi bi-whatsapp"></i>
-              <span>Open in Inbox</span>
-            </Link>
-          ) : (
-            <Link
-              to="/inbox"
-              className="btn btn-outline-success btn-sm d-flex align-items-center gap-1"
-              title="Start a WhatsApp conversation"
-            >
-              <i className="bi bi-chat-dots-fill"></i>
-              <span>Start WhatsApp Chat</span>
-            </Link>
-          )}
+          <Link
+            to={`/inbox?contactId=${contact?.id}&phone=${encodeURIComponent(contact?.phone || '')}&name=${encodeURIComponent(contact?.name || '')}`}
+            className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm fw-semibold"
+            title="Open in WhatsApp Inbox & Send Template"
+          >
+            <i className="bi bi-whatsapp"></i>
+            <span>Chat / Send Template</span>
+          </Link>
 
           <button
             onClick={() => {

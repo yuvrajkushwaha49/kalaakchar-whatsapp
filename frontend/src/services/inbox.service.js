@@ -3,6 +3,7 @@ import api from './api';
 export const inboxApi = {
   // Conversations
   getConversations: (params = {}) => api.get('/whatsapp/conversations', { params }),
+  initiateConversation: (payload) => api.post('/whatsapp/conversations/initiate', payload),
   getConversation: (id) => api.get(`/whatsapp/conversations/${id}`),
   
   // Messages

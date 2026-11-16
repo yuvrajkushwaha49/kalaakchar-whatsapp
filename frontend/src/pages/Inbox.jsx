@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import inboxApi from '../services/inbox.service';
 import api from '../services/api';
 import { initSocket, getSocket } from '../services/socket';
@@ -7,6 +8,11 @@ import '../styles/inbox.css';
 
 export default function Inbox() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const targetContactId = searchParams.get('contactId');
+  const targetPhone = searchParams.get('phone');
+  const targetName = searchParams.get('name');
+  const handledTargetRef = useRef(false);
 
   // Multi-Account Selection State
   const [accounts, setAccounts] = useState([]);
@@ -131,6 +137,45 @@ export default function Inbox() {
       }
     };
   }, []); // Run strictly once on mount!
+
+  // 1.1 Deep-link Contact: If navigated from Contacts page with ?contactId=...&phone=...
+  useEffect(() => {
+    if ((targetContactId || targetPhone) && !handledTargetRef.current) {
+      handledTargetRef.current = true;
+      const initiateAndSelect = async () => {
+        try {
+          setLoadingConversations(true);
+          const res = await inboxApi.initiateConversation({
+            contactId: targetContactId,
+            phone: targetPhone,
+            name: targetName
+          });
+          if (res.data?.success && res.data.data) {
+            const targetConv = res.data.data;
+            setConversations(prev => {
+              const exists = prev.find(c => c.id === targetConv.id);
+              if (exists) {
+                return prev.map(c => c.id === targetConv.id ? { ...c, ...targetConv } : c);
+              }
+              return [targetConv, ...prev];
+            });
+            setSelectedConversation(targetConv);
+            // Auto open the Template selector modal so user can immediately send an approved template!
+            setTimeout(() => {
+              setShowTemplateModal(true);
+            }, 350);
+          }
+        } catch (err) {
+          console.error('[Inbox] Failed to initiate conversation with contact:', err);
+          setAlertMsg({ type: 'danger', text: err.response?.data?.message || err.message || 'Failed to open conversation for contact.' });
+        } finally {
+          setLoadingConversations(false);
+        }
+      };
+
+      initiateAndSelect();
+    }
+  }, [targetContactId, targetPhone, targetName]);
 
   // 2. Fetch conversations smoothly when filter, debounced search, or account changes
   useEffect(() => {
