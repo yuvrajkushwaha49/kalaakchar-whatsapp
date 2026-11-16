@@ -461,7 +461,8 @@ export default function WhatsAppAccounts() {
           </div>
         </div>
 
-        {/* Multi-Account Info Banner (Matching Reference Image) */}
+        {/* Multi-Account Info Banner (Matching Reference Image) - Temporarily Commented Out */}
+        {/*
         {accounts.length > 0 && !loading && (
           <div className="wa-info-banner">
             <div className="wa-info-icon-circle">
@@ -478,6 +479,7 @@ export default function WhatsAppAccounts() {
             </div>
           </div>
         )}
+        */}
 
         {/* Meta Developer In-Software Control Center (Restricted to SuperAdmin Only) */}
         {isSuperAdmin() && accounts.length > 0 && !loading && (
