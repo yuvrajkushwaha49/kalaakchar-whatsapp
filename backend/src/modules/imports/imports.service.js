@@ -335,7 +335,7 @@ export async function executeImport(businessId, userId, { csvText, fileName = 'c
     // Save row-level error reports (for failed or skipped)
     for (const rep of rowReports.filter(r => r.status !== 'imported').slice(0, 100)) {
       await executeQuery(
-        'INSERT INTO import_rows (job_id, row_number, phone, status, error_reason) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO import_rows (job_id, `row_number`, phone, status, error_reason) VALUES (?, ?, ?, ?, ?)',
         [jobId, rep.row_number, rep.phone || '', rep.status, rep.error_reason]
       );
     }
@@ -370,7 +370,7 @@ export async function getImportErrors(businessId, jobId) {
     `SELECT ir.* FROM import_rows ir
      JOIN import_jobs ij ON ir.job_id = ij.id
      WHERE ij.business_id = ? AND ij.id = ?
-     ORDER BY ir.row_number ASC`,
+     ORDER BY ir.\`row_number\` ASC`,
     [businessId, jobId]
   );
 }
