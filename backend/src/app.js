@@ -65,13 +65,14 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Capture raw body for Meta webhook signature verification
+// Capture raw body for Meta webhook signature verification & support large CSV/Excel uploads (up to 50MB)
 app.use(express.json({
+  limit: '50mb',
   verify: (req, res, buf) => {
     req.rawBody = buf.toString();
   }
 }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
