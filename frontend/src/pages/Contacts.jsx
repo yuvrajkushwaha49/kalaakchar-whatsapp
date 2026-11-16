@@ -299,7 +299,6 @@ export default function Contacts() {
                   <th>Customer / Name</th>
                   <th>Phone (E.164)</th>
                   <th>Tags</th>
-                  <th>Consent Status</th>
                   <th>Marketing Eligibility</th>
                   <th className="text-end">Actions</th>
                 </tr>
@@ -307,14 +306,14 @@ export default function Contacts() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-5">
+                    <td colSpan="5" className="text-center py-5">
                       <div className="spinner-border text-success" role="status"></div>
                       <div className="text-muted small mt-2">Loading contacts...</div>
                     </td>
                   </tr>
                 ) : contacts.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">
+                    <td colSpan="5" className="text-center py-5 text-muted">
                       No contacts found matching your search. Add contacts manually or upload a CSV!
                     </td>
                   </tr>
@@ -369,17 +368,6 @@ export default function Contacts() {
                               <span className="text-muted small">No tags</span>
                             )}
                           </div>
-                        </td>
-                        <td>
-                          {isOptedIn ? (
-                            <span className="cnt-pill-opted">
-                              <i className="bi bi-check-circle"></i> OPTED IN
-                            </span>
-                          ) : (
-                            <span className="cnt-pill-unsub">
-                              <i className="bi bi-slash-circle"></i> UNSUBSCRIBED
-                            </span>
-                          )}
                         </td>
                         <td>
                           {isOptedIn && c.status === 'active' ? (
