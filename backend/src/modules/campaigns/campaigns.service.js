@@ -358,11 +358,18 @@ export async function createCampaign(businessId, { name, purpose, whatsappAccoun
 
   logger.info(`[CreateCampaign] Found ${contacts.length} recipients for Campaign #${campaignId} (Status: ${initialStatus})`);
 
-  for (const c of contacts) {
+  // Bulk INSERT recipients in batches of 500 for high performance and low server load
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
+    const chunk = contacts.slice(i, i + BATCH_SIZE);
+    const placeholders = chunk.map(() => '(?, ?, ?, ?, "pending")').join(', ');
+    const values = [];
+    for (const c of chunk) {
+      values.push(businessId, campaignId, c.id, c.phone);
+    }
     await executeQuery(
-      `INSERT INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status)
-       VALUES (?, ?, ?, ?, 'pending')`,
-      [businessId, campaignId, c.id, c.phone]
+      `INSERT IGNORE INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status) VALUES ${placeholders}`,
+      values
     );
   }
 
@@ -655,11 +662,18 @@ export async function resendCampaign(businessId, campaignId, { target = 'all', m
     );
     const newCampaignId = newCampRes.insertId;
 
-    for (const rec of targetRecipients) {
+    // Bulk INSERT recipients in batches of 500
+    const RESEND_BATCH = 500;
+    for (let i = 0; i < targetRecipients.length; i += RESEND_BATCH) {
+      const chunk = targetRecipients.slice(i, i + RESEND_BATCH);
+      const placeholders = chunk.map(() => '(?, ?, ?, ?, "pending", NOW())').join(', ');
+      const values = [];
+      for (const rec of chunk) {
+        values.push(bId, newCampaignId, rec.contact_id, rec.phone);
+      }
       await executeQuery(
-        `INSERT INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status, created_at)
-         VALUES (?, ?, ?, ?, 'pending', NOW())`,
-        [bId, newCampaignId, rec.contact_id, rec.phone]
+        `INSERT IGNORE INTO campaign_recipients (business_id, campaign_id, contact_id, phone, status, created_at) VALUES ${placeholders}`,
+        values
       );
     }
 

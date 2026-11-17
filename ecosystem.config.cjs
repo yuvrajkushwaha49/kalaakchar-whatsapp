@@ -14,12 +14,15 @@ module.exports = {
     },
     {
       name: 'campaignflow-worker',
-      script: 'src/queues/campaignQueue.js',
+      script: 'src/workers/campaignWorker.js',
       cwd: './backend',
       instances: 1,
       exec_mode: 'fork',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        CAMPAIGN_BATCH_SIZE: 50,
+        CAMPAIGN_PACING_MS: 25,
+        CAMPAIGN_POLL_INTERVAL_MS: 1500
       }
     },
     {

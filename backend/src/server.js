@@ -4,6 +4,7 @@ import { checkConnection } from './database/db.js';
 import { initSocketServer } from './socket.js';
 import { startCampaignScheduler, stopCampaignScheduler } from './services/campaignScheduler.js';
 import { startImportWorker } from './workers/importWorker.js';
+import { startCampaignWorker } from './workers/campaignWorker.js';
 import logger from './utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -22,14 +23,17 @@ async function startServer() {
   // Initialize automated background campaign scheduler
   startCampaignScheduler(15000);
 
-  // Initialize automated background import worker (if not running as separate worker process)
+  // Initialize automated background workers (if not running as separate worker processes)
   if (!RUN_STANDALONE_WORKER) {
-    logger.info('⚙️ [Server] Starting embedded import queue worker...');
+    logger.info('⚙️ [Server] Starting embedded import & campaign background workers...');
     startImportWorker().catch(err => {
       logger.error('⚠️ [Server] Embedded import worker encountered error:', err.message);
     });
+    startCampaignWorker().catch(err => {
+      logger.error('⚠️ [Server] Embedded campaign worker encountered error:', err.message);
+    });
   } else {
-    logger.info('ℹ️ [Server] Running in standalone worker mode (Worker handled via dedicated process)');
+    logger.info('ℹ️ [Server] Running in standalone worker mode (Workers handled via dedicated PM2 processes)');
   }
 
   httpServer.listen(PORT, () => {
