@@ -12,12 +12,26 @@ export default function CampaignBuilder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [toastMsg, setToastMsg] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const showToast = (type, text) => {
     setToastMsg({ type, text });
     setTimeout(() => {
       setToastMsg((curr) => (curr?.text === text ? null : curr));
     }, 4500);
+  };
+
+  const setFieldError = (field, message) => {
+    setFieldErrors(prev => ({ ...prev, [field]: message }));
+  };
+
+  const clearFieldError = (field) => {
+    setFieldErrors(prev => {
+      if (!prev[field]) return prev;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
   };
 
   // Form State
@@ -187,6 +201,7 @@ export default function CampaignBuilder() {
     const id = Number(accountId);
     setSelectedAccountIds([id]);
     setError('');
+    clearFieldError('senderAccount');
 
     // Filter templates specifically for this selected account
     const accTemplates = templates.filter(t =>
@@ -484,22 +499,36 @@ export default function CampaignBuilder() {
   };
 
   const handleStep1Next = () => {
+    let hasError = false;
+
     if (!campaignName.trim()) {
+      setFieldError('campaignName', 'Campaign Name is required. Please fill in the Campaign Name.');
       showToast('warning', 'Please enter a Campaign Name before proceeding.');
-      setError('Campaign Name is required. Please fill in the Campaign Name field.');
       const nameInput = document.getElementById('campaignNameInput');
       if (nameInput) {
         nameInput.focus();
         nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      return;
+      hasError = true;
+    } else {
+      clearFieldError('campaignName');
     }
 
     if (selectedAccountIds.length === 0) {
-      showToast('warning', 'Please select at least one WhatsApp Sender Account to proceed.');
-      setError('Please select at least one WhatsApp Sender Account.');
-      return;
+      setFieldError('senderAccount', 'Sending WhatsApp Account is required. Please select a sender number.');
+      if (!hasError) {
+        showToast('warning', 'Please select at least one WhatsApp Sender Account to proceed.');
+        const senderSec = document.getElementById('senderAccountsSection');
+        if (senderSec) {
+          senderSec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+      hasError = true;
+    } else {
+      clearFieldError('senderAccount');
     }
+
+    if (hasError) return;
 
     setError('');
     setStep(2);
@@ -512,38 +541,54 @@ export default function CampaignBuilder() {
 
       if (audienceMode === 'groups') {
         if (selectedGroupIds.length === 0) {
+          setFieldError('groups', 'Please select at least one contact group to target.');
           showToast('warning', 'Please select at least one contact group to target.');
           setError('Please select at least one contact group to target.');
+          const el = document.getElementById('audienceGroupsSection');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setLoading(false);
           return;
         }
+        clearFieldError('groups');
       }
 
       if (audienceMode === 'tags') {
         if (!selectedTagIds || selectedTagIds.length === 0) {
+          setFieldError('tags', 'Minimum 1 tag required. Please select at least one segment tag to target.');
           showToast('warning', 'Please select at least 1 tag to target. Sending to all contacts without tags is not permitted.');
           setError('Please select at least 1 tag to target your audience. Minimum 1 tag selection is required.');
+          const el = document.getElementById('audienceTagsSection');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setLoading(false);
           return;
         }
+        clearFieldError('tags');
       }
 
       if (audienceMode === 'specific') {
         if (selectedContactIds.length === 0) {
+          setFieldError('contacts', 'Please select at least one contact to target.');
           showToast('warning', 'Please select at least one contact to target.');
           setError('Please select at least one contact (single or multiple) to target.');
+          const el = document.getElementById('audienceSpecificSection');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setLoading(false);
           return;
         }
+        clearFieldError('contacts');
       }
 
       if (audienceMode === 'csv') {
         if (selectedContactIds.length === 0) {
+          setFieldError('csv', 'Please confirm and apply CSV contacts to campaign before proceeding.');
           showToast('warning', 'Please confirm and apply CSV contacts to campaign before proceeding.');
           setError('Please click "Confirm & Apply CSV Contacts to Campaign" to verify and target your audience before proceeding.');
+          const el = document.getElementById('audienceCsvSection');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setLoading(false);
           return;
         }
+        clearFieldError('csv');
       }
 
       const payload = (audienceMode === 'specific' || audienceMode === 'csv')
@@ -566,6 +611,15 @@ export default function CampaignBuilder() {
 
   const handleRunPreflight = async () => {
     try {
+      if (!templateId) {
+        setFieldError('template', 'WhatsApp Approved Template is required. Please select a template below.');
+        showToast('warning', 'Please select a WhatsApp Approved Template before proceeding.');
+        const el = document.getElementById('templateSelectionSection');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      clearFieldError('template');
+
       setLoading(true);
       setError('');
       const payload = {
@@ -622,16 +676,21 @@ export default function CampaignBuilder() {
       let scheduledAt = null;
       if (scheduleMode === 'scheduled') {
         if (!scheduleDate || !scheduleTime) {
+          setFieldError('schedule', 'Please select both a valid date and time to schedule the campaign.');
+          showToast('warning', 'Please select both a valid date and time to schedule the campaign.');
           setError('Please select both a valid date and time to schedule the campaign.');
           setLoading(false);
           return;
         }
         const targetDate = new Date(`${scheduleDate}T${scheduleTime}`);
         if (isNaN(targetDate.getTime()) || targetDate.getTime() <= Date.now() + 60000) {
+          setFieldError('schedule', 'Scheduled time must be at least 2 minutes in the future.');
+          showToast('warning', 'Scheduled time must be at least 2 minutes in the future.');
           setError('Scheduled time must be at least 2 minutes in the future.');
           setLoading(false);
           return;
         }
+        clearFieldError('schedule');
         scheduledAt = targetDate.toISOString();
       }
 
@@ -853,17 +912,32 @@ export default function CampaignBuilder() {
 
             <div className="row g-4 mb-4">
               <div className="col-12 col-md-6">
+                {fieldErrors.campaignName && (
+                  <div
+                    className="alert alert-danger py-2 px-3 small mb-2 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                    style={{
+                      borderLeft: '4px solid #ef4444',
+                      backgroundColor: '#fef2f2',
+                      color: '#991b1b',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                    <span className="fw-semibold">{fieldErrors.campaignName}</span>
+                  </div>
+                )}
                 <label className="cc-form-label">
                   Campaign Name <span className="text-danger">*</span>
                 </label>
                 <input
                   id="campaignNameInput"
                   type="text"
-                  className={`cc-input ${!campaignName.trim() && error ? 'border-danger' : ''}`}
+                  className={`cc-input ${fieldErrors.campaignName ? 'border-danger bg-danger-subtle' : ''}`}
                   placeholder="e.g. Diwali Mega Sale 2026 – VIP Early Access"
                   value={campaignName}
                   onChange={(e) => {
                     setCampaignName(e.target.value);
+                    if (e.target.value.trim()) clearFieldError('campaignName');
                     if (error) setError('');
                   }}
                   required
@@ -887,7 +961,21 @@ export default function CampaignBuilder() {
             </div>
 
             {/* Senders Section (Single Sending Number) */}
-            <div className="mb-4">
+            <div className="mb-4" id="senderAccountsSection">
+              {fieldErrors.senderAccount && (
+                <div
+                  className="alert alert-danger py-2 px-3 small mb-2 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                  style={{
+                    borderLeft: '4px solid #ef4444',
+                    backgroundColor: '#fef2f2',
+                    color: '#991b1b',
+                    fontSize: '0.82rem'
+                  }}
+                >
+                  <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                  <span className="fw-semibold">{fieldErrors.senderAccount}</span>
+                </div>
+              )}
               <div className="cc-senders-header">
                 <label className="cc-form-label mb-0">
                   Select Sending WhatsApp Account <span className="text-danger">*</span>
@@ -1034,7 +1122,21 @@ export default function CampaignBuilder() {
             <div className="cf-card-body">
               {/* AUDIENCE MODE: Contact Groups */}
               {audienceMode === 'groups' && (
-                <div>
+                <div id="audienceGroupsSection">
+                  {fieldErrors.groups && (
+                    <div
+                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                      style={{
+                        borderLeft: '4px solid #ef4444',
+                        backgroundColor: '#fef2f2',
+                        color: '#991b1b',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                      <span className="fw-semibold">{fieldErrors.groups}</span>
+                    </div>
+                  )}
                   <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
                     <div>
                       <h6 className="fw-bold mb-1 text-dark">
@@ -1143,7 +1245,21 @@ export default function CampaignBuilder() {
                 </div>
               )}
               {audienceMode === 'tags' && (
-                <div>
+                <div id="audienceTagsSection">
+                  {fieldErrors.tags && (
+                    <div
+                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                      style={{
+                        borderLeft: '4px solid #ef4444',
+                        backgroundColor: '#fef2f2',
+                        color: '#991b1b',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                      <span className="fw-semibold">{fieldErrors.tags}</span>
+                    </div>
+                  )}
                   <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
                     <div>
                       <h6 className="fw-bold mb-1 text-dark">
@@ -1226,7 +1342,21 @@ export default function CampaignBuilder() {
               )}
 
               {audienceMode === 'specific' && (
-                <div>
+                <div id="audienceSpecificSection">
+                  {fieldErrors.contacts && (
+                    <div
+                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                      style={{
+                        borderLeft: '4px solid #ef4444',
+                        backgroundColor: '#fef2f2',
+                        color: '#991b1b',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                      <span className="fw-semibold">{fieldErrors.contacts}</span>
+                    </div>
+                  )}
                   <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
                     <div>
                       <h6 className="fw-bold mb-1">Select Single or Multiple Specific Contacts</h6>
@@ -1452,7 +1582,21 @@ export default function CampaignBuilder() {
 
               {/* AUDIENCE MODE 3: UPLOAD CSV AUDIENCE */}
               {audienceMode === 'csv' && (
-                <div>
+                <div id="audienceCsvSection">
+                  {fieldErrors.csv && (
+                    <div
+                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                      style={{
+                        borderLeft: '4px solid #ef4444',
+                        backgroundColor: '#fef2f2',
+                        color: '#991b1b',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                      <span className="fw-semibold">{fieldErrors.csv}</span>
+                    </div>
+                  )}
                   {/* Header Action Bar with Download Template & Load Sample */}
                   <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
                     <div>
@@ -1805,7 +1949,21 @@ export default function CampaignBuilder() {
             </div>
             <div className="cf-card-body">
               <div className="row g-4">
-                <div className="col-12 col-md-6">
+                <div className="col-12 col-md-6" id="templateSelectionSection">
+                  {fieldErrors.template && (
+                    <div
+                      className="alert alert-danger py-2 px-3 small mb-2 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                      style={{
+                        borderLeft: '4px solid #ef4444',
+                        backgroundColor: '#fef2f2',
+                        color: '#991b1b',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                      <span className="fw-semibold">{fieldErrors.template}</span>
+                    </div>
+                  )}
                   <label className="form-label fw-bold">
                     Choose WhatsApp Approved Template <span className="text-danger">*</span>
                   </label>
@@ -1821,6 +1979,7 @@ export default function CampaignBuilder() {
                     onChange={(e) => {
                       const newId = e.target.value;
                       setTemplateId(newId);
+                      if (newId) clearFieldError('template');
                       const chosen = templates.find(t => String(t.id) === String(newId));
                       applyTemplateMappings(chosen);
                     }}
@@ -2173,6 +2332,20 @@ export default function CampaignBuilder() {
                   {/* Date & Time Picker when Schedule is chosen */}
                   {scheduleMode === 'scheduled' && (
                     <div className="p-3 bg-white border rounded-3 mt-3 shadow-xs">
+                      {fieldErrors.schedule && (
+                        <div
+                          className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                          style={{
+                            borderLeft: '4px solid #ef4444',
+                            backgroundColor: '#fef2f2',
+                            color: '#991b1b',
+                            fontSize: '0.82rem'
+                          }}
+                        >
+                          <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                          <span className="fw-semibold">{fieldErrors.schedule}</span>
+                        </div>
+                      )}
                       <div className="row g-3">
                         <div className="col-12 col-sm-6">
                           <label className="form-label small fw-semibold text-dark">
@@ -2183,7 +2356,10 @@ export default function CampaignBuilder() {
                             className="form-control"
                             min={getTodayString()}
                             value={scheduleDate}
-                            onChange={(e) => setScheduleDate(e.target.value)}
+                            onChange={(e) => {
+                              setScheduleDate(e.target.value);
+                              clearFieldError('schedule');
+                            }}
                             required
                           />
                         </div>
@@ -2196,7 +2372,10 @@ export default function CampaignBuilder() {
                             type="time"
                             className="form-control"
                             value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
+                            onChange={(e) => {
+                              setScheduleTime(e.target.value);
+                              clearFieldError('schedule');
+                            }}
                             required
                           />
                         </div>
