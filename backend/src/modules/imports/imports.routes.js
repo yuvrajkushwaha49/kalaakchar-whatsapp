@@ -34,6 +34,8 @@ router.get('/:id/export-errors', importsController.exportErrors);
 router.post('/:id/retry', requireRole(['owner', 'admin', 'marketer']), importsController.retry);
 router.post('/:id/cancel', requireRole(['owner', 'admin', 'marketer']), importsController.cancel);
 router.delete('/:id', requireRole(['owner', 'admin']), importsController.deleteJob);
+router.patch('/:id/tag', requireRole(['owner', 'admin', 'marketer']), importsController.updateTag);
+router.put('/:id/tag', requireRole(['owner', 'admin', 'marketer']), importsController.updateTag);
 router.get('/:id', importsController.getJob);
 
 export default router;

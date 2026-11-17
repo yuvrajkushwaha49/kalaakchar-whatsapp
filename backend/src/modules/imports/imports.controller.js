@@ -185,6 +185,25 @@ export async function deleteJob(req, res, next) {
   }
 }
 
+/**
+ * Update the tag of a past import job and all associated contacts
+ */
+export async function updateTag(req, res, next) {
+  try {
+    const businessId = req.businessId;
+    const jobId = req.params.id;
+    const { newTag, replaceOldTag } = req.body;
+    const result = await importsService.updateImportTag(businessId, jobId, { newTag, replaceOldTag });
+    res.json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   uploadPreview,
   createJob,
@@ -196,5 +215,6 @@ export default {
   exportErrors,
   retry,
   cancel,
-  deleteJob
+  deleteJob,
+  updateTag
 };

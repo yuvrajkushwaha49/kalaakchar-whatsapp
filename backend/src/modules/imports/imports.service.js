@@ -294,16 +294,21 @@ export async function listImportJobs(businessId, { limit = 50, offset = 0 } = {}
       .slice(offset, offset + limit);
   }
 
-  return executeQuery(
+  const rows = await executeQuery(
     `SELECT id, business_id, user_id, file_name, file_type, file_size, total_rows,
             processed_rows, successful_rows, failed_rows, duplicate_rows,
-            status, error_summary, retry_count, started_at, completed_at, created_at
+            options, status, error_summary, retry_count, started_at, completed_at, created_at
      FROM import_jobs
      WHERE business_id = ?
      ORDER BY created_at DESC
      LIMIT ? OFFSET ?`,
     [numBizId, Number(limit), Number(offset)]
   );
+
+  return rows.map(r => ({
+    ...r,
+    options: typeof r.options === 'string' ? JSON.parse(r.options) : (r.options || {})
+  }));
 }
 
 /**
@@ -436,6 +441,160 @@ export async function deleteImportJob(businessId, jobId, { deleteContacts = fals
   };
 }
 
+/**
+ * Update the tag of a past import job and all associated contacts
+ */
+export async function updateImportTag(businessId, jobId, { newTag, replaceOldTag = true }) {
+  const numBizId = Number(businessId);
+  const numJobId = Number(jobId);
+  const cleanNewTag = String(newTag || '').trim();
+
+  if (!cleanNewTag) {
+    const err = new Error('New tag name is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // 1. Fetch import job
+  const job = await getImportJob(numBizId, numJobId);
+  if (!job) {
+    const err = new Error('Import job not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const currentOptions = typeof job.options === 'string' ? JSON.parse(job.options) : (job.options || {});
+  const oldTag = currentOptions.batchTag ? String(currentOptions.batchTag).trim() : null;
+
+  let updatedContactsCount = 0;
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+
+    // Ensure new tag exists in store.tags
+    if (!store.tags) store.tags = [];
+    let targetTag = store.tags.find(t => t.business_id === numBizId && t.name.toLowerCase() === cleanNewTag.toLowerCase());
+    if (!targetTag) {
+      targetTag = {
+        id: store.tags.length + 1,
+        business_id: numBizId,
+        name: cleanNewTag,
+        color: '#10b981',
+        created_at: new Date()
+      };
+      store.tags.push(targetTag);
+    }
+    const newTagId = targetTag.id;
+
+    // Find contact IDs associated with this import job
+    const consents = (store.contact_consents || []).filter(cc =>
+      cc.business_id === numBizId &&
+      (cc.proof_notes?.includes(`Job #${numJobId}`) || cc.proof_notes?.includes(job.file_name))
+    );
+    const contactIds = [...new Set(consents.map(cc => cc.contact_id))];
+
+    if (contactIds.length > 0) {
+      if (!store.contact_tags) store.contact_tags = [];
+
+      // If replacing old tag, remove old tag associations
+      if (oldTag && replaceOldTag) {
+        const oldTagRec = store.tags.find(t => t.business_id === numBizId && t.name.toLowerCase() === oldTag.toLowerCase());
+        if (oldTagRec) {
+          store.contact_tags = store.contact_tags.filter(ct => 
+            !(contactIds.includes(ct.contact_id) && ct.tag_id === oldTagRec.id)
+          );
+        }
+      }
+
+      // Add new tag to contacts
+      for (const cId of contactIds) {
+        const alreadyHas = store.contact_tags.some(ct => ct.contact_id === cId && ct.tag_id === newTagId);
+        if (!alreadyHas) {
+          store.contact_tags.push({
+            id: store.contact_tags.length + 1,
+            contact_id: cId,
+            tag_id: newTagId
+          });
+        }
+      }
+      updatedContactsCount = contactIds.length;
+    }
+
+    // Update job options in store
+    const jobInStore = store.import_jobs?.find(j => j.business_id === numBizId && j.id === numJobId);
+    if (jobInStore) {
+      if (!jobInStore.options) jobInStore.options = {};
+      jobInStore.options.batchTag = cleanNewTag;
+    }
+  } else {
+    // MySQL 8 production flow
+    // 1. Ensure new tag exists in tags table
+    let tagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ?', [numBizId, cleanNewTag]);
+    let newTagId;
+    if (tagRows.length > 0) {
+      newTagId = tagRows[0].id;
+    } else {
+      const tagRes = await executeQuery(
+        'INSERT INTO tags (business_id, name, color) VALUES (?, ?, ?)',
+        [numBizId, cleanNewTag, '#10b981']
+      );
+      newTagId = tagRes.insertId;
+    }
+
+    // 2. Find contacts from contact_consents
+    const rows = await executeQuery(
+      `SELECT DISTINCT contact_id FROM contact_consents 
+       WHERE business_id = ? AND (proof_notes LIKE ? OR proof_notes LIKE ?)`,
+      [numBizId, `%Job #${numJobId}%`, `%${job.file_name}%`]
+    );
+    const contactIds = rows.map(r => r.contact_id);
+
+    if (contactIds.length > 0) {
+      const placeholders = contactIds.map(() => '?').join(',');
+
+      // If replaceOldTag is true and oldTag exists, remove old tag
+      if (oldTag && replaceOldTag) {
+        const oldTagRows = await executeQuery('SELECT id FROM tags WHERE business_id = ? AND name = ?', [numBizId, oldTag]);
+        if (oldTagRows.length > 0) {
+          await executeQuery(
+            `DELETE FROM contact_tags WHERE tag_id = ? AND contact_id IN (${placeholders})`,
+            [oldTagRows[0].id, ...contactIds]
+          );
+        }
+      }
+
+      // Add new tag to contacts
+      const tagInsertPlaceholders = contactIds.map(() => '(?, ?)').join(', ');
+      const tagValues = [];
+      for (const cId of contactIds) {
+        tagValues.push(cId, newTagId);
+      }
+      await executeQuery(
+        `INSERT IGNORE INTO contact_tags (contact_id, tag_id) VALUES ${tagInsertPlaceholders}`,
+        tagValues
+      );
+
+      updatedContactsCount = contactIds.length;
+    }
+
+    // 3. Update import_jobs.options with new batchTag
+    currentOptions.batchTag = cleanNewTag;
+    await executeQuery(
+      'UPDATE import_jobs SET options = ? WHERE business_id = ? AND id = ?',
+      [JSON.stringify(currentOptions), numBizId, numJobId]
+    );
+  }
+
+  return {
+    success: true,
+    jobId: numJobId,
+    oldTag,
+    newTag: cleanNewTag,
+    updatedContactsCount,
+    message: `Tag successfully changed to "${cleanNewTag}" for ${updatedContactsCount} contact(s).`
+  };
+}
+
 export default {
   handleUploadPreview,
   createQueuedImportJob,
@@ -448,5 +607,6 @@ export default {
   exportImportErrorsCsv,
   retryImport,
   cancelImport,
-  deleteImportJob
+  deleteImportJob,
+  updateImportTag
 };

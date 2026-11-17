@@ -56,6 +56,12 @@ export default function CsvImport() {
   const [alsoDeleteContacts, setAlsoDeleteContacts] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Change Tag modal state
+  const [editTagTargetJob, setEditTagTargetJob] = useState(null);
+  const [newTagInput, setNewTagInput] = useState('');
+  const [replaceOldTag, setReplaceOldTag] = useState(true);
+  const [updatingTag, setUpdatingTag] = useState(false);
+
   useEffect(() => {
     fetchHistory();
     fetchTags();
@@ -372,6 +378,36 @@ export default function CsvImport() {
       setError(err.response?.data?.error?.message || 'Failed to delete import job.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleOpenEditTag = (job) => {
+    setEditTagTargetJob(job);
+    const currentTag = job.options?.batchTag || '';
+    setNewTagInput(currentTag);
+    setReplaceOldTag(true);
+  };
+
+  const confirmUpdateTag = async () => {
+    if (!editTagTargetJob || !newTagInput.trim()) return;
+    try {
+      setUpdatingTag(true);
+      setError('');
+      const res = await api.patch(`/imports/${editTagTargetJob.id}/tag`, {
+        newTag: newTagInput.trim(),
+        replaceOldTag
+      });
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message || 'Tag updated successfully!');
+        fetchHistory();
+        fetchTags();
+        setEditTagTargetJob(null);
+        setNewTagInput('');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to update tag.');
+    } finally {
+      setUpdatingTag(false);
     }
   };
 
@@ -1046,6 +1082,7 @@ export default function CsvImport() {
                 <tr>
                   <th>File Name</th>
                   <th>Format</th>
+                  <th>Batch Tag</th>
                   <th>Total Rows</th>
                   <th>Imported / Updated</th>
                   <th>Failed</th>
@@ -1057,7 +1094,7 @@ export default function CsvImport() {
               <tbody>
                 {importHistory.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-4 text-muted">
+                    <td colSpan="9" className="text-center py-4 text-muted">
                       No past imports recorded.
                     </td>
                   </tr>
@@ -1072,6 +1109,16 @@ export default function CsvImport() {
                         <span className="badge bg-light text-secondary border uppercase">
                           {job.file_type ? job.file_type.toUpperCase() : 'CSV'}
                         </span>
+                      </td>
+                      <td>
+                        {job.options?.batchTag ? (
+                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1">
+                            <i className="bi bi-tag-fill" style={{ fontSize: '10px' }}></i>
+                            <span>{job.options.batchTag}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted small">No tag</span>
+                        )}
                       </td>
                       <td>{Number(job.total_rows || 0).toLocaleString()}</td>
                       <td className="text-success fw-bold">{Number(job.successful_rows || 0).toLocaleString()}</td>
@@ -1099,6 +1146,14 @@ export default function CsvImport() {
                       </td>
                       <td>
                         <div className="d-flex align-items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditTag(job)}
+                            className="btn btn-sm btn-outline-secondary p-1"
+                            title="Change / Assign Tag to this Import"
+                          >
+                            <i className="bi bi-tag"></i>
+                          </button>
                           {Number(job.failed_rows || 0) > 0 && (
                             <button
                               type="button"
@@ -1139,6 +1194,110 @@ export default function CsvImport() {
             </table>
           </div>
         </div>
+
+        {/* Change Tag Modal */}
+        {editTagTargetJob && (
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header border-bottom">
+                  <h5 className="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                    <i className="bi bi-tag-fill text-primary"></i>
+                    <span>Change Past Import Tag</span>
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    disabled={updatingTag}
+                    onClick={() => setEditTagTargetJob(null)}
+                  ></button>
+                </div>
+                <div className="modal-body p-4">
+                  <div className="p-3 bg-light rounded-3 mb-3 small border">
+                    <div><strong>File Name:</strong> {editTagTargetJob.file_name}</div>
+                    <div><strong>Current Tag:</strong> <span className="badge bg-secondary ms-1">{editTagTargetJob.options?.batchTag || 'None'}</span></div>
+                    <div><strong>Total Contacts:</strong> {Number(editTagTargetJob.successful_rows || editTagTargetJob.total_rows || 0).toLocaleString()}</div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label small fw-semibold text-dark">Naya Tag Select Karein ya Type Karein</label>
+                    <input
+                      type="text"
+                      className="form-control mb-2"
+                      placeholder="e.g. Festive_Offer, High_Value, November_Leads"
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      autoFocus
+                    />
+
+                    {availableTags && availableTags.length > 0 && (
+                      <div>
+                        <div className="text-muted small mb-1">Existing Tags (Click to select):</div>
+                        <div className="d-flex flex-wrap gap-1">
+                          {availableTags.slice(0, 15).map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setNewTagInput(t.name)}
+                              className={`badge border text-decoration-none ${newTagInput.toLowerCase() === t.name.toLowerCase() ? 'bg-primary text-white border-primary' : 'bg-light text-dark border-secondary-subtle'}`}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {t.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-check p-3 bg-light rounded-3 border">
+                    <input
+                      className="form-check-input ms-0 me-2"
+                      type="checkbox"
+                      id="replaceOldTagCheck"
+                      checked={replaceOldTag}
+                      onChange={(e) => setReplaceOldTag(e.target.checked)}
+                    />
+                    <label className="form-check-label small fw-semibold text-dark" htmlFor="replaceOldTagCheck">
+                      Purane tag ko naye tag se Replace karein
+                    </label>
+                    <div className="text-muted small mt-1 ms-4">
+                      Agar checked rahega, toh is file ke sabhi contacts se purana tag hatkar naya tag apply ho jayega.
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-top bg-light">
+                  <button
+                    type="button"
+                    className="btn btn-secondary px-3"
+                    disabled={updatingTag}
+                    onClick={() => setEditTagTargetJob(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary px-4 fw-semibold"
+                    disabled={updatingTag || !newTagInput.trim()}
+                    onClick={confirmUpdateTag}
+                  >
+                    {updatingTag ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Updating Tags...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check2-circle me-1"></i>
+                        Save & Update Tag
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Delete Confirmation Modal */}
         {deleteTargetJob && (
