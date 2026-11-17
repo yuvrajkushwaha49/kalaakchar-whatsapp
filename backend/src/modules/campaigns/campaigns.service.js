@@ -2,6 +2,7 @@ import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db
 import { enqueueCampaign } from '../../queues/campaignQueue.js';
 import { createAuditLog } from '../logs/logs.service.js';
 import { createNotification } from '../notifications/notifications.service.js';
+import { emitToTenant } from '../../socket.js';
 import logger from '../../utils/logger.js';
 
 export async function listCampaigns(businessId) {
@@ -428,26 +429,42 @@ export async function startCampaign(businessId, campaignId, userId = null, ipAdd
 }
 
 export async function pauseCampaign(businessId, campaignId) {
+  const bId = Number(businessId);
+  const cId = Number(campaignId);
+
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const c = store.campaigns.find(camp => camp.id === Number(campaignId) && camp.business_id === Number(businessId));
+    const c = store.campaigns.find(camp => camp.id === cId && camp.business_id === bId);
     if (c) c.status = 'paused';
-    return { success: true, status: 'paused' };
+  } else {
+    await executeQuery('UPDATE campaigns SET status = "paused" WHERE id = ? AND business_id = ?', [cId, bId]);
   }
 
-  await executeQuery('UPDATE campaigns SET status = "paused" WHERE id = ? AND business_id = ?', [campaignId, businessId]);
+  emitToTenant(bId, 'campaign:status_update', {
+    campaignId: cId,
+    status: 'paused'
+  });
+
   return { success: true, status: 'paused' };
 }
 
 export async function cancelCampaign(businessId, campaignId) {
+  const bId = Number(businessId);
+  const cId = Number(campaignId);
+
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const c = store.campaigns.find(camp => camp.id === Number(campaignId) && camp.business_id === Number(businessId));
+    const c = store.campaigns.find(camp => camp.id === cId && camp.business_id === bId);
     if (c) c.status = 'cancelled';
-    return { success: true, status: 'cancelled' };
+  } else {
+    await executeQuery('UPDATE campaigns SET status = "cancelled" WHERE id = ? AND business_id = ?', [cId, bId]);
   }
 
-  await executeQuery('UPDATE campaigns SET status = "cancelled" WHERE id = ? AND business_id = ?', [campaignId, businessId]);
+  emitToTenant(bId, 'campaign:status_update', {
+    campaignId: cId,
+    status: 'cancelled'
+  });
+
   return { success: true, status: 'cancelled' };
 }
 

@@ -1,4 +1,5 @@
 import { executeQuery, isUsingFallback, getMemoryStore, getPool } from '../database/db.js';
+import { emitToTenant } from '../socket.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -352,14 +353,18 @@ export async function cancelImportJob(businessId, jobId) {
       job.status = 'cancelled';
       job.error_summary = 'Cancelled by user';
     }
-    return job;
+  } else {
+    await executeQuery(`
+      UPDATE import_jobs
+      SET status = 'cancelled', completed_at = NOW(), error_summary = 'Cancelled by user'
+      WHERE id = ? AND business_id = ? AND status IN ('pending', 'processing')
+    `, [numJobId, numBizId]);
   }
 
-  await executeQuery(`
-    UPDATE import_jobs
-    SET status = 'cancelled', completed_at = NOW(), error_summary = 'Cancelled by user'
-    WHERE id = ? AND business_id = ? AND status IN ('pending', 'processing')
-  `, [numJobId, numBizId]);
+  emitToTenant(numBizId, 'import:status_update', {
+    jobId: numJobId,
+    status: 'cancelled'
+  });
 
   return { id: numJobId, status: 'cancelled' };
 }

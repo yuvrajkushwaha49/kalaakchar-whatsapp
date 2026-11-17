@@ -8,6 +8,16 @@ import logger from '../utils/logger.js';
 
 const BATCH_SIZE = parseInt(process.env.IMPORT_BATCH_SIZE || '500', 10);
 
+async function checkImportJobStatus(jobId) {
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const j = store.import_jobs?.find(job => job.id === Number(jobId));
+    return j ? j.status : null;
+  }
+  const rows = await executeQuery('SELECT status FROM import_jobs WHERE id = ? LIMIT 1', [jobId]);
+  return rows.length > 0 ? rows[0].status : null;
+}
+
 /**
  * Process entire import job in streaming batches of 500
  */
@@ -99,6 +109,13 @@ export async function processImportJob(job) {
     currentBatch.push(rowItem);
 
     if (currentBatch.length >= BATCH_SIZE) {
+      // Check if job was cancelled
+      const currentStatus = await checkImportJobStatus(jobId);
+      if (currentStatus === 'cancelled') {
+        logger.info(`🛑 [BatchProcessor] Job #${jobId} was cancelled by user. Halting execution.`);
+        return { jobId, status: 'cancelled', stopped: true };
+      }
+
       const stats = await processBatch({
         batch: currentBatch,
         businessId,
@@ -137,6 +154,12 @@ export async function processImportJob(job) {
 
   // Process remaining items in last batch
   if (currentBatch.length > 0) {
+    const currentStatus = await checkImportJobStatus(jobId);
+    if (currentStatus === 'cancelled') {
+      logger.info(`🛑 [BatchProcessor] Job #${jobId} was cancelled by user before final batch.`);
+      return { jobId, status: 'cancelled', stopped: true };
+    }
+
     const stats = await processBatch({
       batch: currentBatch,
       businessId,

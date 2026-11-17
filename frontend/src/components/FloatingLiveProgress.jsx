@@ -9,6 +9,7 @@ export default function FloatingLiveProgress() {
   const [activeJobs, setActiveJobs] = useState({ campaign: null, import: null });
   const [minimized, setMinimized] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   // Don't render on public auth pages
   const isAuthPage = ['/login', '/register', '/forgot-password', '/privacy', '/terms'].includes(location.pathname);
@@ -47,21 +48,20 @@ export default function FloatingLiveProgress() {
     };
 
     const onCampaignStatus = (data) => {
-      if (data.status === 'completed') {
+      if (data.status === 'completed' || data.status === 'cancelled' || data.status === 'failed') {
         setActiveJobs((prev) => {
           if (!prev.campaign) return prev;
           return {
             ...prev,
             campaign: {
               ...prev.campaign,
-              status: 'completed',
-              percent: 100,
-              remainingCount: 0
+              status: data.status,
+              percent: data.status === 'completed' ? 100 : prev.campaign.percent
             }
           };
         });
 
-        // Auto dismiss completed banner after 15 seconds
+        // Auto dismiss completed/cancelled banner after 15 seconds
         setTimeout(() => {
           setActiveJobs((prev) => ({ ...prev, campaign: null }));
         }, 15000);
@@ -89,16 +89,15 @@ export default function FloatingLiveProgress() {
     };
 
     const onImportStatus = (data) => {
-      if (data.status === 'completed') {
+      if (data.status === 'completed' || data.status === 'cancelled' || data.status === 'failed') {
         setActiveJobs((prev) => {
           if (!prev.import) return prev;
           return {
             ...prev,
             import: {
               ...prev.import,
-              status: 'completed',
-              percent: 100,
-              remainingCount: 0
+              status: data.status,
+              percent: data.status === 'completed' ? 100 : prev.import.percent
             }
           };
         });
@@ -189,6 +188,34 @@ export default function FloatingLiveProgress() {
     }
   };
 
+  const handleCancelJob = async () => {
+    if (!currentJob || cancelling) return;
+    const kind = isCampaign ? 'Campaign' : 'Import';
+    const confirmCancel = window.confirm(`Are you sure you want to stop/cancel this ${kind} ("${currentJob.name}")? Remaining records will not be sent/processed.`);
+    if (!confirmCancel) return;
+
+    try {
+      setCancelling(true);
+      if (isCampaign) {
+        await api.post(`/campaigns/${currentJob.id}/cancel`);
+        setActiveJobs(prev => ({
+          ...prev,
+          campaign: prev.campaign ? { ...prev.campaign, status: 'cancelled' } : null
+        }));
+      } else {
+        await api.post(`/imports/${currentJob.id}/cancel`);
+        setActiveJobs(prev => ({
+          ...prev,
+          import: prev.import ? { ...prev.import, status: 'cancelled' } : null
+        }));
+      }
+    } catch (err) {
+      alert(`Failed to cancel: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (isAuthPage || dismissed) return null;
 
   // Prioritize active campaign, then active import
@@ -196,6 +223,7 @@ export default function FloatingLiveProgress() {
   if (!currentJob) return null;
 
   const isCompleted = currentJob.status === 'completed';
+  const isCancelled = currentJob.status === 'cancelled';
   const isCampaign = currentJob.type === 'campaign';
 
   // Minimized Compact Pill
@@ -206,12 +234,17 @@ export default function FloatingLiveProgress() {
         onClick={() => setMinimized(false)}
         title="Click to expand live progress"
       >
-        <div className={`cf-pulse-dot ${isCompleted ? 'bg-success' : ''}`}></div>
+        <div className={`cf-pulse-dot ${isCompleted ? 'bg-success' : isCancelled ? 'bg-danger' : ''}`}></div>
         <div className="small fw-bold">
           {isCompleted ? (
             <span className="text-success">
               <i className="bi bi-check-circle-fill me-1"></i>
               {isCampaign ? 'Campaign Completed!' : 'Import Completed!'}
+            </span>
+          ) : isCancelled ? (
+            <span className="text-danger">
+              <i className="bi bi-x-circle-fill me-1"></i>
+              {isCampaign ? 'Campaign Cancelled' : 'Import Cancelled'}
             </span>
           ) : (
             <span>
@@ -227,10 +260,10 @@ export default function FloatingLiveProgress() {
   // Expanded Floating Progress Card
   return (
     <div className="cf-floating-progress-container">
-      <div className={`cf-floating-card ${isCompleted ? 'completed' : ''}`}>
+      <div className={`cf-floating-card ${isCompleted ? 'completed' : isCancelled ? 'border-danger-subtle' : ''}`}>
         <div className="cf-floating-top-row">
           <div className="cf-floating-title-area">
-            <div className="cf-pulse-dot"></div>
+            <div className={`cf-pulse-dot ${isCancelled ? 'bg-danger' : ''}`}></div>
             <div>
               <div className="cf-floating-name">
                 <i className={`bi ${isCampaign ? 'bi-whatsapp text-success' : 'bi-file-earmark-spreadsheet text-info'}`}></i>
@@ -240,9 +273,16 @@ export default function FloatingLiveProgress() {
                     <i className="bi bi-check-circle-fill me-1"></i> Completed
                   </span>
                 )}
+                {isCancelled && (
+                  <span className="badge bg-danger-subtle text-danger border border-danger-subtle ms-2">
+                    <i className="bi bi-slash-circle me-1"></i> Cancelled
+                  </span>
+                )}
               </div>
               <div className="small text-muted" style={{ fontSize: '0.75rem' }}>
-                {isCompleted
+                {isCancelled
+                  ? 'Job cancelled by user. Dispatched stopped.'
+                  : isCompleted
                   ? 'All records dispatched successfully'
                   : isCampaign
                   ? 'Streaming WhatsApp messages in background chunks'
@@ -252,9 +292,32 @@ export default function FloatingLiveProgress() {
           </div>
 
           <div className="cf-floating-actions">
-            <span className="cf-floating-percent-badge">
-              {currentJob.percent}% Completed
+            <span className={`cf-floating-percent-badge ${isCancelled ? 'bg-secondary' : ''}`}>
+              {isCancelled ? 'Cancelled' : `${currentJob.percent}% Completed`}
             </span>
+
+            {/* Cancel Button when running/queued */}
+            {!isCompleted && !isCancelled && (
+              <button
+                type="button"
+                onClick={handleCancelJob}
+                disabled={cancelling}
+                className="cf-floating-btn cf-floating-btn-cancel"
+                title={`Stop/Cancel this ${isCampaign ? 'campaign' : 'import'}`}
+              >
+                {cancelling ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <span>Stopping...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-stop-circle text-danger me-1"></i>
+                    <span className="text-danger fw-semibold">Cancel</span>
+                  </>
+                )}
+              </button>
+            )}
 
             <Link
               to={isCampaign ? `/campaigns/${currentJob.id}` : '/imports'}
@@ -274,7 +337,7 @@ export default function FloatingLiveProgress() {
               <i className="bi bi-dash-lg"></i>
             </button>
 
-            {isCompleted && (
+            {(isCompleted || isCancelled) && (
               <button
                 type="button"
                 onClick={() => setDismissed(true)}
@@ -341,3 +404,4 @@ export default function FloatingLiveProgress() {
     </div>
   );
 }
+
