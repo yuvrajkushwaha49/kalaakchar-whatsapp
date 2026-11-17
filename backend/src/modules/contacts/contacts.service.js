@@ -399,6 +399,50 @@ export async function listTags(businessId) {
   return executeQuery('SELECT * FROM tags WHERE business_id = ? ORDER BY name ASC', [businessId]);
 }
 
+/**
+ * Resolve contact IDs for an array of phone numbers
+ */
+export async function resolveContactsByPhones(businessId, phones = []) {
+  if (!Array.isArray(phones) || phones.length === 0) {
+    return { contactIds: [], count: 0 };
+  }
+
+  const cleanPhones = Array.from(new Set(phones.map(p => String(p).trim()).filter(Boolean)));
+  if (cleanPhones.length === 0) {
+    return { contactIds: [], count: 0 };
+  }
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const matched = (store.contacts || []).filter(c => 
+      c.business_id === Number(businessId) && 
+      cleanPhones.includes(c.phone) &&
+      (c.status === 'active' || !c.status)
+    );
+    return {
+      contactIds: matched.map(c => c.id),
+      count: matched.length
+    };
+  }
+
+  const contactIds = [];
+  const chunkSize = 500;
+  for (let i = 0; i < cleanPhones.length; i += chunkSize) {
+    const chunk = cleanPhones.slice(i, i + chunkSize);
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = await executeQuery(
+      `SELECT id, phone FROM contacts WHERE business_id = ? AND phone IN (${placeholders}) AND (status = 'active' OR status IS NULL)`,
+      [Number(businessId), ...chunk]
+    );
+    rows.forEach(r => contactIds.push(r.id));
+  }
+
+  return {
+    contactIds,
+    count: contactIds.length
+  };
+}
+
 export default {
   listContacts,
   getContactDetails,
@@ -406,5 +450,6 @@ export default {
   createContact,
   updateConsent,
   deleteContact,
-  listTags
+  listTags,
+  resolveContactsByPhones
 };

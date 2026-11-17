@@ -9,6 +9,7 @@ router.use(authenticate, requireTenant);
 
 router.get('/', contactsController.list);
 router.get('/tags', contactsController.tags);
+router.post('/resolve-by-phones', contactsController.resolveByPhones);
 router.get('/:id', contactsController.details);
 router.put('/:id', requireRole(['owner', 'admin', 'marketer']), contactsController.update);
 router.post('/', requireRole(['owner', 'admin', 'marketer']), contactsController.create);

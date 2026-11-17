@@ -63,6 +63,16 @@ export async function tags(req, res, next) {
   }
 }
 
+export async function resolveByPhones(req, res, next) {
+  try {
+    const { phones } = req.body;
+    const result = await contactsService.resolveContactsByPhones(req.businessId, phones);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   list,
   details,
@@ -70,5 +80,6 @@ export default {
   create,
   updateConsent,
   remove,
-  tags
+  tags,
+  resolveByPhones
 };

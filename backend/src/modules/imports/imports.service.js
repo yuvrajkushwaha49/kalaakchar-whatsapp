@@ -5,6 +5,7 @@ import { normalizePhone } from '../../utils/phone.js';
 import { previewFile } from '../../utils/streamingFileParser.js';
 import importQueue from '../../queues/importQueue.js';
 import { processImportJob } from '../../services/importBatchProcessor.js';
+import { resolveContactsByPhones } from '../contacts/contacts.service.js';
 import logger from '../../utils/logger.js';
 
 const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'imports');
@@ -174,13 +175,37 @@ export async function executeImport(businessId, userId, {
   }
 
   const finishedJob = await getImportJob(businessId, queued.jobId);
+
+  // Extract phones from CSV and resolve contact IDs
+  let contactIds = [];
+  try {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (lines.length > 1) {
+      const headerLine = lines[0];
+      const headerCols = headerLine.split(',').map(h => h.replace(/^"|"$/g, '').trim());
+      const phoneColIdx = headerCols.findIndex(h => /phone|mobile|contact|number|whatsapp/i.test(h));
+      const targetIdx = phoneColIdx >= 0 ? phoneColIdx : 0;
+      
+      const parsedPhones = lines.slice(1).map(l => {
+        const parts = l.split(',');
+        return parts[targetIdx]?.replace(/^"|"$/g, '').trim();
+      }).filter(Boolean);
+
+      if (parsedPhones.length > 0) {
+        const resolved = await resolveContactsByPhones(businessId, parsedPhones);
+        contactIds = resolved.contactIds || [];
+      }
+    }
+  } catch (_) {}
+
   return {
     jobId: queued.jobId,
     totalRows: finishedJob ? (finishedJob.total_rows || finishedJob.processed_rows) : queued.totalRows,
     successful: finishedJob ? finishedJob.successful_rows : 0,
     duplicates: finishedJob ? finishedJob.duplicate_rows : 0,
     failed: finishedJob ? finishedJob.failed_rows : 0,
-    status: finishedJob ? finishedJob.status : 'completed'
+    status: finishedJob ? finishedJob.status : 'completed',
+    contactIds
   };
 }
 

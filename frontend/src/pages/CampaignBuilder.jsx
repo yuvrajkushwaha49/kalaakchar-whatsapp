@@ -455,7 +455,10 @@ export default function CampaignBuilder() {
     try {
       setIsImportingCsv(true);
       setError('');
+      clearFieldError('csv');
       setCsvAppliedMessage(null);
+
+      const validPhones = csvReviewRows.filter(r => r.status === 'valid').map(r => r.phone);
 
       const res = await api.post('/imports/execute', {
         csvText: csvRawText,
@@ -473,23 +476,32 @@ export default function CampaignBuilder() {
 
       if (res.data?.success) {
         const importData = res.data.data;
-        const importedIds = importData.contactIds || [];
+        let importedIds = Array.isArray(importData?.contactIds) ? importData.contactIds : [];
 
-        // Refresh available contacts in workspace
-        const contactsRes = await api.get('/contacts?limit=500');
-        if (contactsRes.data?.contacts) {
-          setAvailableContacts(contactsRes.data.contacts);
+        // If contactIds is empty (e.g. background worker still processing), resolve directly via /contacts/resolve-by-phones
+        if (importedIds.length === 0 && validPhones.length > 0) {
+          try {
+            const resolveRes = await api.post('/contacts/resolve-by-phones', { phones: validPhones });
+            if (resolveRes.data?.contactIds && resolveRes.data.contactIds.length > 0) {
+              importedIds = resolveRes.data.contactIds;
+            }
+          } catch (_) {}
         }
 
         // Set selected contacts to the imported ones
         if (importedIds.length > 0) {
           setSelectedContactIds(importedIds);
+          clearFieldError('csv');
+          setError('');
         }
+
+        const totalApplied = importedIds.length || importData.successful || csvStats.valid;
 
         setCsvAppliedMessage({
           type: 'success',
-          text: `Successfully verified and imported ${importData.successful} contact(s) (${importData.duplicates} duplicates skipped, ${importData.failed} invalid). They are now applied to this campaign broadcast! You can proceed to Next: Select Template.`
+          text: `Successfully verified and imported ${totalApplied} contact(s). They are now applied to this campaign broadcast! You can proceed to Next: Select Template.`
         });
+        showToast('success', `Audience attached: ${totalApplied} contacts ready!`);
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to import and apply CSV audience.');
@@ -578,8 +590,24 @@ export default function CampaignBuilder() {
         clearFieldError('contacts');
       }
 
+      let effectiveContactIds = selectedContactIds;
+
       if (audienceMode === 'csv') {
-        if (selectedContactIds.length === 0) {
+        // If selectedContactIds is empty but user uploaded valid CSV, auto-resolve matching contacts immediately!
+        if (effectiveContactIds.length === 0 && csvReviewRows.length > 0 && csvStats.valid > 0) {
+          const validPhones = csvReviewRows.filter(r => r.status === 'valid').map(r => r.phone);
+          try {
+            const resolveRes = await api.post('/contacts/resolve-by-phones', { phones: validPhones });
+            if (resolveRes.data?.contactIds && resolveRes.data.contactIds.length > 0) {
+              effectiveContactIds = resolveRes.data.contactIds;
+              setSelectedContactIds(effectiveContactIds);
+              clearFieldError('csv');
+              setError('');
+            }
+          } catch (_) {}
+        }
+
+        if (effectiveContactIds.length === 0) {
           setFieldError('csv', 'Please confirm and apply CSV contacts to campaign before proceeding.');
           showToast('warning', 'Please confirm and apply CSV contacts to campaign before proceeding.');
           setError('Please click "Confirm & Apply CSV Contacts to Campaign" to verify and target your audience before proceeding.');
@@ -589,10 +617,11 @@ export default function CampaignBuilder() {
           return;
         }
         clearFieldError('csv');
+        setError('');
       }
 
       const payload = (audienceMode === 'specific' || audienceMode === 'csv')
-        ? { contactIds: selectedContactIds }
+        ? { contactIds: effectiveContactIds }
         : (audienceMode === 'groups')
           ? { groupIds: selectedGroupIds }
           : { tagIds: selectedTagIds };
