@@ -39,6 +39,8 @@ const memoryStore = {
   usage_ledger: [],
   audit_logs: [],
   notifications: [],
+  contact_groups: [],
+  contact_group_members: [],
   whatsapp_conversations: [],
   whatsapp_messages: [],
   whatsapp_message_media: [],

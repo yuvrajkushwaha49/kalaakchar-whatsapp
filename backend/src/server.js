@@ -3,12 +3,14 @@ import app from './app.js';
 import { checkConnection } from './database/db.js';
 import { initSocketServer } from './socket.js';
 import { startCampaignScheduler, stopCampaignScheduler } from './services/campaignScheduler.js';
+import { startImportWorker } from './workers/importWorker.js';
 import logger from './utils/logger.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
+const RUN_STANDALONE_WORKER = process.env.RUN_STANDALONE_WORKER === 'true';
 
 async function startServer() {
   logger.info('⚡ [Server] Checking database connection...');
@@ -19,6 +21,16 @@ async function startServer() {
 
   // Initialize automated background campaign scheduler
   startCampaignScheduler(15000);
+
+  // Initialize automated background import worker (if not running as separate worker process)
+  if (!RUN_STANDALONE_WORKER) {
+    logger.info('⚙️ [Server] Starting embedded import queue worker...');
+    startImportWorker().catch(err => {
+      logger.error('⚠️ [Server] Embedded import worker encountered error:', err.message);
+    });
+  } else {
+    logger.info('ℹ️ [Server] Running in standalone worker mode (Worker handled via dedicated process)');
+  }
 
   httpServer.listen(PORT, () => {
     logger.info(`✨ CampaignFlow Backend API listening on port ${PORT}`);

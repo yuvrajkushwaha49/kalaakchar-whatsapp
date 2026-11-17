@@ -16,11 +16,20 @@ export default function CsvImport() {
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const fileInputRef = useRef(null);
+
   const [step, setStep] = useState(1);
-  const [csvText, setCsvText] = useState('');
+  const [file, setFile] = useState(null);
+  const [fileKey, setFileKey] = useState('');
   const [fileName, setFileName] = useState('');
+  const [fileType, setFileType] = useState('csv');
+  const [fileSize, setFileSize] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [csvText, setCsvText] = useState('');
+
   const [headers, setHeaders] = useState([]);
   const [sampleRows, setSampleRows] = useState([]);
+  const [totalEstimatedRows, setTotalEstimatedRows] = useState(0);
+
   const [columnMapping, setColumnMapping] = useState({
     phone: '',
     name: '',
@@ -29,23 +38,30 @@ export default function CsvImport() {
     consent: ''
   });
 
+  const [batchTag, setBatchTag] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [availableTags, setAvailableTags] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [showNewGroupInput, setShowNewGroupInput] = useState(false);
+
   const [importResult, setImportResult] = useState(null);
   const [importHistory, setImportHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [batchTag, setBatchTag] = useState('');
-  const [availableTags, setAvailableTags] = useState([]);
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     fetchHistory();
     fetchTags();
+    fetchGroups();
   }, []);
 
   // Polling for active background import job progress
   useEffect(() => {
     let timer = null;
     const activeJobId = importResult?.id || importResult?.jobId;
-    const isProcessing = importResult?.status === 'processing';
+    const isProcessing = importResult?.status === 'processing' || importResult?.status === 'pending';
 
     if (activeJobId && isProcessing) {
       timer = setInterval(async () => {
@@ -64,7 +80,7 @@ export default function CsvImport() {
               status: job.status
             }));
 
-            if (job.status === 'completed' || job.status === 'failed') {
+            if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
               clearInterval(timer);
               // Fetch error rows audit report
               try {
@@ -101,6 +117,17 @@ export default function CsvImport() {
     }
   };
 
+  const fetchGroups = async () => {
+    try {
+      const res = await api.get('/contact-groups');
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setAvailableGroups(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Failed to load contact groups', err);
+    }
+  };
+
   const fetchHistory = async () => {
     try {
       const res = await api.get('/imports');
@@ -110,49 +137,121 @@ export default function CsvImport() {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setCsvText(evt.target.result);
-    };
-    reader.readAsText(file);
+  // Drag and Drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
 
-  const handlePreview = async () => {
-    if (!csvText.trim()) {
-      setError('Please provide or upload CSV content');
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      handleFileSelected(droppedFile);
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      handleFileSelected(selected);
+    }
+  };
+
+  const handleFileSelected = (selectedFile) => {
+    const allowed = ['.csv', '.xlsx', '.xls'];
+    const name = selectedFile.name.toLowerCase();
+    const isAllowed = allowed.some(ext => name.endsWith(ext));
+
+    if (!isAllowed) {
+      setError('Please select a valid CSV (.csv) or Excel (.xlsx / .xls) file.');
       return;
     }
+
+    if (selectedFile.size > 104857600) { // 100MB limit
+      setError('File size exceeds the 100MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    setError('');
+    setFile(selectedFile);
+    setFileName(selectedFile.name);
+    setFileSize(selectedFile.size);
+    setFileType(name.endsWith('.xlsx') || name.endsWith('.xls') ? 'xlsx' : 'csv');
+  };
+
+  // Upload file and get streaming preview (Step 1 -> Step 2)
+  const handleUploadAndPreview = async () => {
+    if (!file && !csvText.trim()) {
+      setError('Please choose an Excel/CSV file or paste CSV text to continue.');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
     try {
-      const res = await api.post('/imports/preview', { csvText });
-      if (res.data?.success) {
-        setHeaders(res.data.data.headers);
-        setSampleRows(res.data.data.sample);
-        setColumnMapping({
-          phone: res.data.data.mappingSuggestions.phone || res.data.data.headers[0] || '',
-          name: res.data.data.mappingSuggestions.name || '',
-          email: res.data.data.mappingSuggestions.email || '',
-          tag: res.data.data.mappingSuggestions.tag || '',
-          consent: res.data.data.mappingSuggestions.consent || ''
+      if (file) {
+        // Multipart file upload with streaming preview
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await api.post('/imports/upload-preview', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setStep(2);
+
+        if (res.data?.success) {
+          const d = res.data.data;
+          setFileKey(d.fileKey);
+          setHeaders(d.headers);
+          setSampleRows(d.sampleRows);
+          setTotalEstimatedRows(d.totalEstimatedRows);
+          setColumnMapping({
+            phone: d.mappingSuggestions.phone || d.headers[0] || '',
+            name: d.mappingSuggestions.name || '',
+            email: d.mappingSuggestions.email || '',
+            tag: d.mappingSuggestions.tag || '',
+            consent: d.mappingSuggestions.consent || ''
+          });
+          setStep(2);
+        }
+      } else {
+        // Raw CSV text fallback
+        const res = await api.post('/imports/preview', { csvText });
+        if (res.data?.success) {
+          setHeaders(res.data.data.headers);
+          setSampleRows(res.data.data.sample);
+          setTotalEstimatedRows(res.data.data.totalRows);
+          setColumnMapping({
+            phone: res.data.data.mappingSuggestions.phone || res.data.data.headers[0] || '',
+            name: res.data.data.mappingSuggestions.name || '',
+            email: res.data.data.mappingSuggestions.email || '',
+            tag: res.data.data.mappingSuggestions.tag || '',
+            consent: res.data.data.mappingSuggestions.consent || ''
+          });
+          setStep(2);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to parse CSV preview');
+      setError(err.response?.data?.error?.message || 'Failed to analyze file. Please ensure the file is valid.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExecuteImport = async () => {
+  // Queue import job (Step 2 -> Step 3)
+  const handleCreateImportJob = async () => {
     if (!columnMapping.phone) {
-      setError('Please select which column contains the Phone Number');
+      setError('Please select which column contains the Phone Number.');
       return;
     }
 
@@ -160,14 +259,47 @@ export default function CsvImport() {
     setLoading(true);
 
     try {
-      const res = await api.post('/imports/execute', {
-        csvText,
-        fileName,
-        columnMapping,
-        batchTag: batchTag.trim(),
-        consentSource: 'csv_upload_batch',
-        defaultCountryCode: '91'
-      });
+      let finalGroupId = selectedGroupId ? Number(selectedGroupId) : null;
+
+      // If user typed a new group name, create it first
+      if (showNewGroupInput && newGroupName.trim()) {
+        try {
+          const gRes = await api.post('/contact-groups', {
+            name: newGroupName.trim(),
+            description: `Auto-created during import of ${fileName || 'contacts'}`
+          });
+          if (gRes.data?.success && gRes.data.data) {
+            finalGroupId = gRes.data.data.id;
+          }
+        } catch (gErr) {
+          console.warn('Failed to create new group, proceeding without group:', gErr);
+        }
+      }
+
+      let res;
+      if (fileKey) {
+        // Clean high-performance background queue
+        res = await api.post('/imports/create-job', {
+          fileKey,
+          fileName,
+          columnMapping,
+          batchTag: batchTag.trim(),
+          groupId: finalGroupId,
+          consentSource: 'excel_csv_batch',
+          defaultCountryCode: '91'
+        });
+      } else {
+        // Raw text fallback
+        res = await api.post('/imports/execute', {
+          csvText,
+          fileName: fileName || 'contacts.csv',
+          columnMapping,
+          batchTag: batchTag.trim(),
+          groupId: finalGroupId,
+          consentSource: 'csv_upload_batch',
+          defaultCountryCode: '91'
+        });
+      }
 
       if (res.data?.success) {
         setImportResult(res.data.data);
@@ -175,15 +307,57 @@ export default function CsvImport() {
         fetchHistory();
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'CSV Import failed');
+      setError(err.response?.data?.error?.message || 'Failed to start import job.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleRetryJob = async (jobId) => {
+    try {
+      setError('');
+      setLoading(true);
+      const res = await api.post(`/imports/${jobId}/retry`);
+      if (res.data?.success) {
+        setSuccessMsg(`Job #${jobId} re-queued successfully.`);
+        fetchHistory();
+        // If retrying active job in view, update state
+        if (importResult?.id === jobId) {
+          setImportResult(prev => ({ ...prev, status: 'pending', processed_rows: 0 }));
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to retry job.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelJob = async (jobId) => {
+    try {
+      const res = await api.post(`/imports/${jobId}/cancel`);
+      if (res.data?.success) {
+        fetchHistory();
+        if (importResult?.id === jobId) {
+          setImportResult(prev => ({ ...prev, status: 'cancelled' }));
+        }
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to cancel job.');
+    }
+  };
+
+  const handleDownloadErrorReport = (jobId) => {
+    const targetId = jobId || importResult?.id || importResult?.jobId;
+    if (!targetId) return;
+    window.open(`/api/imports/${targetId}/export-errors`, '_blank');
+  };
+
   const loadSampleData = () => {
     setCsvText(SAMPLE_CSV);
     setFileName('sample_festive_audience.csv');
+    setFile(null);
+    setFileKey('');
   };
 
   const handleDownloadSampleCsv = () => {
@@ -198,11 +372,19 @@ export default function CsvImport() {
     URL.revokeObjectURL(url);
   };
 
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div>
       <AiwavoHeader
         title="Contacts"
-        subtitle="Bulk contact ingestion with E.164 normalization, intra-file deduplication & consent checks"
+        subtitle="High-performance bulk contact ingestion (up to 100,000 records) with streaming, E.164 normalization, deduplication & audit trail"
         onToggleSidebar={onToggleSidebar}
       />
 
@@ -215,16 +397,24 @@ export default function CsvImport() {
           </div>
         )}
 
-        {/* Hero Banner */}
+        {successMsg && (
+          <div className="alert alert-success alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+            <i className="bi bi-check-circle-fill me-2"></i>
+            {successMsg}
+            <button type="button" className="btn-close" onClick={() => setSuccessMsg('')}></button>
+          </div>
+        )}
+
+        {/* Top Hero Banner */}
         <div className="em-hero-banner">
           <div className="em-hero-left">
             <div className="em-hero-icon">
               <i className="bi bi-file-earmark-excel"></i>
             </div>
             <div>
-              <h1 className="em-hero-title">Manage Excel Import</h1>
+              <h1 className="em-hero-title">Manage Excel & CSV Import</h1>
               <p className="em-hero-subtitle">
-                Bulk contact ingestion with E.164 normalization, duplicate check and consent mapping.
+                High-scale contact ingestion (up to 100,000 contacts) with streaming XLSX/CSV, background queue, group assignment, and duplicate protection.
               </p>
             </div>
           </div>
@@ -248,86 +438,108 @@ export default function CsvImport() {
               }}
             ></div>
           </div>
+
           <div className="em-step-item">
-            <div className={`em-step-circle ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
-              {step > 1 ? '✓' : '1'}
+            <div className={`em-step-circle ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>
+              {step > 1 ? <i className="bi bi-check-lg"></i> : '1'}
             </div>
-            <div className={`em-step-label ${step === 1 ? 'active' : ''}`}>Upload CSV</div>
+            <div className={`em-step-label ${step === 1 ? 'active' : ''}`}>Upload File</div>
           </div>
+
           <div className="em-step-item">
-            <div className={`em-step-circle ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
-              {step > 2 ? '✓' : '2'}
+            <div className={`em-step-circle ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>
+              {step > 2 ? <i className="bi bi-check-lg"></i> : '2'}
             </div>
-            <div className={`em-step-label ${step === 2 ? 'active' : ''}`}>Column Mapping</div>
+            <div className={`em-step-label ${step === 2 ? 'active' : ''}`}>Column Mapping & Options</div>
           </div>
+
           <div className="em-step-item">
             <div className={`em-step-circle ${step === 3 ? 'active' : ''}`}>
               3
             </div>
-            <div className={`em-step-label ${step === 3 ? 'active' : ''}`}>Results & Audit</div>
+            <div className={`em-step-label ${step === 3 ? 'active' : ''}`}>Live Progress & Results</div>
           </div>
         </div>
 
-        {/* Step 1: Upload CSV */}
+        {/* Step 1: Upload File */}
         {step === 1 && (
           <div className="em-card">
             <div className="em-card-header">
-              <h2 className="em-card-title">Step 1: Choose CSV File or Paste Data</h2>
+              <div>
+                <h2 className="em-card-title">Step 1: Upload Contact File (Excel or CSV)</h2>
+                <div className="text-muted small mt-1">Supports .xlsx, .xls, and .csv files up to 100,000 rows</div>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  onClick={loadSampleData}
+                  className="em-btn-sample-green"
+                >
+                  <i className="bi bi-lightning-charge-fill"></i>
+                  <span>Load Sample Data</span>
+                </button>
+              </div>
             </div>
 
-            {/* Dashed Dropzone */}
-            <div className="em-dropzone">
+            {/* Drag & Drop File Zone */}
+            <div
+              className={`em-dropzone ${isDragging ? 'border-primary bg-light' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <div className="em-dropzone-badge">
-                <i className="bi bi-filetype-csv fs-5"></i>
-                <span>CSV</span>
+                <i className={`bi ${fileType === 'xlsx' ? 'bi-filetype-xlsx' : 'bi-filetype-csv'} fs-4`}></i>
               </div>
-              <div className="em-dropzone-title">Upload your customer CSV file</div>
+              <div className="em-dropzone-title">
+                {file ? file.name : 'Drag & Drop your Excel or CSV file here'}
+              </div>
               <div className="em-dropzone-desc">
-                Max 50,000 rows. Formats supported: .csv (UTF-8). Need a starting template?{' '}
-                <a
-                  href="#download"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleDownloadSampleCsv();
-                  }}
-                  className="text-primary text-decoration-none fw-semibold"
-                >
-                  <i className="bi bi-download me-1"></i>Download CSV Template
-                </a>
+                {file ? (
+                  <span className="text-success fw-bold">
+                    <i className="bi bi-check2-circle me-1"></i>
+                    {formatFileSize(fileSize)} &bull; Ready for streaming preview
+                  </span>
+                ) : (
+                  'Supports Microsoft Excel (.xlsx, .xls) and Comma-Separated Values (.csv) up to 100MB'
+                )}
               </div>
 
-              {/* Custom File Input Bar */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileInputChange}
+                accept=".csv, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
+                style={{ display: 'none' }}
+              />
+
               <div className="em-file-input-group">
                 <button
                   type="button"
-                  className="em-file-choose-btn"
                   onClick={() => fileInputRef.current?.click()}
+                  className="em-file-choose-btn"
                 >
-                  <i className="bi bi-file-earmark-arrow-up"></i>
-                  <span>Choose File</span>
+                  <i className="bi bi-folder2-open"></i>
+                  <span>Browse Files</span>
                 </button>
                 <div className="em-file-status-box">
-                  {fileName || 'No file chosen'}
+                  {file ? file.name : 'No file chosen'}
                 </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
               </div>
             </div>
 
-            {/* Raw CSV Textarea */}
+            {/* Raw CSV Textarea Fallback */}
             <div className="mb-4">
-              <label className="em-raw-label">Or Paste Raw CSV Text:</label>
+              <label className="em-raw-label">Or Paste Raw CSV Text directly:</label>
               <textarea
                 className="em-textarea"
-                rows="6"
-                placeholder="phone,name,email,consent..."
+                rows="5"
+                placeholder="phone,name,email,consent&#10;9811122233,Ananya Gupta,ananya@test.com,yes..."
                 value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
+                onChange={(e) => {
+                  setCsvText(e.target.value);
+                  if (file) setFile(null);
+                }}
               ></textarea>
             </div>
 
@@ -335,13 +547,18 @@ export default function CsvImport() {
             <div className="d-flex justify-content-end">
               <button
                 type="button"
-                onClick={handlePreview}
-                disabled={loading || !csvText.trim()}
+                onClick={handleUploadAndPreview}
+                disabled={loading || (!file && !csvText.trim())}
                 className="em-btn-next"
               >
-                {loading ? 'Analyzing CSV...' : (
+                {loading ? (
                   <>
-                    <span>Next: Column Mapping</span>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span>Analyzing File...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Next: Column Mapping & Options</span>
                     <i className="bi bi-arrow-right"></i>
                   </>
                 )}
@@ -350,16 +567,23 @@ export default function CsvImport() {
           </div>
         )}
 
-        {/* Step 2: Column Mapping */}
+        {/* Step 2: Column Mapping & Options */}
         {step === 2 && (
           <div className="em-card">
             <div className="em-card-header">
               <div>
-                <h2 className="em-card-title">Step 2: Map CSV Headers to Database Attributes</h2>
-                <div className="text-muted small mt-1">{sampleRows.length} sample rows analyzed</div>
+                <h2 className="em-card-title">Step 2: Map File Headers & Assign Audience Attributes</h2>
+                <div className="text-muted small mt-1">
+                  {totalEstimatedRows > 0 ? `~${totalEstimatedRows.toLocaleString()} rows detected in file` : 'Preview generated'} &bull; {sampleRows.length} sample rows analyzed
+                </div>
               </div>
+              <span className="badge bg-light text-dark border px-3 py-2">
+                <i className={`bi ${fileType === 'xlsx' ? 'bi-file-earmark-excel text-success' : 'bi-file-earmark-text text-primary'} me-1`}></i>
+                {fileName || 'File'}
+              </span>
             </div>
 
+            {/* Column Mapping Grid */}
             <div className="row g-3 mb-4">
               <div className="col-12 col-md-6 col-lg-4">
                 <label className="form-label fw-bold text-dark small">
@@ -413,7 +637,7 @@ export default function CsvImport() {
                   <option value="">-- None / Skip (Use Batch Tag Below) --</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <div className="form-text small text-muted">Leave empty if using batch tag</div>
+                <div className="form-text small text-muted">Reads tags dynamically per row from file</div>
               </div>
 
               <div className="col-12 col-md-6 col-lg-6">
@@ -426,11 +650,63 @@ export default function CsvImport() {
                   <option value="">-- Auto Opt-In All (Recommended) --</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <div className="form-text small text-muted">Keep as Auto Opt-In unless CSV has explicit Yes/No values</div>
+                <div className="form-text small text-muted">Keep as Auto Opt-In unless file has explicit Yes/No column</div>
               </div>
             </div>
 
-            {/* Batch Tag Input for Entire CSV */}
+            {/* Audience Assignment: Contact Groups */}
+            <div className="p-3 bg-light rounded-3 border mb-4">
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px', fontSize: '0.85rem' }}>
+                    <i className="bi bi-people-fill"></i>
+                  </div>
+                  <div>
+                    <label className="form-label fw-bold text-dark small mb-0">
+                      Assign to Contact Group (Audience List)
+                    </label>
+                    <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                      Import hone wale sabhi contacts ko is group me add kar diya jayega (Broadcast campaigns target karne ke liye).
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowNewGroupInput(!showNewGroupInput)}
+                  className="btn btn-sm btn-outline-primary"
+                >
+                  {showNewGroupInput ? 'Select Existing Group' : '+ Create New Group'}
+                </button>
+              </div>
+
+              {showNewGroupInput ? (
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text bg-white"><i className="bi bi-plus-circle text-primary"></i></span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter new group name (e.g., Diwali VIP Audience 2026)..."
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <select
+                  className="form-select form-select-sm rounded-3 shadow-none"
+                  value={selectedGroupId}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                >
+                  <option value="">-- None / Do not assign to a group --</option>
+                  {availableGroups.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.member_count || 0} existing contacts)
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Batch Tag Input for Entire Import */}
             <div className="p-3 bg-light rounded-3 border mb-4">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <div className="d-flex align-items-center gap-2">
@@ -439,10 +715,10 @@ export default function CsvImport() {
                   </div>
                   <div>
                     <label className="form-label fw-bold text-dark small mb-0">
-                      Assign Tag(s) to Entire CSV Import
+                      Assign Tag(s) to Entire File Import
                     </label>
                     <div className="text-muted" style={{ fontSize: '0.78rem' }}>
-                      Pure CSV ke sabhi contacts ko ek sath ye tag assign ho jayega (broadcast campaigns & audience segmentation ke liye).
+                      Pure file ke sabhi contacts ko ek sath ye tag assign ho jayega (e.g. VIP Customer, Lead 2026).
                     </div>
                   </div>
                 </div>
@@ -471,7 +747,7 @@ export default function CsvImport() {
 
               {availableTags && availableTags.length > 0 && (
                 <div className="d-flex align-items-center flex-wrap gap-1 mt-1">
-                  <span className="text-muted small me-1" style={{ fontSize: '0.75rem' }}>Select existing tag:</span>
+                  <span className="text-muted small me-1" style={{ fontSize: '0.75rem' }}>Quick select:</span>
                   {availableTags.map(t => {
                     const isSelected = batchTag.includes(t.name);
                     return (
@@ -496,7 +772,7 @@ export default function CsvImport() {
               )}
             </div>
 
-            {/* Consent Notice */}
+            {/* Compliance Confirmation Checkbox */}
             <div className="p-3 bg-light rounded-3 border mb-4">
               <div className="d-flex align-items-center gap-2 mb-1">
                 <i className="bi bi-shield-check text-success fs-5"></i>
@@ -504,7 +780,7 @@ export default function CsvImport() {
               </div>
               <p className="text-muted small mb-2">
                 Under WhatsApp Business Platform policies, marketing broadcasts may only be sent to customers who explicitly opted in. 
-                Any row where consent is missing, rejected, or whose previous unsubscribe record exists will be automatically protected and skipped.
+                Any row where consent is explicitly rejected or whose previous unsubscribe record exists in your workspace will be automatically protected and skipped.
               </p>
               <div className="form-check">
                 <input 
@@ -530,14 +806,19 @@ export default function CsvImport() {
               </button>
               <button 
                 type="button"
-                onClick={handleExecuteImport} 
+                onClick={handleCreateImportJob} 
                 disabled={loading} 
                 className="em-btn-next"
               >
-                {loading ? 'Processing Import...' : (
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span>Starting Background Worker...</span>
+                  </>
+                ) : (
                   <>
                     <i className="bi bi-cloud-arrow-up"></i>
-                    <span>Execute Import & Verify</span>
+                    <span>Queue Background Import & Verify</span>
                   </>
                 )}
               </button>
@@ -545,19 +826,24 @@ export default function CsvImport() {
           </div>
         )}
 
-        {/* Step 3: Results & Audit Summary */}
+        {/* Step 3: Live Progress & Results */}
         {step === 3 && importResult && (
           <div className="em-card">
             <div className="em-card-header">
-              {importResult.status === 'processing' ? (
+              {importResult.status === 'processing' || importResult.status === 'pending' ? (
                 <h2 className="em-card-title text-primary d-flex align-items-center gap-2">
                   <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
-                  Import Processing in Background...
+                  {importResult.status === 'pending' ? 'Import Queued in Background...' : 'Import Processing in Background...'}
                 </h2>
               ) : importResult.status === 'failed' ? (
                 <h2 className="em-card-title text-danger d-flex align-items-center gap-2">
                   <i className="bi bi-x-circle-fill"></i>
                   Import Failed
+                </h2>
+              ) : importResult.status === 'cancelled' ? (
+                <h2 className="em-card-title text-secondary d-flex align-items-center gap-2">
+                  <i className="bi bi-slash-circle"></i>
+                  Import Cancelled
                 </h2>
               ) : (
                 <h2 className="em-card-title text-success d-flex align-items-center gap-2">
@@ -565,14 +851,35 @@ export default function CsvImport() {
                   Import Completed Successfully
                 </h2>
               )}
+
+              <div className="d-flex align-items-center gap-2">
+                {importResult.status === 'failed' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRetryJob(importResult.id || importResult.jobId)}
+                    className="btn btn-sm btn-outline-danger"
+                  >
+                    <i className="bi bi-arrow-repeat me-1"></i> Retry Import
+                  </button>
+                )}
+                {(importResult.status === 'processing' || importResult.status === 'pending') && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelJob(importResult.id || importResult.jobId)}
+                    className="btn btn-sm btn-outline-secondary"
+                  >
+                    <i className="bi bi-x-circle me-1"></i> Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Background Live Progress Bar */}
-            {importResult.status === 'processing' && (
+            {(importResult.status === 'processing' || importResult.status === 'pending') && (
               <div className="mb-4 p-3 bg-light rounded-3 border">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="fw-semibold text-dark small">
-                    Processing Contacts: {importResult.processed_rows || importResult.processedRows || 0} / {importResult.total_rows || importResult.totalRows || 0} rows
+                    Processing Contacts in Batches of 500: {importResult.processed_rows || importResult.processedRows || 0} / {importResult.total_rows || importResult.totalRows || 0} rows
                   </span>
                   <span className="badge bg-primary text-white">
                     {Math.min(100, Math.round(((importResult.processed_rows || importResult.processedRows || 0) / (importResult.total_rows || importResult.totalRows || 1)) * 100))}%
@@ -589,7 +896,7 @@ export default function CsvImport() {
                 </div>
                 <div className="text-muted small mt-2 d-flex align-items-center gap-1">
                   <i className="bi bi-info-circle text-primary"></i>
-                  <span>Aap is page par reh sakte hain ya doosre tab par jaa sakte hain — contacts background me aaram se securely save ho rahe hain.</span>
+                  <span>Aap is page par reh sakte hain ya doosre tab par jaa sakte hain — contacts background me aaram se securely save ho rahe hain. Browser band hone par bhi processing continue rahegi.</span>
                 </div>
               </div>
             )}
@@ -621,46 +928,72 @@ export default function CsvImport() {
               </div>
             </div>
 
-            {/* Row Level Skip/Failure Audit */}
-            {importResult.rowReports && importResult.rowReports.length > 0 && (
-              <div className="mt-4">
-                <h6 className="fw-bold text-dark mb-2">Audit Report: Skipped & Ineligible Rows</h6>
-                <div className="table-responsive">
-                  <table className="table table-sm cf-table">
-                    <thead>
-                      <tr>
-                        <th>Row #</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>Reason / Compliance Details</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {importResult.rowReports.map((r, i) => (
-                        <tr key={i}>
-                          <td>{r.row_number}</td>
-                          <td><code>{r.phone || 'N/A'}</code></td>
-                          <td>
-                            <span className={`badge ${r.status === 'skipped' ? 'bg-warning text-dark' : 'bg-danger'}`}>
-                              {r.status}
-                            </span>
-                          </td>
-                          <td className="text-muted small">{r.error_reason}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* Error Report Download & Audit Table */}
+            {((importResult.failed_rows || importResult.failed || 0) > 0 || (importResult.rowReports && importResult.rowReports.length > 0)) && (
+              <div className="mt-4 p-3 bg-light rounded-3 border">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                    <div>
+                      <h6 className="fw-bold text-dark mb-0">Audit Report: Skipped & Ineligible Rows</h6>
+                      <div className="text-muted small">Review records that were duplicate or missing compliance</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadErrorReport()}
+                    className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
+                  >
+                    <i className="bi bi-download"></i>
+                    <span>Download Error Report (CSV)</span>
+                  </button>
                 </div>
+
+                {importResult.rowReports && importResult.rowReports.length > 0 && (
+                  <div className="table-responsive bg-white rounded-2 border">
+                    <table className="table table-sm cf-table mb-0">
+                      <thead>
+                        <tr>
+                          <th>Row #</th>
+                          <th>Phone</th>
+                          <th>Status</th>
+                          <th>Reason / Compliance Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.rowReports.slice(0, 50).map((r, i) => (
+                          <tr key={i}>
+                            <td>{r.row_number}</td>
+                            <td><code>{r.phone || 'N/A'}</code></td>
+                            <td>
+                              <span className={`badge ${r.status === 'skipped' ? 'bg-warning text-dark' : 'bg-danger'}`}>
+                                {r.status}
+                              </span>
+                            </td>
+                            <td className="text-muted small">{r.error_reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
             <div className="d-flex justify-content-end gap-3 mt-4">
               <button
                 type="button"
-                onClick={() => { setStep(1); setCsvText(''); setFileName(''); setImportResult(null); }}
+                onClick={() => {
+                  setStep(1);
+                  setFile(null);
+                  setFileKey('');
+                  setFileName('');
+                  setCsvText('');
+                  setImportResult(null);
+                }}
                 className="btn btn-outline-secondary rounded-3 px-4 fw-semibold"
               >
-                Import Another CSV
+                Import Another File
               </button>
               <a href="/contacts" className="em-btn-next text-decoration-none">
                 <span>View Audience Database</span>
@@ -673,53 +1006,100 @@ export default function CsvImport() {
         {/* Past CSV Import Jobs Table */}
         <div className="em-card">
           <div className="em-card-header">
-            <h2 className="em-card-title">Past CSV Import Jobs</h2>
+            <div>
+              <h2 className="em-card-title">Past Import Jobs Queue</h2>
+              <div className="text-muted small mt-1">Audit log of all background imports and worker queue history</div>
+            </div>
+            <button
+              type="button"
+              onClick={fetchHistory}
+              className="btn btn-sm btn-outline-secondary"
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i> Refresh History
+            </button>
           </div>
           <div className="table-responsive">
             <table className="table cf-table align-middle">
               <thead>
                 <tr>
                   <th>File Name</th>
+                  <th>Format</th>
                   <th>Total Rows</th>
                   <th>Imported</th>
                   <th>Duplicates</th>
                   <th>Failed</th>
                   <th>Status</th>
                   <th>Import Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {importHistory.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-4 text-muted">
-                      No past CSV imports recorded.
+                    <td colSpan="9" className="text-center py-4 text-muted">
+                      No past imports recorded.
                     </td>
                   </tr>
                 ) : (
                   importHistory.map(job => (
                     <tr key={job.id}>
                       <td>
-                        <i className="bi bi-file-earmark-spreadsheet text-success me-2 fs-6"></i>
+                        <i className={`bi ${job.file_type === 'xlsx' ? 'bi-file-earmark-excel text-success' : 'bi-file-earmark-text text-primary'} me-2 fs-6`}></i>
                         <span className="fw-semibold text-dark">{job.file_name}</span>
                       </td>
-                      <td>{job.total_rows}</td>
-                      <td className="text-success fw-bold">{job.successful_rows}</td>
-                      <td className="text-warning fw-bold">{job.duplicate_rows}</td>
-                      <td className="text-danger fw-bold">{job.failed_rows}</td>
+                      <td>
+                        <span className="badge bg-light text-secondary border uppercase">
+                          {job.file_type ? job.file_type.toUpperCase() : 'CSV'}
+                        </span>
+                      </td>
+                      <td>{Number(job.total_rows || 0).toLocaleString()}</td>
+                      <td className="text-success fw-bold">{Number(job.successful_rows || 0).toLocaleString()}</td>
+                      <td className="text-warning fw-bold">{Number(job.duplicate_rows || 0).toLocaleString()}</td>
+                      <td className="text-danger fw-bold">{Number(job.failed_rows || 0).toLocaleString()}</td>
                       <td>
                         {job.status === 'processing' ? (
                           <span className="badge bg-primary d-inline-flex align-items-center gap-1">
                             <span className="spinner-border spinner-border-sm" style={{ width: '10px', height: '10px' }} role="status"></span>
                             Processing ({job.processed_rows || 0}/{job.total_rows})
                           </span>
+                        ) : job.status === 'pending' ? (
+                          <span className="badge bg-secondary d-inline-flex align-items-center gap-1">
+                            <i className="bi bi-clock"></i> Queued
+                          </span>
                         ) : job.status === 'completed' ? (
-                          <span className="badge bg-success">completed</span>
+                          <span className="badge bg-success">Completed</span>
+                        ) : job.status === 'cancelled' ? (
+                          <span className="badge bg-secondary">Cancelled</span>
                         ) : (
-                          <span className="badge bg-danger">{job.status}</span>
+                          <span className="badge bg-danger">Failed</span>
                         )}
                       </td>
                       <td className="text-muted small">
                         {new Date(job.created_at).toLocaleString()}
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center gap-1">
+                          {Number(job.failed_rows || 0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadErrorReport(job.id)}
+                              className="btn btn-sm btn-outline-danger p-1"
+                              title="Download Error Report CSV"
+                            >
+                              <i className="bi bi-download"></i>
+                            </button>
+                          )}
+                          {job.status === 'failed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRetryJob(job.id)}
+                              className="btn btn-sm btn-outline-primary p-1"
+                              title="Retry Import"
+                            >
+                              <i className="bi bi-arrow-repeat"></i>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
