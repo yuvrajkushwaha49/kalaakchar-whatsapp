@@ -2934,6 +2934,73 @@
   border-color: #ef4444;
 }
 
+/* Contacts & Imports Pagination Footer */
+.cnt-pagination-footer {
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cnt-pagination-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.cnt-pagination-select {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+}
+
+.cnt-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cnt-btn-page {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 32px;
+  text-align: center;
+}
+
+.cnt-btn-page:hover:not(:disabled):not(.active) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.cnt-btn-page.active {
+  background: #00a859;
+  border-color: #00a859;
+  color: #ffffff;
+}
+
+.cnt-btn-page:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 
 /* =========================================================
    Excel Manager Redesign (Pixel-Perfect Match to Screenshot)

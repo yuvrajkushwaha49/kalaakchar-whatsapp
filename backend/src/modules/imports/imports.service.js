@@ -283,16 +283,33 @@ export async function getImportJob(businessId, jobId) {
 /**
  * List past import jobs for tenant
  */
-export async function listImportJobs(businessId, { limit = 50, offset = 0 } = {}) {
+export async function listImportJobs(businessId, { limit = 50, offset = 0, page = 1 } = {}) {
   const numBizId = Number(businessId);
+  const numLimit = Number(limit) || 10;
+  const numPage = Number(page) || 1;
+  const calculatedOffset = offset !== undefined && offset !== 0 ? Number(offset) : (numPage - 1) * numLimit;
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    return (store.import_jobs || [])
+    const all = (store.import_jobs || [])
       .filter(j => j.business_id === numBizId)
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(offset, offset + limit);
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const total = all.length;
+    const paginated = all.slice(calculatedOffset, calculatedOffset + numLimit);
+    return {
+      jobs: paginated,
+      total,
+      page: numPage,
+      limit: numLimit,
+      totalPages: Math.max(1, Math.ceil(total / numLimit))
+    };
   }
+
+  const countRes = await executeQuery(
+    `SELECT COUNT(*) as total FROM import_jobs WHERE business_id = ?`,
+    [numBizId]
+  );
+  const total = Number(countRes[0]?.total || 0);
 
   const rows = await executeQuery(
     `SELECT id, business_id, user_id, file_name, file_type, file_size, total_rows,
@@ -302,13 +319,21 @@ export async function listImportJobs(businessId, { limit = 50, offset = 0 } = {}
      WHERE business_id = ?
      ORDER BY created_at DESC
      LIMIT ? OFFSET ?`,
-    [numBizId, Number(limit), Number(offset)]
+    [numBizId, numLimit, calculatedOffset]
   );
 
-  return rows.map(r => ({
+  const jobs = rows.map(r => ({
     ...r,
     options: typeof r.options === 'string' ? JSON.parse(r.options) : (r.options || {})
   }));
+
+  return {
+    jobs,
+    total,
+    page: numPage,
+    limit: numLimit,
+    totalPages: Math.max(1, Math.ceil(total / numLimit))
+  };
 }
 
 /**

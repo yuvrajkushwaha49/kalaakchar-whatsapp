@@ -87,14 +87,25 @@ export async function preview(req, res, next) {
 }
 
 /**
- * List import history for workspace
+ * List import history for workspace with pagination
  */
 export async function list(req, res, next) {
   try {
-    const limit = parseInt(req.query.limit || '50', 10);
-    const offset = parseInt(req.query.offset || '0', 10);
-    const result = await importsService.listImportJobs(req.businessId, { limit, offset });
-    res.json({ success: true, data: result });
+    const page = parseInt(req.query.page || '1', 10);
+    const limit = parseInt(req.query.limit || '10', 10);
+    const offset = req.query.offset !== undefined ? parseInt(req.query.offset, 10) : (page - 1) * limit;
+    const result = await importsService.listImportJobs(req.businessId, { limit, offset, page });
+    res.json({
+      success: true,
+      data: result.jobs,
+      jobs: result.jobs,
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      }
+    });
   } catch (error) {
     next(error);
   }

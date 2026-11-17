@@ -28,7 +28,15 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
       return { ...c, tags };
     });
 
-    return { contacts: paginated, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+    const allTenant = store.contacts.filter(c => c.business_id === Number(businessId));
+    const stats = {
+      total: allTenant.length,
+      optedIn: allTenant.filter(c => Boolean(c.is_opted_in)).length,
+      unsubscribed: allTenant.filter(c => !Boolean(c.is_opted_in)).length,
+      suppressed: allTenant.filter(c => !Boolean(c.is_opted_in) || c.status !== 'active').length
+    };
+
+    return { contacts: paginated, stats, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
   }
 
   // Real MySQL execution with strict tenant scoping
@@ -79,11 +87,28 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
 
   const contacts = await executeQuery(dataSql, params);
 
+  const statsRows = await executeQuery(`
+    SELECT 
+      COUNT(*) as total,
+      COUNT(CASE WHEN is_opted_in = 1 THEN 1 END) as optedIn,
+      COUNT(CASE WHEN is_opted_in = 0 THEN 1 END) as unsubscribed,
+      COUNT(CASE WHEN is_opted_in = 0 OR status != 'active' THEN 1 END) as suppressed
+    FROM contacts
+    WHERE business_id = ?
+  `, [businessId]);
+  const stats = statsRows[0] ? {
+    total: Number(statsRows[0].total || 0),
+    optedIn: Number(statsRows[0].optedIn || 0),
+    unsubscribed: Number(statsRows[0].unsubscribed || 0),
+    suppressed: Number(statsRows[0].suppressed || 0)
+  } : { total, optedIn: 0, unsubscribed: 0, suppressed: 0 };
+
   return {
     contacts: contacts.map(c => ({
       ...c,
       tags: typeof c.tags === 'string' ? JSON.parse(c.tags) : (c.tags || [])
     })),
+    stats,
     pagination: {
       total,
       page: Number(page),
