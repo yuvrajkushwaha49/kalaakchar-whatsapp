@@ -10,13 +10,24 @@ export function initSocket() {
     return socket;
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+  let socketUrl = import.meta.env.VITE_SOCKET_URL;
+  if (!socketUrl) {
+    if (typeof window !== 'undefined') {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        socketUrl = 'http://localhost:5000';
+      } else {
+        socketUrl = window.location.origin;
+      }
+    } else {
+      socketUrl = 'http://localhost:5000';
+    }
+  }
 
   socket = io(socketUrl, {
     auth: {
       token: `Bearer ${token}`
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 2000
@@ -27,7 +38,7 @@ export function initSocket() {
   });
 
   socket.on('connect_error', (err) => {
-    console.warn('[Socket:Client] Real-time connection error:', err.message);
+    console.debug('[Socket:Client] Real-time connection notice:', err.message);
   });
 
   return socket;
