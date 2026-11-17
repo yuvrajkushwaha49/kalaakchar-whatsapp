@@ -13,7 +13,7 @@ describe('🚀 Optimized Background Campaign Queue & Chunked Dispatcher Suite', 
   const testTplId = 1;
 
   let testCampaignId = null;
-  const testContactIds = [];
+  let testContactIds = [];
 
   test('1. Bulk Recipient Creation: inserts recipients in batches without blocking', async () => {
     // Ensure template exists and is APPROVED
@@ -32,20 +32,22 @@ describe('🚀 Optimized Background Campaign Queue & Chunked Dispatcher Suite', 
       tpl.status = 'APPROVED';
     }
 
-    // Add 15 test contacts
-    const startId = 88000;
-    for (let i = 1; i <= 15; i++) {
-      const cId = startId + i;
-      testContactIds.push(cId);
-      store.contacts.push({
-        id: cId,
+    // Ensure at least 15 active contacts exist for business
+    const existing = store.contacts.filter(c => c.business_id === testBizId && (c.status === 'active' || !c.status));
+    let nextId = Math.max(0, ...store.contacts.map(c => c.id || 0)) + 1;
+    while (existing.length < 15) {
+      const newContact = {
+        id: nextId++,
         business_id: testBizId,
-        name: `Queue Test Contact ${i}`,
-        phone: `+9197000${cId}`,
+        name: `Queue Test Contact ${existing.length + 1}`,
+        phone: `+9197000${nextId}`,
         is_opted_in: 1,
         status: 'active'
-      });
+      };
+      store.contacts.push(newContact);
+      existing.push(newContact);
     }
+    testContactIds = existing.slice(0, 15).map(c => c.id);
 
     const campResult = await campaignsService.createCampaign(testBizId, {
       name: `Queue Scale Test ${Date.now()}`,

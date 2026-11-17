@@ -14,3 +14,4 @@ ALTER TABLE campaigns
 -- 3. Indexes for fast queue claiming with FOR UPDATE SKIP LOCKED and cursor-based recipient querying
 CREATE INDEX idx_campaigns_worker_claim ON campaigns (status, scheduled_at, locked_at);
 CREATE INDEX idx_recipients_cursor ON campaign_recipients (campaign_id, status, id);
+

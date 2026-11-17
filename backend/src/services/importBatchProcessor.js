@@ -3,6 +3,7 @@ import { executeQuery, isUsingFallback, getMemoryStore } from '../database/db.js
 import { normalizePhone } from '../utils/phone.js';
 import { iterateRowsStream } from '../utils/streamingFileParser.js';
 import importQueue from '../queues/importQueue.js';
+import { emitToTenant } from '../socket.js';
 import logger from '../utils/logger.js';
 
 const BATCH_SIZE = parseInt(process.env.IMPORT_BATCH_SIZE || '500', 10);
@@ -159,6 +160,22 @@ export async function processImportJob(job) {
     totalSuccessful += stats.successful;
     totalDuplicates += stats.duplicates;
     totalFailed += stats.failed;
+
+    const totalRowsCount = Number(job.total_rows || totalProcessed);
+    const percent = Math.min(100, Math.round((totalProcessed / (totalRowsCount || 1)) * 100));
+
+    emitToTenant(businessId, 'import:progress', {
+      jobId,
+      fileName: job.file_name,
+      processedRows: totalProcessed,
+      successfulRows: totalSuccessful,
+      duplicateRows: totalDuplicates,
+      failedRows: totalFailed,
+      totalRows: totalRowsCount,
+      remainingRows: Math.max(0, totalRowsCount - totalProcessed),
+      percent,
+      status: 'processing'
+    });
   }
 
   // Mark job completed
@@ -167,6 +184,15 @@ export async function processImportJob(job) {
     successfulRows: totalSuccessful,
     failedRows: totalFailed,
     duplicateRows: totalDuplicates
+  });
+
+  emitToTenant(businessId, 'import:status_update', {
+    jobId,
+    fileName: job.file_name,
+    status: 'completed',
+    successfulRows: totalSuccessful,
+    totalRows: totalProcessed,
+    percent: 100
   });
 
   logger.info(`🏁 [BatchProcessor] Completed Job #${jobId}: ${totalSuccessful} imported, ${totalDuplicates} duplicates, ${totalFailed} failed.`);
@@ -228,6 +254,17 @@ async function processBatch({
     const name = nameCol && row[nameCol] ? String(row[nameCol]).trim() : null;
     const email = emailCol && row[emailCol] ? String(row[emailCol]).trim() : null;
     const rowTag = tagCol && row[tagCol] ? String(row[tagCol]).trim() : null;
+
+    // Check if the entire row has no phone and no other identifying contact fields (ghost/blank row)
+    const hasAnyFieldContent = (rawPhone !== undefined && rawPhone !== null && String(rawPhone).trim() !== '') ||
+      (name && name !== '') ||
+      (email && email !== '') ||
+      (rowTag && rowTag !== '');
+
+    if (!hasAnyFieldContent) {
+      // Completely empty / blank row (e.g. ghost rows from Excel empty cells) - skip silently without failing
+      continue;
+    }
 
     // 1. Phone validation & normalization
     const norm = normalizePhone(rawPhone, defaultCountryCode);

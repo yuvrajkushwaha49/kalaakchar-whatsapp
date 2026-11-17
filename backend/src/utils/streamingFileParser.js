@@ -54,9 +54,12 @@ async function previewCsv(filePath) {
         headers = parseCsvLine(trimmed).map(cleanHeader);
         isHeaderProcessed = true;
       } else {
+        const values = parseCsvLine(trimmed);
+        const hasData = values.some(v => v !== undefined && v !== null && String(v).trim() !== '');
+        if (!hasData) return; // Skip completely empty CSV lines
+
         totalRows++;
         if (sampleRows.length < 5) {
-          const values = parseCsvLine(trimmed);
           const rowObj = {};
           headers.forEach((h, idx) => {
             rowObj[h] = values[idx] !== undefined ? values[idx].trim() : '';
@@ -108,10 +111,16 @@ async function previewXlsx(filePath) {
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     const rawValues = Array.isArray(row.values) ? row.values.slice(1) : [];
-    if (rawValues.length === 0 || rawValues.every(v => v === null || v === undefined || v === '')) return;
+    if (rawValues.length === 0) return;
+    const hasData = rawValues.some(v => {
+      if (v === null || v === undefined) return false;
+      const s = String(v.text || v.result || v).trim();
+      return s.length > 0;
+    });
+    if (!hasData) return;
 
     if (!isHeaderProcessed) {
-      headers = rawValues.map(v => cleanHeader(v ? (v.text || v) : ''));
+      headers = rawValues.map(v => cleanHeader(v ? (v.text || v.result || v) : ''));
       isHeaderProcessed = true;
     } else {
       totalRows++;
@@ -119,7 +128,7 @@ async function previewXlsx(filePath) {
         const rowObj = {};
         headers.forEach((h, idx) => {
           const val = rawValues[idx];
-          rowObj[h] = val !== undefined && val !== null ? String(val.text || val).trim() : '';
+          rowObj[h] = val !== undefined && val !== null ? String(val.text || val.result || val).trim() : '';
         });
         sampleRows.push(rowObj);
       }
@@ -218,6 +227,10 @@ async function* iterateCsvRows(filePath, columnMapping) {
 
   let rowNumber = 1; // 1-based data row number (excluding header)
   for await (const row of parser) {
+    const values = Object.values(row);
+    const hasData = values.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (!hasData) continue; // Skip blank CSV lines
+
     yield {
       rowNumber: rowNumber++,
       data: row
@@ -243,17 +256,29 @@ async function* iterateXlsxRows(filePath, columnMapping) {
     const row = worksheet.getRow(i);
     if (!row || !row.values) continue;
     const rawValues = Array.isArray(row.values) ? row.values.slice(1) : [];
-    if (rawValues.length === 0 || rawValues.every(v => v === null || v === undefined || v === '')) continue;
+    if (rawValues.length === 0) continue;
+
+    const hasData = rawValues.some(v => {
+      if (v === null || v === undefined) return false;
+      const s = String(v.text || v.result || v).trim();
+      return s.length > 0;
+    });
+    if (!hasData) continue; // Skip ghost empty Excel rows
 
     if (!isHeaderProcessed) {
-      headers = rawValues.map(v => cleanHeader(v ? (v.text || v) : ''));
+      headers = rawValues.map(v => cleanHeader(v ? (v.text || v.result || v) : ''));
       isHeaderProcessed = true;
     } else {
       const rowObj = {};
+      let rowHasNonEmptyCell = false;
       headers.forEach((h, idx) => {
         const val = rawValues[idx];
-        rowObj[h] = val !== undefined && val !== null ? String(val.text || val).trim() : '';
+        const cellStr = val !== undefined && val !== null ? String(val.text || val.result || val).trim() : '';
+        rowObj[h] = cellStr;
+        if (cellStr !== '') rowHasNonEmptyCell = true;
       });
+
+      if (!rowHasNonEmptyCell) continue;
 
       yield {
         rowNumber: rowNumber++,

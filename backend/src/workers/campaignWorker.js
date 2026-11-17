@@ -123,3 +123,4 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('src/workers
 export default {
   startCampaignWorker
 };
+

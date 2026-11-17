@@ -292,12 +292,22 @@ export async function processCampaignBatch(campaign) {
 
     // 4. Emit live progress to frontend via WebSocket
     const currentCounts = await getCampaignProgressCounts(campaignId, businessId);
+    const sentTotal = Number(currentCounts.sent_count || 0);
+    const failedTotal = Number(currentCounts.failed_count || 0);
+    const totalRec = Number(campaign.total_recipients || 1);
+    const processed = sentTotal + failedTotal;
+    const remaining = Math.max(0, totalRec - processed);
+    const percent = Math.min(100, Math.round((processed / totalRec) * 100));
+
     emitToTenant(businessId, 'campaign:progress', {
       campaignId,
-      sentCount: currentCounts.sent_count,
-      failedCount: currentCounts.failed_count,
-      totalRecipients: campaign.total_recipients,
-      percent: Math.min(100, Math.round(((currentCounts.sent_count + currentCounts.failed_count) / (campaign.total_recipients || 1)) * 100))
+      campaignName: campaign.name,
+      sentCount: sentTotal,
+      failedCount: failedTotal,
+      totalRecipients: totalRec,
+      remainingCount: remaining,
+      percent,
+      status: 'running'
     });
   }
 
@@ -516,7 +526,9 @@ async function finalizeCampaign(campaignId, businessId, campaignName) {
 
   emitToTenant(businessId, 'campaign:status_update', {
     campaignId,
-    status: 'completed'
+    campaignName,
+    status: 'completed',
+    percent: 100
   });
 }
 
