@@ -1063,248 +1063,412 @@ export default function CampaignBuilder() {
 
         {/* Step 2: Audience Selection & Segment Filters */}
         {step === 2 && (
-          <div className="cf-card mb-4">
-            <div className="cf-card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <h5 className="mb-0">Step 2: Audience Selection & Segment Filters</h5>
-                <div className="text-muted small">Choose whether to broadcast by segment tags, target all contacts, hand-pick specific contacts, or upload a CSV file.</div>
-              </div>
-              {/* Mode Switcher Tabs */}
-              <div className="btn-group flex-wrap" role="group">
-                <button
-                  type="button"
-                  className={`btn btn-sm ${audienceMode === 'groups' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
-                  onClick={() => setAudienceMode('groups')}
-                >
-                  <i className="bi bi-folder-fill me-1"></i>
-                  Target Contact Groups
-                  {selectedGroupIds.length > 0 && audienceMode === 'groups' && (
-                    <span className="badge bg-light text-success ms-1">{selectedGroupIds.length}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${audienceMode === 'tags' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
-                  onClick={() => setAudienceMode('tags')}
-                >
-                  <i className="bi bi-tags-fill me-1"></i>
-                  Target by Tags
-                  {selectedTagIds.length > 0 && audienceMode === 'tags' && (
-                    <span className="badge bg-light text-success ms-1">{selectedTagIds.length}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${audienceMode === 'specific' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
-                  onClick={() => setAudienceMode('specific')}
-                >
-                  <i className="bi bi-people-fill me-1"></i>
-                  Pick Specific Contacts
-                  {selectedContactIds.length > 0 && audienceMode !== 'csv' && (
-                    <span className="badge bg-light text-success ms-1">{selectedContactIds.length}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${audienceMode === 'csv' ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
-                  onClick={() => setAudienceMode('csv')}
-                >
-                  <i className="bi bi-file-earmark-spreadsheet-fill me-1"></i>
-                  Upload CSV Audience
-                  {audienceMode === 'csv' && selectedContactIds.length > 0 ? (
-                    <span className="badge bg-light text-success ms-1">{selectedContactIds.length}</span>
-                  ) : csvStats.valid > 0 ? (
-                    <span className="badge bg-light text-success ms-1">{csvStats.valid}</span>
-                  ) : null}
-                </button>
+          <div className="bg-white border rounded-3 p-4 mb-4 shadow-sm" style={{ borderColor: '#e5e7eb', borderRadius: '14px' }}>
+            {/* Step Header */}
+            <div className="mb-3">
+              <h5 className="fw-bold mb-1 text-dark" style={{ fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+                Step 2: Audience Selection &amp; Segment Filters
+              </h5>
+              <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                Choose whether to broadcast by segment tags, target all contacts, hand-pick specific contacts, or upload a CSV file.
               </div>
             </div>
-            <div className="cf-card-body">
-              {/* AUDIENCE MODE: Contact Groups */}
-              {audienceMode === 'groups' && (
-                <div id="audienceGroupsSection">
-                  {fieldErrors.groups && (
-                    <div
-                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+
+            {/* Mode Switcher Tabs */}
+            <div className="d-flex flex-wrap gap-2 mb-4" role="tablist">
+              <button
+                type="button"
+                className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-2 transition-all"
+                style={
+                  audienceMode === 'groups'
+                    ? {
+                        backgroundColor: '#0d764a',
+                        borderColor: '#0d764a',
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '0.88rem',
+                        border: '1px solid #0d764a'
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e5e7eb',
+                        color: '#374151',
+                        fontWeight: '500',
+                        fontSize: '0.88rem',
+                        border: '1px solid #e5e7eb'
+                      }
+                }
+                onClick={() => setAudienceMode('groups')}
+              >
+                <i className="bi bi-people-fill"></i>
+                <span>Target Contact Groups</span>
+                {selectedGroupIds.length > 0 && audienceMode === 'groups' && (
+                  <span className="badge rounded-pill bg-white text-success ms-1 px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
+                    {selectedGroupIds.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-2 transition-all"
+                style={
+                  audienceMode === 'tags'
+                    ? {
+                        backgroundColor: '#0d764a',
+                        borderColor: '#0d764a',
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '0.88rem',
+                        border: '1px solid #0d764a'
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e5e7eb',
+                        color: '#374151',
+                        fontWeight: '500',
+                        fontSize: '0.88rem',
+                        border: '1px solid #e5e7eb'
+                      }
+                }
+                onClick={() => setAudienceMode('tags')}
+              >
+                <i className="bi bi-tag"></i>
+                <span>Target by Tags</span>
+                {selectedTagIds.length > 0 && audienceMode === 'tags' && (
+                  <span className="badge rounded-pill bg-white text-success ms-1 px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
+                    {selectedTagIds.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-2 transition-all"
+                style={
+                  audienceMode === 'specific'
+                    ? {
+                        backgroundColor: '#0d764a',
+                        borderColor: '#0d764a',
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '0.88rem',
+                        border: '1px solid #0d764a'
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e5e7eb',
+                        color: '#374151',
+                        fontWeight: '500',
+                        fontSize: '0.88rem',
+                        border: '1px solid #e5e7eb'
+                      }
+                }
+                onClick={() => setAudienceMode('specific')}
+              >
+                <i className="bi bi-person-check"></i>
+                <span>Pick Specific Contacts</span>
+                {selectedContactIds.length > 0 && audienceMode !== 'csv' && (
+                  <span className="badge rounded-pill bg-white text-success ms-1 px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
+                    {selectedContactIds.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-2 transition-all"
+                style={
+                  audienceMode === 'csv'
+                    ? {
+                        backgroundColor: '#0d764a',
+                        borderColor: '#0d764a',
+                        color: '#ffffff',
+                        fontWeight: '600',
+                        fontSize: '0.88rem',
+                        border: '1px solid #0d764a'
+                      }
+                    : {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e5e7eb',
+                        color: '#374151',
+                        fontWeight: '500',
+                        fontSize: '0.88rem',
+                        border: '1px solid #e5e7eb'
+                      }
+                }
+                onClick={() => setAudienceMode('csv')}
+              >
+                <i className="bi bi-upload"></i>
+                <span>Upload CSV Audience</span>
+                {audienceMode === 'csv' && selectedContactIds.length > 0 ? (
+                  <span className="badge rounded-pill bg-white text-success ms-1 px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
+                    {selectedContactIds.length}
+                  </span>
+                ) : csvStats.valid > 0 ? (
+                  <span className="badge rounded-pill bg-white text-success ms-1 px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
+                    {csvStats.valid}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+
+            {/* AUDIENCE MODE: Contact Groups */}
+            {audienceMode === 'groups' && (
+              <div id="audienceGroupsSection">
+                {fieldErrors.groups && (
+                  <div
+                    className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                    style={{
+                      borderLeft: '4px solid #ef4444',
+                      backgroundColor: '#fef2f2',
+                      color: '#991b1b',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                    <span className="fw-semibold">{fieldErrors.groups}</span>
+                  </div>
+                )}
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+                  <div>
+                    <h6 className="fw-bold mb-1 text-dark" style={{ fontSize: '0.98rem' }}>
+                      Select Contact Groups (Single or Multiple)
+                    </h6>
+                    <p className="text-muted small mb-0" style={{ fontSize: '0.84rem' }}>
+                      Target customers saved in your custom contact groups. You can select multiple groups at once!
+                    </p>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-sm"
                       style={{
-                        borderLeft: '4px solid #ef4444',
-                        backgroundColor: '#fef2f2',
-                        color: '#991b1b',
-                        fontSize: '0.82rem'
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #d1d5db',
+                        color: '#374151',
+                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        fontSize: '0.84rem',
+                        fontWeight: '500'
+                      }}
+                      onClick={() => {
+                        if (selectedGroupIds.length === groups.length) {
+                          setSelectedGroupIds([]);
+                        } else {
+                          setSelectedGroupIds(groups.map(g => g.id));
+                        }
                       }}
                     >
-                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
-                      <span className="fw-semibold">{fieldErrors.groups}</span>
-                    </div>
-                  )}
-                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
-                    <div>
-                      <h6 className="fw-bold mb-1 text-dark">
-                        Select Contact Groups (Single or Multiple)
-                      </h6>
-                      <p className="text-muted small mb-0">
-                        Target customers saved in your custom contact groups. You can select multiple groups at once!
-                      </p>
-                    </div>
+                      {selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All Groups'}
+                    </button>
+                    <Link
+                      to="/contacts/groups"
+                      target="_blank"
+                      className="btn btn-sm d-inline-flex align-items-center gap-1"
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #0d764a',
+                        color: '#0d764a',
+                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        fontSize: '0.84rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      <i className="bi bi-plus-lg"></i>
+                      <span>Manage Groups</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {loadingGroups ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-success" role="status"></div>
+                    <div className="text-muted small mt-2">Loading contact groups...</div>
+                  </div>
+                ) : groups.length === 0 ? (
+                  <div className="alert alert-light border p-4 text-center rounded-3">
+                    <i className="bi bi-folder-x fs-2 text-warning d-block mb-2"></i>
+                    <h6>No Contact Groups Found</h6>
+                    <p className="text-muted small mb-3">
+                      You haven't created any contact groups yet. You can create groups in the Contact Groups module or target by tags/specific contacts.
+                    </p>
+                    <Link to="/contacts/groups" className="btn btn-sm btn-success">
+                      <i className="bi bi-plus-lg me-1"></i> Create Contact Group
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="row g-3">
+                    {groups.map(g => {
+                      const isSelected = selectedGroupIds.includes(g.id);
+                      return (
+                        <div key={g.id} className="col-12 col-md-6 col-lg-6">
+                          <div
+                            onClick={() => {
+                              setSelectedGroupIds(prev =>
+                                prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id]
+                              );
+                            }}
+                            className="p-3 transition-all d-flex align-items-center justify-content-between"
+                            style={{
+                              backgroundColor: isSelected ? '#ecfdf5' : '#ffffff',
+                              border: isSelected ? '1px solid #6ee7b7' : '1px solid #e5e7eb',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 1px 3px rgba(16, 185, 129, 0.1)' : 'none'
+                            }}
+                          >
+                            <div className="d-flex align-items-center gap-3">
+                              <input
+                                type="checkbox"
+                                className="form-check-input mt-0"
+                                checked={isSelected}
+                                onChange={() => { }}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  cursor: 'pointer',
+                                  accentColor: '#059669'
+                                }}
+                              />
+                              <i
+                                className="bi bi-people-fill flex-shrink-0"
+                                style={{ fontSize: '1.25rem', color: isSelected ? '#059669' : '#10b981' }}
+                              ></i>
+                              <div>
+                                <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.95rem', maxWidth: '320px' }}>
+                                  {g.name}
+                                </div>
+                                <div className="text-muted small text-truncate" style={{ fontSize: '0.82rem', maxWidth: '360px' }} title={g.description || ''}>
+                                  {g.description || 'No description provided.'}
+                                </div>
+                              </div>
+                            </div>
+                            <span
+                              className="badge rounded-pill flex-shrink-0"
+                              style={{
+                                backgroundColor: isSelected ? '#d1fae5' : '#f3f4f6',
+                                color: isSelected ? '#065f46' : '#4b5563',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
+                                padding: '5px 12px'
+                              }}
+                            >
+                              {g.member_count || 0} Contacts
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Info banner styled exactly like screenshot */}
+                <div
+                  className="py-2 px-3 small mt-3 d-flex align-items-center gap-2"
+                  style={{
+                    backgroundColor: '#e0f2fe',
+                    border: '1px solid #bae6fd',
+                    borderRadius: '8px',
+                    color: '#0369a1',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <i className="bi bi-info-circle flex-shrink-0" style={{ fontSize: '0.95rem' }}></i>
+                  <div>
+                    Selected <strong>{selectedGroupIds.length} group(s)</strong>. When multiple groups are selected, duplicate contacts between groups are automatically deduplicated.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AUDIENCE MODE: Segment Tags */}
+            {audienceMode === 'tags' && (
+              <div id="audienceTagsSection">
+                {fieldErrors.tags && (
+                  <div
+                    className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
+                    style={{
+                      borderLeft: '4px solid #ef4444',
+                      backgroundColor: '#fef2f2',
+                      color: '#991b1b',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
+                    <span className="fw-semibold">{fieldErrors.tags}</span>
+                  </div>
+                )}
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+                  <div>
+                    <h6 className="fw-bold mb-1 text-dark" style={{ fontSize: '0.98rem' }}>
+                      Select Segment Tags <span className="text-danger">* (Minimum 1 Tag Required)</span>
+                    </h6>
+                    <p className="text-muted small mb-0" style={{ fontSize: '0.84rem' }}>
+                      Select at least one tag to target your audience. Only contacts associated with your selected tag(s) will receive this campaign.
+                    </p>
+                  </div>
+                  {tags.length > 0 && (
                     <div className="d-flex align-items-center gap-2">
                       <button
                         type="button"
-                        className="btn btn-xs btn-outline-secondary"
+                        className="btn btn-sm"
+                        style={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #d1d5db',
+                          color: '#374151',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '0.84rem',
+                          fontWeight: '500'
+                        }}
                         onClick={() => {
-                          if (selectedGroupIds.length === groups.length) {
-                            setSelectedGroupIds([]);
+                          if (selectedTagIds.length === tags.length) {
+                            setSelectedTagIds([]);
                           } else {
-                            setSelectedGroupIds(groups.map(g => g.id));
+                            setSelectedTagIds(tags.map(t => t.id));
                           }
                         }}
                       >
-                        {selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All Groups'}
+                        {selectedTagIds.length === tags.length ? 'Deselect All' : 'Select All Tags'}
                       </button>
-                      <Link to="/contacts/groups" target="_blank" className="btn btn-xs btn-outline-success">
-                        <i className="bi bi-plus-lg me-1"></i> Manage Groups
+                      <Link
+                        to="/contacts"
+                        target="_blank"
+                        className="btn btn-sm d-inline-flex align-items-center gap-1"
+                        style={{
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #0d764a',
+                          color: '#0d764a',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '0.84rem',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <i className="bi bi-plus-lg"></i>
+                        <span>Manage Tags</span>
                       </Link>
-                    </div>
-                  </div>
-
-                  {loadingGroups ? (
-                    <div className="text-center py-4">
-                      <div className="spinner-border text-success" role="status"></div>
-                      <div className="text-muted small mt-2">Loading contact groups...</div>
-                    </div>
-                  ) : groups.length === 0 ? (
-                    <div className="alert alert-light border p-4 text-center rounded-3">
-                      <i className="bi bi-folder-x fs-2 text-warning d-block mb-2"></i>
-                      <h6>No Contact Groups Found</h6>
-                      <p className="text-muted small mb-3">
-                        You haven't created any contact groups yet. You can create groups in the Contact Groups module or target by tags/specific contacts.
-                      </p>
-                      <Link to="/contacts/groups" className="btn btn-sm btn-success">
-                        <i className="bi bi-plus-lg me-1"></i> Create Contact Group
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="row g-3">
-                      {groups.map(g => {
-                        const isSelected = selectedGroupIds.includes(g.id);
-                        return (
-                          <div key={g.id} className="col-12 col-md-6 col-lg-4">
-                            <div
-                              onClick={() => {
-                                setSelectedGroupIds(prev =>
-                                  prev.includes(g.id) ? prev.filter(x => x !== g.id) : [...prev, g.id]
-                                );
-                              }}
-                              className={`p-3 border rounded-3 cursor-pointer transition-all ${isSelected
-                                ? 'bg-success-subtle border-success shadow-xs'
-                                : 'bg-white hover-bg-light'
-                                }`}
-                              style={{
-                                borderLeft: `5px solid ${g.color || '#0d6efd'}`,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <div className="d-flex align-items-start justify-content-between mb-2">
-                                <div className="d-flex align-items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    className="form-check-input mt-0"
-                                    checked={isSelected}
-                                    onChange={() => { }}
-                                  />
-                                  <h6 className="fw-bold text-dark mb-0 text-truncate" style={{ maxWidth: '170px' }}>
-                                    {g.name}
-                                  </h6>
-                                </div>
-                                <span
-                                  className="badge rounded-pill"
-                                  style={{
-                                    backgroundColor: `${g.color || '#0d6efd'}20`,
-                                    color: g.color || '#0d6efd',
-                                    fontSize: '0.72rem'
-                                  }}
-                                >
-                                  {g.member_count || 0} Contacts
-                                </span>
-                              </div>
-                              <p className="text-muted small mb-0 text-truncate" title={g.description || ''}>
-                                {g.description || 'No description provided.'}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
                   )}
-
-                  <div className="alert alert-info py-2 px-3 small mt-3 d-flex align-items-center gap-2">
-                    <i className="bi bi-info-circle-fill flex-shrink-0"></i>
-                    <div>
-                      Selected <strong>{selectedGroupIds.length}</strong> group(s). When multiple groups are selected, duplicate contacts between groups are automatically deduplicated.
-                    </div>
-                  </div>
                 </div>
-              )}
-              {audienceMode === 'tags' && (
-                <div id="audienceTagsSection">
-                  {fieldErrors.tags && (
-                    <div
-                      className="alert alert-danger py-2 px-3 small mb-3 d-flex align-items-center gap-2 rounded-2 shadow-xs"
-                      style={{
-                        borderLeft: '4px solid #ef4444',
-                        backgroundColor: '#fef2f2',
-                        color: '#991b1b',
-                        fontSize: '0.82rem'
-                      }}
-                    >
-                      <i className="bi bi-exclamation-octagon-fill text-danger flex-shrink-0"></i>
-                      <span className="fw-semibold">{fieldErrors.tags}</span>
-                    </div>
-                  )}
-                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
-                    <div>
-                      <h6 className="fw-bold mb-1 text-dark">
-                        Filter By Segment Tags <span className="text-danger">* (Minimum 1 Tag Required)</span>
-                      </h6>
-                      <p className="text-muted small mb-0">
-                        Select at least one tag to target your audience. Only contacts associated with your selected tag(s) will receive this campaign.
-                      </p>
-                    </div>
-                    {tags.length > 0 && (
-                      <div className="d-flex align-items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-outline-secondary"
-                          onClick={() => {
-                            if (selectedTagIds.length === tags.length) {
-                              setSelectedTagIds([]);
-                            } else {
-                              setSelectedTagIds(tags.map(t => t.id));
-                            }
-                          }}
-                        >
-                          {selectedTagIds.length === tags.length ? 'Deselect All' : 'Select All Tags'}
-                        </button>
-                        <Link to="/contacts" target="_blank" className="btn btn-xs btn-outline-success">
-                          <i className="bi bi-plus-lg me-1"></i> Manage Tags
-                        </Link>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="mb-4">
-                    <div className="d-flex flex-wrap gap-2">
-                      {tags.length === 0 ? (
+                <div className="mb-4">
+                  <div className="row g-3">
+                    {tags.length === 0 ? (
+                      <div className="col-12">
                         <div className="alert alert-light border p-3 rounded-3 w-100">
                           <i className="bi bi-exclamation-triangle text-warning me-2"></i>
                           <span className="text-muted small">No segment tags created yet. Please create tags in Contacts or switch to <strong>Target Contact Groups</strong> or <strong>Pick Specific Contacts</strong> above.</span>
                         </div>
-                      ) : (
-                        tags.map(t => {
-                          const isChecked = selectedTagIds.includes(t.id);
-                          return (
-                            <button
-                              type="button"
-                              key={t.id}
+                      </div>
+                    ) : (
+                      tags.map(t => {
+                        const isChecked = selectedTagIds.includes(t.id);
+                        return (
+                          <div key={t.id} className="col-12 col-md-4 col-lg-3">
+                            <div
                               onClick={() => {
                                 if (isChecked) {
                                   setSelectedTagIds(selectedTagIds.filter(id => id !== t.id));
@@ -1313,33 +1477,72 @@ export default function CampaignBuilder() {
                                 }
                                 if (error) setError('');
                               }}
-                              className={`btn btn-sm ${isChecked ? 'btn-success fw-bold shadow-xs' : 'btn-outline-secondary'}`}
+                              className="p-3 transition-all d-flex align-items-center justify-content-between"
+                              style={{
+                                backgroundColor: isChecked ? '#ecfdf5' : '#ffffff',
+                                border: isChecked ? '1px solid #6ee7b7' : '1px solid #e5e7eb',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                boxShadow: isChecked ? '0 1px 3px rgba(16, 185, 129, 0.1)' : 'none'
+                              }}
                             >
-                              {isChecked ? '✓ ' : '+ '} {t.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    {selectedTagIds.length === 0 ? (
-                      <div className="alert alert-warning py-2 px-3 small mt-3 d-flex align-items-center gap-2">
-                        <i className="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"></i>
-                        <div>
-                          <strong>Minimum 1 Tag Selection Required:</strong> Please select at least one tag above to target your audience. Sending to all contacts without tags is not permitted.
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="alert alert-success-subtle border border-success-subtle py-2 px-3 small mt-3 d-flex align-items-center gap-2">
-                        <i className="bi bi-check-circle-fill text-success flex-shrink-0"></i>
-                        <div>
-                          Selected <strong>{selectedTagIds.length}</strong> tag(s). Contacts matching any of the selected tags will be included and automatically deduplicated.
-                        </div>
-                      </div>
+                              <div className="d-flex align-items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input mt-0"
+                                  checked={isChecked}
+                                  onChange={() => { }}
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    cursor: 'pointer',
+                                    accentColor: '#059669'
+                                  }}
+                                />
+                                <i className="bi bi-tag-fill" style={{ color: isChecked ? '#059669' : '#9ca3af' }}></i>
+                                <span className="fw-semibold text-dark text-truncate" style={{ fontSize: '0.9rem', maxWidth: '140px' }}>
+                                  {t.name}
+                                </span>
+                              </div>
+                              {isChecked && (
+                                <span className="badge rounded-pill" style={{ backgroundColor: '#d1fae5', color: '#065f46', fontSize: '0.72rem' }}>
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
+
+                  {selectedTagIds.length === 0 ? (
+                    <div className="alert alert-warning py-2 px-3 small mt-3 d-flex align-items-center gap-2 rounded-2">
+                      <i className="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"></i>
+                      <div>
+                        <strong>Minimum 1 Tag Selection Required:</strong> Please select at least one tag above to target your audience. Sending to all contacts without tags is not permitted.
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="py-2 px-3 small mt-3 d-flex align-items-center gap-2"
+                      style={{
+                        backgroundColor: '#e0f2fe',
+                        border: '1px solid #bae6fd',
+                        borderRadius: '8px',
+                        color: '#0369a1',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <i className="bi bi-info-circle flex-shrink-0" style={{ fontSize: '0.95rem' }}></i>
+                      <div>
+                        Selected <strong>{selectedTagIds.length} tag(s)</strong>. Contacts matching any of the selected tags will be included and automatically deduplicated.
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
               {audienceMode === 'specific' && (
                 <div id="audienceSpecificSection">
@@ -1916,17 +2119,46 @@ export default function CampaignBuilder() {
                 </div>
               )}
 
-              <div className="d-flex justify-content-between mt-4">
-                <button type="button" onClick={() => setStep(1)} className="btn btn-outline-secondary">
-                  Back
+              <div className="d-flex justify-content-between align-items-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="btn d-inline-flex align-items-center gap-1"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    color: '#374151',
+                    borderRadius: '8px',
+                    padding: '8px 20px',
+                    fontWeight: '500',
+                    fontSize: '0.88rem'
+                  }}
+                >
+                  <i className="bi bi-arrow-left"></i>
+                  <span>Back</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleAudiencePreview}
                   disabled={loading}
-                  className="btn btn-cf-primary d-flex align-items-center gap-2"
+                  className="btn d-inline-flex align-items-center gap-2"
+                  style={{
+                    backgroundColor: '#16a34a',
+                    border: 'none',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '8px 22px',
+                    fontWeight: '600',
+                    fontSize: '0.88rem',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
                 >
-                  {loading ? 'Estimating Audience...' : (
+                  {loading ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm" role="status"></div>
+                      <span>Estimating Audience...</span>
+                    </>
+                  ) : (
                     <>
                       <span>Next: Select Template</span>
                       <i className="bi bi-arrow-right"></i>
@@ -1934,7 +2166,6 @@ export default function CampaignBuilder() {
                   )}
                 </button>
               </div>
-            </div>
           </div>
         )}
 
