@@ -51,6 +51,11 @@ export default function CsvImport() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Delete modal state
+  const [deleteTargetJob, setDeleteTargetJob] = useState(null);
+  const [alsoDeleteContacts, setAlsoDeleteContacts] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchHistory();
     fetchTags();
@@ -344,6 +349,29 @@ export default function CsvImport() {
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to cancel job.');
+    }
+  };
+
+  const confirmDeleteJob = async () => {
+    if (!deleteTargetJob) return;
+    try {
+      setDeleting(true);
+      setError('');
+      const res = await api.delete(`/imports/${deleteTargetJob.id}?deleteContacts=${alsoDeleteContacts}`);
+      if (res.data?.success) {
+        setSuccessMsg(res.data.message || 'Import record deleted successfully.');
+        fetchHistory();
+        if (importResult?.id === deleteTargetJob.id) {
+          setImportResult(null);
+          setStep(1);
+        }
+        setDeleteTargetJob(null);
+        setAlsoDeleteContacts(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to delete import job.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1091,6 +1119,17 @@ export default function CsvImport() {
                               <i className="bi bi-arrow-repeat"></i>
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteTargetJob(job);
+                              setAlsoDeleteContacts(false);
+                            }}
+                            className="btn btn-sm btn-outline-danger p-1"
+                            title="Delete Import Job & Records"
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1100,6 +1139,83 @@ export default function CsvImport() {
             </table>
           </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteTargetJob && (
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px' }}>
+                <div className="modal-header border-bottom">
+                  <h5 className="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                    <i className="bi bi-trash-fill"></i>
+                    <span>Delete Import Job</span>
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    disabled={deleting}
+                    onClick={() => setDeleteTargetJob(null)}
+                  ></button>
+                </div>
+                <div className="modal-body p-4">
+                  <p className="mb-3 text-dark">
+                    Kya aap is imported file aur uske audit history ko delete karna chahte hain?
+                  </p>
+                  <div className="p-3 bg-light rounded-3 mb-3 small border">
+                    <div><strong>File Name:</strong> {deleteTargetJob.file_name}</div>
+                    <div><strong>Total Rows:</strong> {Number(deleteTargetJob.total_rows || 0).toLocaleString()}</div>
+                    <div><strong>Imported / Updated:</strong> {Number(deleteTargetJob.successful_rows || 0).toLocaleString()}</div>
+                    <div><strong>Upload Date:</strong> {new Date(deleteTargetJob.created_at).toLocaleString()}</div>
+                  </div>
+
+                  <div className="form-check p-3 bg-danger-subtle rounded-3 border border-danger-subtle">
+                    <input
+                      className="form-check-input ms-0 me-2"
+                      type="checkbox"
+                      id="alsoDeleteContactsCheck"
+                      checked={alsoDeleteContacts}
+                      onChange={(e) => setAlsoDeleteContacts(e.target.checked)}
+                    />
+                    <label className="form-check-label small fw-semibold text-danger" htmlFor="alsoDeleteContactsCheck">
+                      Is file se import hue Contacts ko bhi Database se permanently Delete karein
+                    </label>
+                    <div className="text-muted small mt-1 ms-4">
+                      Agar tick karenge, toh is Excel/CSV se add hue contacts CRM se poori tarah delete ho jayenge.
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-top bg-light">
+                  <button
+                    type="button"
+                    className="btn btn-secondary px-3"
+                    disabled={deleting}
+                    onClick={() => setDeleteTargetJob(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger px-4 fw-semibold"
+                    disabled={deleting}
+                    onClick={confirmDeleteJob}
+                  >
+                    {deleting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-trash me-1"></i>
+                        Confirm Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

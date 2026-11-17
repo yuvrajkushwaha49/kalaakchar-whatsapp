@@ -168,6 +168,23 @@ export async function cancel(req, res, next) {
   }
 }
 
+/**
+ * Delete an import job, audit logs, uploaded file, and optionally its contacts
+ */
+export async function deleteJob(req, res, next) {
+  try {
+    const deleteContacts = req.query.deleteContacts === 'true' || req.body?.deleteContacts === true;
+    const result = await importsService.deleteImportJob(req.businessId, req.params.id, { deleteContacts });
+    res.json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   uploadPreview,
   createJob,
@@ -178,5 +195,6 @@ export default {
   errors,
   exportErrors,
   retry,
-  cancel
+  cancel,
+  deleteJob
 };

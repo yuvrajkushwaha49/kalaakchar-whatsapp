@@ -545,7 +545,7 @@ async function processBatch({
           consent_status: nr.consentStatus || 'opted_in',
           consent_source: consentSource,
           consent_category: 'promotional',
-          proof_notes: `Batch Import: ${fileName}, Row #${nr.rowNum}`,
+          proof_notes: `Job #${jobId} | Batch Import: ${fileName}, Row #${nr.rowNum}`,
           created_at: new Date()
         });
       }
@@ -553,7 +553,7 @@ async function processBatch({
       const consentPlaceholders = newRelations.map(() => '(?, ?, ?, ?, \'promotional\', ?, NOW())').join(', ');
       const consentValues = [];
       for (const nr of newRelations) {
-        consentValues.push(businessId, nr.contactId, nr.consentStatus || 'opted_in', consentSource, `Batch Import: ${fileName}, Row #${nr.rowNum}`);
+        consentValues.push(businessId, nr.contactId, nr.consentStatus || 'opted_in', consentSource, `Job #${jobId} | Batch Import: ${fileName}, Row #${nr.rowNum}`);
       }
       await executeQuery(
         `INSERT INTO contact_consents (business_id, contact_id, consent_status, consent_source, consent_category, proof_notes, created_at)

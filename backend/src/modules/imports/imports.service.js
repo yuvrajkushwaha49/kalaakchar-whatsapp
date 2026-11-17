@@ -360,6 +360,82 @@ export async function cancelImport(businessId, jobId) {
   return importQueue.cancelImportJob(businessId, jobId);
 }
 
+/**
+ * Delete an import job record, audit rows, uploaded file, and optionally its imported contacts
+ */
+export async function deleteImportJob(businessId, jobId, { deleteContacts = false } = {}) {
+  const numBizId = Number(businessId);
+  const numJobId = Number(jobId);
+
+  // 1. Fetch job to find file_path and verify ownership
+  const job = await getImportJob(numBizId, numJobId);
+  if (!job) {
+    const err = new Error('Import job not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // 2. If deleteContacts is true, find and delete contacts created by this import
+  let deletedContactsCount = 0;
+  if (deleteContacts) {
+    if (isUsingFallback()) {
+      const store = getMemoryStore();
+      const consents = (store.contact_consents || []).filter(cc =>
+        cc.business_id === numBizId &&
+        (cc.proof_notes?.includes(`Job #${numJobId}`) || cc.proof_notes?.includes(job.file_name))
+      );
+      const contactIds = [...new Set(consents.map(cc => cc.contact_id))];
+      if (contactIds.length > 0) {
+        store.contacts = (store.contacts || []).filter(c => !(c.business_id === numBizId && contactIds.includes(c.id)));
+        store.contact_consents = (store.contact_consents || []).filter(cc => !(cc.business_id === numBizId && contactIds.includes(cc.contact_id)));
+        store.contact_tags = (store.contact_tags || []).filter(ct => !contactIds.includes(ct.contact_id));
+        store.contact_group_members = (store.contact_group_members || []).filter(cgm => !contactIds.includes(cgm.contact_id));
+        deletedContactsCount = contactIds.length;
+      }
+    } else {
+      const rows = await executeQuery(
+        `SELECT DISTINCT contact_id FROM contact_consents 
+         WHERE business_id = ? AND (proof_notes LIKE ? OR proof_notes LIKE ?)`,
+        [numBizId, `%Job #${numJobId}%`, `%${job.file_name}%`]
+      );
+      const contactIds = rows.map(r => r.contact_id);
+      if (contactIds.length > 0) {
+        const placeholders = contactIds.map(() => '?').join(',');
+        await executeQuery(
+          `DELETE FROM contacts WHERE business_id = ? AND id IN (${placeholders})`,
+          [numBizId, ...contactIds]
+        );
+        deletedContactsCount = contactIds.length;
+      }
+    }
+  }
+
+  // 3. Remove temporary file if it exists
+  if (job.file_path && fs.existsSync(job.file_path)) {
+    try {
+      fs.unlinkSync(job.file_path);
+    } catch (_) {}
+  }
+
+  // 4. Delete import_rows and import_jobs
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    store.import_rows = (store.import_rows || []).filter(r => r.job_id !== numJobId);
+    store.import_jobs = (store.import_jobs || []).filter(j => !(j.business_id === numBizId && j.id === numJobId));
+  } else {
+    await executeQuery('DELETE FROM import_rows WHERE job_id = ?', [numJobId]);
+    await executeQuery('DELETE FROM import_jobs WHERE business_id = ? AND id = ?', [numBizId, numJobId]);
+  }
+
+  return {
+    success: true,
+    message: deleteContacts 
+      ? `Import job #${numJobId} and ${deletedContactsCount} contact(s) deleted successfully.`
+      : `Import job #${numJobId} record deleted successfully.`,
+    deletedContactsCount
+  };
+}
+
 export default {
   handleUploadPreview,
   createQueuedImportJob,
@@ -371,5 +447,6 @@ export default {
   getImportErrors,
   exportImportErrorsCsv,
   retryImport,
-  cancelImport
+  cancelImport,
+  deleteImportJob
 };
