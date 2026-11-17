@@ -59,7 +59,8 @@ export async function createQueuedImportJob(businessId, userId, {
   groupId = null,
   defaultCountryCode = '91',
   consentSource = 'csv_verified_records',
-  strictConsent = false
+  strictConsent = false,
+  skipDuplicates = false
 }) {
   if (!fileKey) {
     const err = new Error('fileKey is required');
@@ -103,7 +104,8 @@ export async function createQueuedImportJob(businessId, userId, {
       groupId: groupId ? Number(groupId) : null,
       defaultCountryCode: defaultCountryCode || '91',
       consentSource: consentSource || 'csv_verified_records',
-      strictConsent: Boolean(strictConsent)
+      strictConsent: Boolean(strictConsent),
+      skipDuplicates: Boolean(skipDuplicates)
     }
   });
 
@@ -130,7 +132,8 @@ export async function executeImport(businessId, userId, {
   defaultCountryCode = '91',
   batchTag = '',
   groupId = null,
-  strictConsent = true
+  strictConsent = true,
+  skipDuplicates = true
 }) {
   if (!csvText) {
     const err = new Error('csvText is required');
@@ -160,7 +163,8 @@ export async function executeImport(businessId, userId, {
     groupId,
     defaultCountryCode,
     consentSource,
-    strictConsent
+    strictConsent,
+    skipDuplicates
   });
 
   // For direct executeImport invocation (synchronous/tests), claim and process immediately

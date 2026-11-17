@@ -245,8 +245,10 @@ async function processBatch({
 
     const phone = norm.phone;
 
-    // 2. Intra-file duplicate check
-    if (seenPhonesInFile.has(phone)) {
+    // 2. Intra-file duplicate check:
+    // If skipDuplicates is explicitly true (legacy test mode), skip it.
+    // Otherwise, do NOT skip duplicates — allow them to update tags and fields!
+    if (seenPhonesInFile.has(phone) && options.skipDuplicates === true) {
       duplicates++;
       errorReports.push({
         job_id: jobId,
@@ -330,6 +332,7 @@ async function processBatch({
   const newContactsToInsert = [];
   const existingContactsToUpdate = [];
   const contactsForRelations = []; // { contactId, phone, rowTag }
+  const intraBatchRepeats = []; // For contacts repeated within the same 500-batch
 
   for (const vr of validRows) {
     const existing = existingMap.get(vr.phone);
@@ -337,23 +340,37 @@ async function processBatch({
     if (existing) {
       // Compliance check: If previously unsubscribed, preserve preference
       if (existing.status === 'unsubscribed' || Number(existing.is_opted_in) === 0) {
-        duplicates++;
-        errorReports.push({
-          job_id: jobId,
-          row_number: vr.rowNum,
-          phone: vr.phone,
-          status: 'skipped',
-          error_reason: 'Contact previously unsubscribed / opted out. Preserving unsubscribe preference.'
-        });
-        continue;
+        if (options.skipDuplicates === true) {
+          duplicates++;
+          errorReports.push({
+            job_id: jobId,
+            row_number: vr.rowNum,
+            phone: vr.phone,
+            status: 'skipped',
+            error_reason: 'Contact previously unsubscribed / opted out. Preserving unsubscribe preference.'
+          });
+          continue;
+        } else {
+          // Do not skip: attach new tags while keeping unsubscribed preference intact
+          contactsForRelations.push({
+            contactId: existing.id,
+            phone: vr.phone,
+            rowTag: vr.rowTag,
+            isNew: false
+          });
+          successful++;
+          continue;
+        }
       }
 
-      // Existing contact is active: queue for safe non-null update
-      existingContactsToUpdate.push({
-        id: existing.id,
-        name: vr.name,
-        email: vr.email
-      });
+      // Existing contact is active: update tags and optional name/email
+      if (vr.name || vr.email) {
+        existingContactsToUpdate.push({
+          id: existing.id,
+          name: vr.name,
+          email: vr.email
+        });
+      }
 
       contactsForRelations.push({
         contactId: existing.id,
@@ -364,16 +381,29 @@ async function processBatch({
 
       successful++;
     } else {
-      // Brand new contact
-      newContactsToInsert.push({
-        rowNum: vr.rowNum,
-        phone: vr.phone,
-        name: vr.name,
-        email: vr.email,
-        rowTag: vr.rowTag,
-        isOptedIn: vr.isOptedIn ?? 1,
-        consentStatus: vr.consentStatus || 'opted_in'
-      });
+      // Check if this phone was already queued for new insert in this very batch
+      const alreadyQueued = newContactsToInsert.find(nc => nc.phone === vr.phone);
+      if (alreadyQueued) {
+        // Intra-batch repeat: update tags once new contact is created
+        intraBatchRepeats.push({
+          phone: vr.phone,
+          rowTag: vr.rowTag,
+          name: vr.name,
+          email: vr.email
+        });
+        successful++;
+      } else {
+        // Brand new contact
+        newContactsToInsert.push({
+          rowNum: vr.rowNum,
+          phone: vr.phone,
+          name: vr.name,
+          email: vr.email,
+          rowTag: vr.rowTag,
+          isOptedIn: vr.isOptedIn ?? 1,
+          consentStatus: vr.consentStatus || 'opted_in'
+        });
+      }
     }
   }
 
@@ -406,6 +436,19 @@ async function processBatch({
           consentStatus: nc.consentStatus
         });
         successful++;
+      }
+
+      // Attach tags for intra-batch repeats in fallback mode
+      for (const rep of intraBatchRepeats) {
+        const c = store.contacts.find(x => x.business_id === businessId && x.phone === rep.phone);
+        if (c) {
+          contactsForRelations.push({
+            contactId: c.id,
+            phone: rep.phone,
+            rowTag: rep.rowTag,
+            isNew: false
+          });
+        }
       }
     } else {
       // Multi-row INSERT into contacts
@@ -448,6 +491,19 @@ async function processBatch({
           });
         }
         successful++;
+      }
+
+      // Also attach tags for intra-batch repeats
+      for (const rep of intraBatchRepeats) {
+        const cId = insertedIdMap.get(rep.phone);
+        if (cId) {
+          contactsForRelations.push({
+            contactId: cId,
+            phone: rep.phone,
+            rowTag: rep.rowTag,
+            isNew: false
+          });
+        }
       }
     }
   }

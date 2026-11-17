@@ -902,25 +902,19 @@ export default function CsvImport() {
             )}
             
             <div className="row g-3 text-center mb-4">
-              <div className="col-3">
+              <div className="col-4">
                 <div className="p-3 border rounded-3 bg-light">
                   <div className="text-muted small">Total Rows</div>
                   <div className="fs-3 fw-bold text-dark">{importResult.total_rows || importResult.totalRows || 0}</div>
                 </div>
               </div>
-              <div className="col-3">
+              <div className="col-4">
                 <div className="p-3 border rounded-3 bg-success-subtle">
                   <div className="text-success small fw-semibold">Imported / Updated</div>
                   <div className="fs-3 fw-bold text-success">{importResult.successful_rows ?? importResult.successful ?? 0}</div>
                 </div>
               </div>
-              <div className="col-3">
-                <div className="p-3 border rounded-3 bg-warning-subtle">
-                  <div className="text-warning small fw-semibold">Duplicates Skipped</div>
-                  <div className="fs-3 fw-bold text-warning">{importResult.duplicate_rows ?? importResult.duplicates ?? 0}</div>
-                </div>
-              </div>
-              <div className="col-3">
+              <div className="col-4">
                 <div className="p-3 border rounded-3 bg-danger-subtle">
                   <div className="text-danger small fw-semibold">Failed / Ineligible</div>
                   <div className="fs-3 fw-bold text-danger">{importResult.failed_rows ?? importResult.failed ?? 0}</div>
@@ -1025,8 +1019,7 @@ export default function CsvImport() {
                   <th>File Name</th>
                   <th>Format</th>
                   <th>Total Rows</th>
-                  <th>Imported</th>
-                  <th>Duplicates</th>
+                  <th>Imported / Updated</th>
                   <th>Failed</th>
                   <th>Status</th>
                   <th>Import Date</th>
@@ -1036,7 +1029,7 @@ export default function CsvImport() {
               <tbody>
                 {importHistory.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="text-center py-4 text-muted">
+                    <td colSpan="8" className="text-center py-4 text-muted">
                       No past imports recorded.
                     </td>
                   </tr>
@@ -1054,7 +1047,6 @@ export default function CsvImport() {
                       </td>
                       <td>{Number(job.total_rows || 0).toLocaleString()}</td>
                       <td className="text-success fw-bold">{Number(job.successful_rows || 0).toLocaleString()}</td>
-                      <td className="text-warning fw-bold">{Number(job.duplicate_rows || 0).toLocaleString()}</td>
                       <td className="text-danger fw-bold">{Number(job.failed_rows || 0).toLocaleString()}</td>
                       <td>
                         {job.status === 'processing' ? (
