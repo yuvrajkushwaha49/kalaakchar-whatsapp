@@ -7,7 +7,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "build": "npm --prefix frontend run build",
-    "start": "npm --prefix backend run start"
+    "start": "npm --prefix backend run start",
+    "ai:context": "node scripts/generate-ai-context.cjs"
   },
   "dependencies": {
     "puppeteer-core": "^25.16.0"
