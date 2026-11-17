@@ -1,68 +1,100 @@
-/* Floating Live Progress Bar Styles */
+/* Floating Live Progress - Compact Right-Side Widget */
+
 .cf-floating-progress-container {
   position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 920px;
-  z-index: 1060;
-  animation: cfSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1080;
+  width: 340px;
+  max-width: calc(100vw - 28px);
   pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes cfSlideDown {
+.cf-floating-progress-container.pos-bottom {
+  bottom: 20px;
+  right: 20px;
+  animation: cfSlideInUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cf-floating-progress-container.pos-top {
+  top: 75px;
+  right: 20px;
+  animation: cfSlideInDown 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cfSlideInUp {
   from {
     opacity: 0;
-    transform: translate(-50%, -20px);
+    transform: translateY(20px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cfSlideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .cf-floating-card {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.94);
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 1rem 1.4rem;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(16, 185, 129, 0.3);
-  transition: all 0.25s ease;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(16, 185, 129, 0.25);
+  transition: all 0.2s ease;
 }
 
 .cf-floating-card.completed {
-  background: rgba(6, 78, 59, 0.95);
-  box-shadow: 0 16px 40px rgba(6, 78, 59, 0.4), 0 0 0 1px rgba(52, 211, 153, 0.4);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 12px 30px -4px rgba(6, 78, 59, 0.5), 0 0 0 1px rgba(52, 211, 153, 0.35);
+}
+
+.cf-floating-card.cancelled {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 12px 30px -4px rgba(127, 29, 29, 0.45), 0 0 0 1px rgba(239, 68, 68, 0.25);
 }
 
 .cf-floating-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .cf-floating-title-area {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .cf-pulse-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: #10b981;
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   animation: cfPulse 1.6s infinite;
   flex-shrink: 0;
+}
+
+.cf-pulse-dot.pulse-danger {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
 }
 
 @keyframes cfPulse {
@@ -72,7 +104,7 @@
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
   }
   100% {
     transform: scale(0.95);
@@ -81,55 +113,72 @@
 }
 
 .cf-floating-name {
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.cf-floating-name-text {
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cf-floating-percent-badge {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
   font-weight: 800;
-  font-size: 0.85rem;
-  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cf-floating-percent-badge.badge-cancelled {
+  background: #64748b;
+  box-shadow: none;
 }
 
 .cf-floating-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .cf-floating-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
-  border-radius: 8px;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.78rem;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.72rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.2rem;
   text-decoration: none;
   transition: all 0.15s ease;
+  line-height: 1;
 }
 
 .cf-floating-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
 }
 
 .cf-floating-btn-cancel {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  color: #f87171;
 }
 
 .cf-floating-btn-cancel:hover {
@@ -138,13 +187,14 @@
   color: #ffffff;
 }
 
+/* Slim animated progress bar */
 .cf-floating-progress-bar-wrap {
   width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
   overflow: hidden;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.55rem;
 }
 
 .cf-floating-progress-bar-inner {
@@ -153,7 +203,12 @@
   background-size: 200% 100%;
   animation: cfBarShimmer 2s linear infinite;
   border-radius: 9999px;
-  transition: width 0.4s ease;
+  transition: width 0.35s ease;
+}
+
+.cf-floating-progress-bar-inner.bar-cancelled {
+  background: #ef4444;
+  animation: none;
 }
 
 @keyframes cfBarShimmer {
@@ -161,41 +216,41 @@
   100% { background-position: -200% 0; }
 }
 
-.cf-floating-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.6rem;
+/* Compact Metrics Chips Row ("Kitna ho gaya, kitna baki hai") */
+.cf-floating-metrics-chips {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
 }
 
-.cf-floating-metric-box {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 0.45rem 0.65rem;
+.cf-floating-chip {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 0.25rem 0.35rem;
   text-align: center;
 }
 
-.cf-floating-metric-label {
-  font-size: 0.7rem;
+.cf-floating-chip-label {
+  font-size: 0.62rem;
   color: #94a3b8;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
-.cf-floating-metric-val {
-  font-size: 0.95rem;
+.cf-floating-chip-val {
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #f8fafc;
   margin-top: 1px;
 }
 
-/* Minimized Floating Pill */
+/* Minimized Floating Pill - Compact Right Corner */
 .cf-floating-minimized-pill {
   position: fixed;
-  top: 16px;
-  right: 24px;
-  z-index: 1060;
+  z-index: 1080;
   pointer-events: auto;
   background: rgba(15, 23, 42, 0.94);
   backdrop-filter: blur(12px);
@@ -203,14 +258,26 @@
   color: #f8fafc;
   border: 1px solid rgba(16, 185, 129, 0.4);
   border-radius: 9999px;
-  padding: 0.45rem 1rem;
+  padding: 0.35rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  gap: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: all 0.2s ease;
-  animation: cfSlideDown 0.3s ease;
+  font-size: 0.76rem;
+}
+
+.cf-floating-minimized-pill.pos-bottom {
+  bottom: 20px;
+  right: 20px;
+  animation: cfSlideInUp 0.25s ease;
+}
+
+.cf-floating-minimized-pill.pos-top {
+  top: 75px;
+  right: 20px;
+  animation: cfSlideInDown 0.25s ease;
 }
 
 .cf-floating-minimized-pill:hover {
@@ -219,9 +286,13 @@
   border-color: #10b981;
 }
 
-@media (max-width: 640px) {
-  .cf-floating-metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 480px) {
+  .cf-floating-progress-container,
+  .cf-floating-minimized-pill {
+    right: 12px;
+  }
+  .cf-floating-progress-container.pos-bottom,
+  .cf-floating-minimized-pill.pos-bottom {
+    bottom: 12px;
   }
 }
-
