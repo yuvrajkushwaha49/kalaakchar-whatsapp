@@ -113,7 +113,8 @@ export async function processImportJob(job) {
         batchTagIds,
         groupId,
         seenPhonesInFile,
-        getOrCreateTagId
+        getOrCreateTagId,
+        options
       });
 
       totalProcessed += currentBatch.length;
@@ -150,7 +151,8 @@ export async function processImportJob(job) {
       batchTagIds,
       groupId,
       seenPhonesInFile,
-      getOrCreateTagId
+      getOrCreateTagId,
+      options
     });
 
     totalProcessed += currentBatch.length;
@@ -207,7 +209,8 @@ async function processBatch({
   batchTagIds,
   groupId,
   seenPhonesInFile,
-  getOrCreateTagId
+  getOrCreateTagId,
+  options = {}
 }) {
   let successful = 0;
   let duplicates = 0;
@@ -256,16 +259,24 @@ async function processBatch({
     }
     seenPhonesInFile.add(phone);
 
-    // 3. Explicit opt-out check
+    // 3. Consent check:
+    // By default, since user verifies batch consent on upload, all valid phone numbers are imported.
+    // If strictConsent is explicitly enabled, reject rows marked 'no'/'opted_out'.
+    // Otherwise, import them with is_opted_in: 0 so the business has the record and it is NOT failed.
+    let isOptedIn = 1;
+    let consentStatus = 'opted_in';
     let isExplicitOptOut = false;
-    if (consentCol && row[consentCol] !== undefined && row[consentCol] !== null) {
+
+    if (consentCol && row[consentCol] !== undefined && row[consentCol] !== null && String(row[consentCol]).trim() !== '') {
       const rawVal = String(row[consentCol]).toLowerCase().trim();
       if (rawVal === 'no' || rawVal === 'false' || rawVal === '0' || rawVal === 'opted_out' || rawVal === 'unsubscribed' || rawVal === 'rejected') {
         isExplicitOptOut = true;
+        isOptedIn = 0;
+        consentStatus = 'opted_out';
       }
     }
 
-    if (isExplicitOptOut) {
+    if (isExplicitOptOut && options.strictConsent === true) {
       failed++;
       errorReports.push({
         job_id: jobId,
@@ -283,7 +294,9 @@ async function processBatch({
       phone,
       name,
       email,
-      rowTag
+      rowTag,
+      isOptedIn,
+      consentStatus
     });
   }
 
@@ -357,7 +370,9 @@ async function processBatch({
         phone: vr.phone,
         name: vr.name,
         email: vr.email,
-        rowTag: vr.rowTag
+        rowTag: vr.rowTag,
+        isOptedIn: vr.isOptedIn ?? 1,
+        consentStatus: vr.consentStatus || 'opted_in'
       });
     }
   }
@@ -376,7 +391,7 @@ async function processBatch({
           country_code: defaultCountryCode,
           name: nc.name,
           email: nc.email,
-          is_opted_in: 1,
+          is_opted_in: nc.isOptedIn,
           status: 'active',
           created_at: new Date(),
           updated_at: new Date()
@@ -387,16 +402,17 @@ async function processBatch({
           phone: nc.phone,
           rowTag: nc.rowTag,
           isNew: true,
-          rowNum: nc.rowNum
+          rowNum: nc.rowNum,
+          consentStatus: nc.consentStatus
         });
         successful++;
       }
     } else {
       // Multi-row INSERT into contacts
-      const insertPlaceholders = newContactsToInsert.map(() => '(?, ?, ?, ?, ?, TRUE, \'active\', NOW(), NOW())').join(', ');
+      const insertPlaceholders = newContactsToInsert.map(() => '(?, ?, ?, ?, ?, ?, \'active\', NOW(), NOW())').join(', ');
       const insertValues = [];
       for (const nc of newContactsToInsert) {
-        insertValues.push(businessId, nc.phone, defaultCountryCode, nc.name || null, nc.email || null);
+        insertValues.push(businessId, nc.phone, defaultCountryCode, nc.name || null, nc.email || null, nc.isOptedIn);
       }
 
       await executeQuery(
@@ -427,10 +443,11 @@ async function processBatch({
             phone: nc.phone,
             rowTag: nc.rowTag,
             isNew: true,
-            rowNum: nc.rowNum
+            rowNum: nc.rowNum,
+            consentStatus: nc.consentStatus
           });
-          successful++;
         }
+        successful++;
       }
     }
   }
@@ -469,7 +486,7 @@ async function processBatch({
           id: store.contact_consents.length + 1,
           business_id: businessId,
           contact_id: nr.contactId,
-          consent_status: 'opted_in',
+          consent_status: nr.consentStatus || 'opted_in',
           consent_source: consentSource,
           consent_category: 'promotional',
           proof_notes: `Batch Import: ${fileName}, Row #${nr.rowNum}`,
@@ -477,10 +494,10 @@ async function processBatch({
         });
       }
     } else {
-      const consentPlaceholders = newRelations.map(() => '(?, ?, \'opted_in\', ?, \'promotional\', ?, NOW())').join(', ');
+      const consentPlaceholders = newRelations.map(() => '(?, ?, ?, ?, \'promotional\', ?, NOW())').join(', ');
       const consentValues = [];
       for (const nr of newRelations) {
-        consentValues.push(businessId, nr.contactId, consentSource, `Batch Import: ${fileName}, Row #${nr.rowNum}`);
+        consentValues.push(businessId, nr.contactId, nr.consentStatus || 'opted_in', consentSource, `Batch Import: ${fileName}, Row #${nr.rowNum}`);
       }
       await executeQuery(
         `INSERT INTO contact_consents (business_id, contact_id, consent_status, consent_source, consent_category, proof_notes, created_at)

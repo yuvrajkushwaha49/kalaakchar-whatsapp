@@ -3,10 +3,30 @@
  */
 
 export function normalizePhone(rawPhone, defaultCountryCode = '91') {
-  if (!rawPhone) return { isValid: false, phone: null, error: 'Phone number is empty' };
+  if (rawPhone === null || rawPhone === undefined) {
+    return { isValid: false, phone: null, error: 'Phone number is empty' };
+  }
+
+  let str = String(rawPhone).trim();
+  if (!str) return { isValid: false, phone: null, error: 'Phone number is empty' };
+
+  // Remove leading/trailing quotes and BOM
+  str = str.replace(/^\uFEFF/, '').replace(/^["']|["']$/g, '').trim();
+
+  // If number came from Excel as scientific notation (e.g. 9.87654E+09) or float (9876543210.0)
+  if (/^\d+\.0+$/.test(str)) {
+    str = str.replace(/\.0+$/, '');
+  } else if (/[eE]\+?/.test(str)) {
+    const num = Number(str);
+    if (!isNaN(num)) {
+      try {
+        str = BigInt(Math.round(num)).toString();
+      } catch (_) {}
+    }
+  }
 
   // Remove spaces, dashes, parentheses, non-digit chars except leading plus
-  let cleaned = String(rawPhone).trim().replace(/[\s\-\(\)\.]/g, '');
+  let cleaned = str.replace(/[\s\-\(\)\.]/g, '');
 
   if (cleaned.startsWith('+')) {
     cleaned = cleaned.substring(1);

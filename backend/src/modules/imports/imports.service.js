@@ -58,7 +58,8 @@ export async function createQueuedImportJob(businessId, userId, {
   batchTag = '',
   groupId = null,
   defaultCountryCode = '91',
-  consentSource = 'csv_verified_records'
+  consentSource = 'csv_verified_records',
+  strictConsent = false
 }) {
   if (!fileKey) {
     const err = new Error('fileKey is required');
@@ -101,7 +102,8 @@ export async function createQueuedImportJob(businessId, userId, {
       batchTag: batchTag ? String(batchTag).trim() : '',
       groupId: groupId ? Number(groupId) : null,
       defaultCountryCode: defaultCountryCode || '91',
-      consentSource: consentSource || 'csv_verified_records'
+      consentSource: consentSource || 'csv_verified_records',
+      strictConsent: Boolean(strictConsent)
     }
   });
 
@@ -127,7 +129,8 @@ export async function executeImport(businessId, userId, {
   consentSource = 'csv_verified_records',
   defaultCountryCode = '91',
   batchTag = '',
-  groupId = null
+  groupId = null,
+  strictConsent = true
 }) {
   if (!csvText) {
     const err = new Error('csvText is required');
@@ -156,7 +159,8 @@ export async function executeImport(businessId, userId, {
     batchTag,
     groupId,
     defaultCountryCode,
-    consentSource
+    consentSource,
+    strictConsent
   });
 
   // For direct executeImport invocation (synchronous/tests), claim and process immediately

@@ -10,6 +10,7 @@ import ExcelJS from 'exceljs';
 function cleanHeader(header) {
   if (header === null || header === undefined) return '';
   return String(header)
+    .replace(/^\uFEFF/, '') // Strip UTF-8 BOM
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/\s+/g, ' ');
