@@ -1,19 +1,24 @@
 process.env.NODE_ENV = 'test';
-import { describe, test } from 'node:test';
+import { describe, test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { getMemoryStore } from '../src/database/db.js';
+import { getMemoryStore, checkConnection } from '../src/database/db.js';
 import campaignQueue from '../src/queues/campaignQueue.js';
 import { processCampaignBatch } from '../src/services/campaignBatchDispatcher.js';
 import * as campaignsService from '../src/modules/campaigns/campaigns.service.js';
 
 describe('🚀 Optimized Background Campaign Queue & Chunked Dispatcher Suite', () => {
-  const store = getMemoryStore();
+  let store;
   const testBizId = 1;
   const testWabaId = 1;
   const testTplId = 1;
 
   let testCampaignId = null;
   let testContactIds = [];
+
+  before(async () => {
+    await checkConnection();
+    store = getMemoryStore();
+  });
 
   test('1. Bulk Recipient Creation: inserts recipients in batches without blocking', async () => {
     // Ensure template exists and is APPROVED
@@ -32,22 +37,22 @@ describe('🚀 Optimized Background Campaign Queue & Chunked Dispatcher Suite', 
       tpl.status = 'APPROVED';
     }
 
-    // Ensure at least 15 active contacts exist for business
-    const existing = store.contacts.filter(c => c.business_id === testBizId && (c.status === 'active' || !c.status));
-    let nextId = Math.max(0, ...store.contacts.map(c => c.id || 0)) + 1;
-    while (existing.length < 15) {
+    // Create 15 unique active test contacts
+    testContactIds = [];
+    const ts = Date.now();
+    for (let i = 1; i <= 15; i++) {
       const newContact = {
-        id: nextId++,
+        id: 99000 + i,
         business_id: testBizId,
-        name: `Queue Test Contact ${existing.length + 1}`,
-        phone: `+9197000${nextId}`,
+        name: `Queue Test Contact ${i}`,
+        phone: `+9196${String(ts).slice(-6)}${String(i).padStart(2, '0')}`,
         is_opted_in: 1,
         status: 'active'
       };
+      store.contacts = store.contacts.filter(c => c.id !== newContact.id && c.phone !== newContact.phone);
       store.contacts.push(newContact);
-      existing.push(newContact);
+      testContactIds.push(newContact.id);
     }
-    testContactIds = existing.slice(0, 15).map(c => c.id);
 
     const campResult = await campaignsService.createCampaign(testBizId, {
       name: `Queue Scale Test ${Date.now()}`,
