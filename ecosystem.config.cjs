@@ -20,6 +20,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
+        CAMPAIGN_WORKER_STANDALONE: 'true',
         CAMPAIGN_BATCH_SIZE: 50,
         CAMPAIGN_PACING_MS: 25,
         CAMPAIGN_POLL_INTERVAL_MS: 1500

@@ -112,8 +112,22 @@ function handleShutdown(signal) {
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 
-// Auto-start if invoked directly
-if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('src/workers/campaignWorker.js')) {
+// Auto-start if invoked directly via CLI or executed via PM2 worker process
+const isDirectExecution = 
+  process.env.pm_id !== undefined || // PM2 managed worker
+  process.env.CAMPAIGN_WORKER_STANDALONE === 'true' ||
+  (process.argv[1] && (
+    process.argv[1].replace(/\\/g, '/').includes('campaignWorker') ||
+    process.argv[1].replace(/\\/g, '/').includes('campaignRunner') ||
+    process.argv[1].replace(/\\/g, '/').includes('campaignQueue')
+  ));
+
+// But NEVER auto-start if imported inside the main HTTP server process or running unit test suite
+const isMainServer = 
+  process.env.name === 'campaignflow-api' ||
+  (process.argv[1] && process.argv[1].replace(/\\/g, '/').includes('server.js'));
+
+if (isDirectExecution && !isMainServer && process.env.NODE_ENV !== 'test') {
   startCampaignWorker().catch(err => {
     logger.error('Fatal campaign worker error:', err);
     process.exit(1);
