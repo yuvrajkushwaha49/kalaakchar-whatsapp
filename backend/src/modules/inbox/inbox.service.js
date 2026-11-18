@@ -1090,50 +1090,6 @@ export async function assignConversation(businessId, user, conversationId, targe
 }
 
 /**
- * Delete Conversation and all its cascaded records
- */
-export async function deleteConversation(businessId, user, conversationId) {
-  const numBusinessId = Number(businessId);
-  const numConvId = Number(conversationId);
-
-  if (isUsingFallback()) {
-    const store = getMemoryStore();
-    const idx = (store.whatsapp_conversations || []).findIndex(
-      c => c.id === numConvId && c.business_id === numBusinessId
-    );
-    if (idx === -1) {
-      const err = new Error('Conversation not found');
-      err.statusCode = 404;
-      throw err;
-    }
-    store.whatsapp_conversations.splice(idx, 1);
-    store.whatsapp_messages = (store.whatsapp_messages || []).filter(
-      m => !(m.conversation_id === numConvId && m.business_id === numBusinessId)
-    );
-    store.whatsapp_conversation_notes = (store.whatsapp_conversation_notes || []).filter(
-      n => !(n.conversation_id === numConvId && n.business_id === numBusinessId)
-    );
-    saveMemoryStore();
-    emitToTenant(numBusinessId, 'inbox:conversation_deleted', { conversationId: numConvId });
-    return { success: true, id: numConvId };
-  }
-
-  const res = await executeQuery(
-    'DELETE FROM whatsapp_conversations WHERE id = ? AND business_id = ?',
-    [numConvId, numBusinessId]
-  );
-
-  if (res.affectedRows === 0) {
-    const err = new Error('Conversation not found');
-    err.statusCode = 404;
-    throw err;
-  }
-
-  emitToTenant(numBusinessId, 'inbox:conversation_deleted', { conversationId: numConvId });
-  return { success: true, id: numConvId };
-}
-
-/**
  * 8. Update Conversation Status (open / closed / pending)
  */
 export async function updateStatus(businessId, user, conversationId, status) {
