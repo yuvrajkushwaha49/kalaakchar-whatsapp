@@ -3,7 +3,7 @@
    ========================================================================== */
 
 .logs-page-container {
-  padding: 1.5rem 2rem;
+  padding: 0rem 1rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -539,19 +539,22 @@
   .logs-page-container {
     padding: 1rem;
   }
+
   .logs-stats-row {
     grid-template-columns: 1fr;
   }
+
   .logs-controls-top {
     flex-direction: column;
     align-items: stretch;
   }
+
   .logs-search-box {
     max-width: 100%;
   }
+
   .logs-hero-banner {
     flex-direction: column;
     align-items: flex-start;
   }
 }
-
