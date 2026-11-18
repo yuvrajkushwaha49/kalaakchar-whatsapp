@@ -75,13 +75,13 @@
 }
 
 .template-stat-card.active-filter {
-  border-color: #25d366;
+  border-color: #0866FF;
   background: #fcfdfd;
-  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.22), 0 4px 12px rgba(37, 211, 102, 0.06);
+  box-shadow: 0 0 0 2px rgba(8, 102, 255, 0.22), 0 4px 12px rgba(8, 102, 255, 0.06);
 }
 
 .template-stat-card.active-filter::before {
-  background: #25d366;
+  background: #0866FF;
 }
 
 .template-stat-card .stat-icon {
@@ -993,8 +993,12 @@
 
 /* 1. Hero Banner */
 .mt-hero-banner {
-  background: linear-gradient(135deg, #e8fdf0 0%, #f0fdf4 40%, #ecfdf5 70%, #dcfce7 100%);
-  border-radius: 16px;
+  background: #ffffff;
+  background-image:
+    radial-gradient(circle at 95% 30%, rgba(8, 102, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(0, 200, 240, 0.06) 0%, transparent 50%);
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
   padding: 1.25rem 1.75rem;
   display: flex;
   align-items: center;
@@ -1008,13 +1012,13 @@
 .mt-hero-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.15rem;
 }
 
 .mt-hero-icon {
-  width: 48px;
-  height: 48px;
-  background: #00a859;
+  width: 50px;
+  height: 50px;
+  background: #0866FF;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1022,20 +1026,20 @@
   color: #ffffff;
   font-size: 1.5rem;
   flex-shrink: 0;
-  box-shadow: 0 3px 8px rgba(0, 168, 89, 0.25);
+  box-shadow: 0 4px 12px rgba(8, 102, 255, 0.2);
 }
 
 .mt-hero-title {
   font-size: 1.45rem;
-  font-weight: 800;
-  color: #0f172a;
+  font-weight: 700;
+  color: #172033;
   margin: 0 0 0.2rem 0;
   letter-spacing: -0.01em;
 }
 
 .mt-hero-subtitle {
-  color: #475569;
-  font-size: 0.88rem;
+  color: #64748B;
+  font-size: 0.85rem;
   margin: 0;
   line-height: 1.4;
 }
@@ -1049,9 +1053,9 @@
 
 .mt-btn-sync {
   background: #ffffff;
-  border: 1.5px solid #00a859;
-  color: #00a859;
-  font-weight: 700;
+  border: 1.5px solid #0866FF;
+  color: #0866FF;
+  font-weight: 600;
   border-radius: 10px;
   padding: 0.55rem 1.15rem;
   font-size: 0.88rem;
@@ -1063,14 +1067,15 @@
 }
 
 .mt-btn-sync:hover {
-  background: #f0fdf4;
+  background: #EDF4FF;
+  border-color: #BFDBFE;
 }
 
 .mt-btn-create {
-  background: #00a859;
+  background: #0866FF;
   color: #ffffff;
-  border: none;
-  font-weight: 700;
+  border: 1px solid #0866FF;
+  font-weight: 600;
   border-radius: 10px;
   padding: 0.55rem 1.35rem;
   font-size: 0.88rem;
@@ -1079,12 +1084,14 @@
   gap: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 168, 89, 0.25);
+  box-shadow: 0 2px 8px rgba(8, 102, 255, 0.25);
 }
 
 .mt-btn-create:hover {
-  background: #008f4c;
+  background: #0756D6;
+  border-color: #0756D6;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(8, 102, 255, 0.35);
 }
 
 /* 2. 5 KPI Stat Cards */
@@ -1111,7 +1118,7 @@
 
 .mt-stat-card {
   background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid #E5EAF2;
   border-radius: 14px;
   padding: 1rem 1.1rem;
   display: flex;
@@ -1128,9 +1135,9 @@
 }
 
 .mt-stat-card.active {
-  border-color: #00a859;
+  border-color: #0866FF;
   background: #ffffff;
-  box-shadow: 0 0 0 1px #00a859;
+  box-shadow: 0 0 0 1px #0866FF;
 }
 
 .mt-stat-icon-wrap {
@@ -1145,14 +1152,14 @@
 }
 
 .mt-stat-icon-green-square {
-  background: #e8fdf0;
-  color: #00a859;
+  background: #EDF4FF;
+  color: #0866FF;
   border-radius: 8px;
 }
 
 .mt-stat-icon-green-circle {
-  background: #e8fdf0;
-  color: #00a859;
+  background: #dcfce7;
+  color: #16a34a;
   border-radius: 50%;
 }
 
@@ -1177,19 +1184,19 @@
 .mt-stat-val {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #172033;
   line-height: 1.1;
 }
 
 .mt-stat-label {
   font-weight: 700;
-  color: #334155;
+  color: #172033;
   font-size: 0.84rem;
   margin-top: 2px;
 }
 
 .mt-stat-sub {
-  color: #64748b;
+  color: #64748B;
   font-size: 0.74rem;
   margin-top: 2px;
 }
@@ -1197,7 +1204,7 @@
 /* 3. Filter Bar */
 .mt-filter-bar {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E5EAF2;
   border-radius: 12px;
   padding: 0.55rem 0.85rem;
   display: flex;
@@ -1218,7 +1225,7 @@
 }
 
 .mt-search-icon {
-  color: #94a3b8;
+  color: #64748B;
   font-size: 0.95rem;
 }
 
@@ -1227,7 +1234,7 @@
   outline: none;
   width: 100%;
   font-size: 0.86rem;
-  color: #0f172a;
+  color: #172033;
   background: transparent;
 }
 
@@ -1243,12 +1250,12 @@
 }
 
 .mt-filter-select {
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E5EAF2;
   border-radius: 8px;
   padding: 0.42rem 1.85rem 0.42rem 0.65rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: #172033;
   background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat right 0.65rem center;
   background-size: 10px 10px;
   appearance: none;
@@ -1258,7 +1265,7 @@
 }
 
 .mt-filter-select:focus {
-  border-color: #00a859;
+  border-color: #0866FF;
 }
 
 .mt-view-toggle {
@@ -1274,17 +1281,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E5EAF2;
   background: #ffffff;
-  color: #64748b;
+  color: #64748B;
   cursor: pointer;
   font-size: 0.95rem;
   transition: all 0.15s ease;
 }
 
 .mt-view-btn.active {
-  background: #00a859;
-  border-color: #00a859;
+  background: #0866FF;
+  border-color: #0866FF;
   color: #ffffff;
 }
 
@@ -1358,7 +1365,7 @@
 }
 
 .mt-tpl-name:hover {
-  color: #00a859;
+  color: #0866FF;
 }
 
 .mt-status-badge {
@@ -1560,7 +1567,7 @@
 
 .mt-btn-quick-test {
   flex: 1;
-  background: #00a859;
+  background: #0866FF;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -1576,7 +1583,7 @@
 }
 
 .mt-btn-quick-test:hover {
-  background: #008f4c;
+  background: #0756D6;
 }
 
 .mt-btn-studio {
@@ -1679,8 +1686,8 @@
 
 .td-btn-check-status-top {
   background: #ffffff;
-  border: 1.5px solid #86efac;
-  color: #16a34a;
+  border: 1.5px solid #0866FF;
+  color: #0866FF;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.85rem;
@@ -1693,14 +1700,14 @@
 }
 
 .td-btn-check-status-top:hover {
-  background: #f0fdf4;
+  background: #EDF4FF;
 }
 
 /* 2. Top Main Card (Hero & Audit Trail) */
 .td-hero-card {
   background: #ffffff;
-  border: 1.5px solid #a7f3d0;
-  border-radius: 16px;
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
@@ -1820,7 +1827,7 @@
 }
 
 .td-btn-launch {
-  background: #00a859;
+  background: #0866FF;
   border: none;
   color: #ffffff;
   border-radius: 8px;
@@ -1836,7 +1843,7 @@
 }
 
 .td-btn-launch:hover {
-  background: #008f4c;
+  background: #0756D6;
   color: #ffffff;
 }
 
@@ -1926,7 +1933,7 @@
   left: 30px;
   right: 30px;
   height: 2px;
-  background: #00a859;
+  background: #0866FF;
   z-index: 1;
 }
 
@@ -1944,7 +1951,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #00a859;
+  background: #0866FF;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -2091,8 +2098,8 @@
 }
 
 .td-tab-btn.active {
-  color: #00a859;
-  border-bottom-color: #00a859;
+  color: #0866FF;
+  border-bottom-color: #0866FF;
   font-weight: 700;
 }
 

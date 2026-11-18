@@ -103,12 +103,13 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #00a859;
+  background: #0866FF;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(8, 102, 255, 0.2);
 }
 
 .inbox-brand-title {
@@ -158,7 +159,7 @@
 }
 
 .inbox-account-icon {
-  color: #00a859;
+  color: #0866FF;
   font-size: 0.95rem;
   margin-right: 8px;
   flex-shrink: 0;
@@ -288,7 +289,7 @@
 }
 
 .filter-chip.active {
-  background: #064e3b;
+  background: #0866FF;
   color: #ffffff;
   font-weight: 600;
 }
@@ -353,12 +354,12 @@
 
 .conversation-item.active,
 .conversation-item.has-unread {
-  border-color: #00a859;
+  border-color: #0866FF;
   background: #ffffff;
 }
 
 .conversation-item.active {
-  background: #fafffd;
+  background: #EDF4FF;
 }
 
 .conversation-avatar-wrapper {
@@ -371,7 +372,7 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #064e3b;
+  background: #0866FF;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -433,7 +434,7 @@
 }
 
 .conversation-time.text-green {
-  color: #00a859;
+  color: #0866FF;
   font-weight: 600;
 }
 
@@ -480,7 +481,7 @@
 }
 
 .conversation-unread-badge {
-  background: #00a859;
+  background: #0866FF;
   color: #ffffff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -542,14 +543,14 @@
   width: 108px;
   height: 108px;
   border-radius: 50%;
-  background: #e8fdf0;
-  color: #00a859;
+  background: #EDF4FF;
+  color: #0866FF;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 14px rgba(0, 168, 89, 0.08);
+  box-shadow: 0 4px 14px rgba(8, 102, 255, 0.12);
 }
 
 .inbox-empty-title {

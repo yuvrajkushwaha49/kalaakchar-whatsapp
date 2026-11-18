@@ -4,9 +4,9 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
+  background: #EDF4FF;
+  border: 1px solid #BFDBFE;
+  color: #0866FF;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -17,11 +17,11 @@
 }
 
 .mc-action-btn-green:hover {
-  background: #16a34a;
+  background: #0866FF;
   color: #ffffff;
-  border-color: #16a34a;
+  border-color: #0866FF;
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 4px 10px rgba(8, 102, 255, 0.25);
 }
 
 /* Modal Overlay */
@@ -78,9 +78,9 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #ecfdf5;
-  color: #00a859;
-  border: 1px solid #a7f3d0;
+  background: #EDF4FF;
+  color: #0866FF;
+  border: 1px solid #BFDBFE;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,14 +158,14 @@
 }
 
 .resend-option-card.selected {
-  border-color: #00a859;
-  background: #f0fdf4;
-  box-shadow: 0 0 0 1px #00a859;
+  border-color: #0866FF;
+  background: #EDF4FF;
+  box-shadow: 0 0 0 1px #0866FF;
 }
 
 .resend-option-radio {
   margin-top: 3px;
-  accent-color: #00a859;
+  accent-color: #0866FF;
   width: 17px;
   height: 17px;
   cursor: pointer;
@@ -194,8 +194,8 @@
 }
 
 .resend-option-card.selected .resend-option-badge {
-  background: #dcfce7;
-  color: #15803d;
+  background: #DBEAFE;
+  color: #1D4ED8;
 }
 
 .resend-option-desc {
@@ -241,7 +241,7 @@
 }
 
 .resend-mode-tab.active i {
-  color: #00a859;
+  color: #0866FF;
 }
 
 /* Campaign Name Input */
@@ -261,8 +261,8 @@
 
 .resend-name-input:focus {
   outline: none;
-  border-color: #00a859;
-  box-shadow: 0 0 0 3px rgba(0, 168, 89, 0.12);
+  border-color: #0866FF;
+  box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.12);
 }
 
 /* Summary Banner */
@@ -317,8 +317,8 @@
   border-radius: 10px;
   font-size: 0.84rem;
   font-weight: 700;
-  border: 1px solid #00a859;
-  background: #00a859;
+  border: 1px solid #0866FF;
+  background: #0866FF;
   color: #ffffff;
   cursor: pointer;
   display: inline-flex;
@@ -328,9 +328,9 @@
 }
 
 .resend-btn-submit:hover:not(:disabled) {
-  background: #00934e;
-  border-color: #00934e;
-  box-shadow: 0 4px 10px rgba(0, 168, 89, 0.25);
+  background: #0756D6;
+  border-color: #0756D6;
+  box-shadow: 0 4px 12px rgba(8, 102, 255, 0.3);
   transform: translateY(-1px);
 }
 
