@@ -53,9 +53,16 @@ export default function AdminSidebar({ isOpen, onClose, onToggle }) {
           {isOpen ? (
             <div className="d-flex align-items-center gap-2">
               <img
+                src={iconImg}
+                alt="Aiveexa"
+                className="sidebar-brand-icon-img"
+                style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }}
+              />
+              <img
                 src={logoImg}
                 alt="Aiveexa"
                 className="sidebar-brand-logo-full"
+                style={{ height: '34px', width: 'auto', maxWidth: '135px', objectFit: 'contain' }}
               />
               <span className="badge bg-primary text-white fw-bold px-2 py-1" style={{ fontSize: '0.65rem' }}>
                 ADMIN

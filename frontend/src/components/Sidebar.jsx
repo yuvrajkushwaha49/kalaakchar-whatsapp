@@ -109,11 +109,20 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
           style={{ cursor: !isOpen ? 'pointer' : 'default' }}
         >
           {isOpen ? (
-            <img
-              src={logoImg}
-              alt="Aiveexa — Automate • Engage • Grow"
-              className="sidebar-brand-logo-full"
-            />
+            <div className="d-flex align-items-center gap-2">
+              <img
+                src={iconImg}
+                alt="Aiveexa"
+                className="sidebar-brand-icon-img"
+                style={{ width: '38px', height: '38px', objectFit: 'contain', flexShrink: 0 }}
+              />
+              <img
+                src={logoImg}
+                alt="Aiveexa — Automate • Engage • Grow"
+                className="sidebar-brand-logo-full"
+                style={{ height: '36px', width: 'auto', maxWidth: '150px', objectFit: 'contain' }}
+              />
+            </div>
           ) : (
             <img
               src={iconImg}
