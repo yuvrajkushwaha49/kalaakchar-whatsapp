@@ -160,3 +160,4 @@ To eliminate server hangs during high-volume operations, two background workers 
   - When a frontend client connects, it provides JWT authentication.
   - The socket joins room `tenant_<businessId>`.
   - Backend background workers emit real-time events (`campaign_progress`, `import_progress`, `inbox_message`) directly to `tenant_<businessId>`, ensuring zero cross-tenant event leakage.
+

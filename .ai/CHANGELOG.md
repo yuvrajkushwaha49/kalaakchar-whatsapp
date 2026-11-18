@@ -56,3 +56,4 @@ Format:
   - `backend/src/workers/importWorker.js` & `backend/src/workers/campaignWorker.js`
   - Frontend floating live progress widget (`FloatingLiveProgress.jsx`)
 - **Migration/API impact**: Executed migrations `010_optimized_import_queue.sql` and `011_optimized_campaign_queue.sql`. Added status `queued` to campaigns and import jobs.
+

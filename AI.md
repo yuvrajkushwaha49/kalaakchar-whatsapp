@@ -45,3 +45,4 @@ To refresh the project file tree after adding or removing files:
 npm run ai:context
 ```
 This runs `node scripts/generate-ai-context.cjs` which safely updates `.ai/FILE_STRUCTURE.md` using only Node.js built-in modules.
+

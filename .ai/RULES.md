@@ -77,3 +77,4 @@
 ### 2.5. PM2 Daemon Compatibility
 - Workers executed via PM2 in fork mode (`campaignflow-worker`, `campaignflow-import-worker`) run inside PM2 containers.
 - Entry-point scripts must check PM2 environment (`process.env.pm_id`, `process.env.name`, `CAMPAIGN_WORKER_STANDALONE`) to ensure they stay continuously running and do not exit prematurely with code 0.
+

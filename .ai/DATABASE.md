@@ -226,3 +226,4 @@ Primary table representing isolated client tenants.
    ORDER BY r.id ASC
    LIMIT ?;
    ```
+

@@ -123,3 +123,4 @@
   - Upgrades WebSocket connections for `/socket.io/` to backend.
 - **Containerization**: Docker Compose (`docker-compose.yml`) for local/staging MySQL 8.0 and Redis 7.
 - **Cloud Infrastructure**: Ubuntu 22.04+ EC2 deployment script (`deploy-ubuntu-ec2.sh`).
+

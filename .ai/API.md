@@ -197,3 +197,4 @@ Middleware: `authenticate`, `requireSuperAdmin`
 - **Team Management (`/api/users`)**: `GET /api/users`, `POST /api/users` (invite member), `PATCH /api/users/:id/role`, `DELETE /api/users/:id`.
 - **Activity Logs (`/api/activity-logs`)**: `GET /api/activity-logs` -> Tenant-scoped audit logs with pagination and search.
 - **Notifications (`/api/notifications`)**: `GET /api/notifications`, `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`.
+
