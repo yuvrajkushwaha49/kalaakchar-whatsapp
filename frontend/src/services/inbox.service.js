@@ -16,6 +16,7 @@ export const inboxApi = {
   assignConversation: (id, userId) => api.post(`/whatsapp/conversations/${id}/assign`, { userId }),
   closeConversation: (id) => api.post(`/whatsapp/conversations/${id}/close`),
   reopenConversation: (id) => api.post(`/whatsapp/conversations/${id}/reopen`),
+  deleteConversation: (id) => api.delete(`/whatsapp/conversations/${id}`),
   markRead: (id) => api.post(`/whatsapp/conversations/${id}/read`),
   markUnread: (id) => api.post(`/whatsapp/conversations/${id}/unread`),
 

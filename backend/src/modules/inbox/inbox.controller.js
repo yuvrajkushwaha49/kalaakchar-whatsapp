@@ -165,6 +165,19 @@ export async function reopenConversation(req, res, next) {
   }
 }
 
+export async function deleteConversation(req, res, next) {
+  try {
+    const businessId = req.businessId;
+    const user = req.user;
+    const { id } = req.params;
+
+    await inboxService.deleteConversation(businessId, user, id);
+    res.json({ success: true, message: 'Conversation deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function markRead(req, res, next) {
   try {
     const businessId = req.businessId;

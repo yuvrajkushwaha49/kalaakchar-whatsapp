@@ -66,6 +66,10 @@ export default function Inbox() {
   const [mediaCaption, setMediaCaption] = useState('');
   const [sendingMedia, setSendingMedia] = useState(false);
 
+  // Delete Conversation Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingConversation, setDeletingConversation] = useState(false);
+
   // Notification / Alert
   const [alertMsg, setAlertMsg] = useState(null);
 
@@ -900,6 +904,23 @@ export default function Inbox() {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    if (!selectedConversation) return;
+    setDeletingConversation(true);
+    try {
+      await inboxApi.deleteConversation(selectedConversation.id);
+      setSelectedConversation(null);
+      setShowDeleteModal(false);
+      loadConversations(false);
+      loadStats();
+    } catch (err) {
+      console.error('[Inbox] Delete conversation error:', err);
+      alert(err.response?.data?.message || 'Failed to delete conversation');
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
   // 8. CRM Notes & Tags Actions
   const handleAddNote = async (e) => {
     e.preventDefault();
@@ -1683,6 +1704,14 @@ export default function Inbox() {
                   <i className="bi bi-envelope-badge"></i>
                   <span>Mark as Unread</span>
                 </button>
+                <button
+                  className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center gap-1"
+                  onClick={() => setShowDeleteModal(true)}
+                  title="Permanently delete this conversation"
+                >
+                  <i className="bi bi-trash3"></i>
+                  <span>Delete Conversation</span>
+                </button>
               </div>
             </div>
 
@@ -2121,6 +2150,63 @@ export default function Inbox() {
                     <>
                       <i className="bi bi-send-fill me-1"></i>
                       Send Media
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Conversation Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', zIndex: 1070 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div className="modal-header border-bottom py-3 px-4 bg-light">
+                <div className="d-flex align-items-center gap-2 text-danger">
+                  <i className="bi bi-trash3-fill fs-5"></i>
+                  <h5 className="modal-title fw-bold text-dark fs-6 mb-0">Delete Conversation?</h5>
+                </div>
+                <button type="button" className="btn-close" onClick={() => setShowDeleteModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <p className="mb-2 text-dark">
+                  Are you sure you want to permanently delete the conversation with{' '}
+                  <strong className="text-primary">
+                    {selectedConversation?.contact?.name || selectedConversation?.customer_phone || 'this contact'}
+                  </strong>?
+                </p>
+                <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                  <i className="bi bi-exclamation-triangle-fill fs-6 flex-shrink-0"></i>
+                  <span>This action cannot be undone. All messages, notes, and audit history for this conversation will be permanently removed.</span>
+                </div>
+              </div>
+              <div className="modal-footer bg-light border-top py-2 px-3">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary px-3"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deletingConversation}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger px-3 d-flex align-items-center gap-1 fw-semibold"
+                  onClick={handleDeleteConversation}
+                  disabled={deletingConversation}
+                >
+                  {deletingConversation ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash3 me-1"></i>
+                      <span>Delete Permanently</span>
                     </>
                   )}
                 </button>
