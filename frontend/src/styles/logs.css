@@ -10,8 +10,12 @@
 
 /* 1. Hero Banner */
 .logs-hero-banner {
-  background: linear-gradient(135deg, #e8fdf0 0%, #f0fdf4 35%, #ecfdf5 70%, #dcfce7 100%);
-  border-radius: 16px;
+  background: #ffffff;
+  background-image:
+    radial-gradient(circle at 95% 30%, rgba(8, 102, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(0, 200, 240, 0.06) 0%, transparent 50%);
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
   padding: 1.25rem 1.75rem;
   display: flex;
   align-items: center;
@@ -31,7 +35,7 @@
   top: -40px;
   width: 380px;
   height: 220px;
-  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(ellipse at center, rgba(8, 102, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
   pointer-events: none;
 }
 
@@ -46,7 +50,7 @@
 .logs-hero-icon {
   width: 48px;
   height: 48px;
-  background: #00a859;
+  background: #0866FF;
   border-radius: 12px;
   display: flex;
   align-items: center;

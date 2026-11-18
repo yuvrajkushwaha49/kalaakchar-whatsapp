@@ -4,12 +4,15 @@
 
 /* Hero / Header */
 .templates-hero {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f8fafc 100%);
-  border: 1px solid #dcfce7;
-  border-radius: 16px;
+  background: #ffffff;
+  background-image:
+    radial-gradient(circle at 95% 30%, rgba(8, 102, 255, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(0, 200, 240, 0.06) 0%, transparent 50%);
+  border: 1px solid #E5EAF2;
+  border-radius: 14px;
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.75rem;
-  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .templates-hero h2 {

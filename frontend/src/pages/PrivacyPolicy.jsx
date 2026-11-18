@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
             <div className="bg-primary text-white rounded p-2 d-flex align-items-center justify-content-center shadow-xs" style={{ width: '38px', height: '38px' }}>
               <i className="bi bi-whatsapp fs-5"></i>
             </div>
-            <span className="h4 mb-0 fw-bold text-dark brand-font">CampaignFlow</span>
+            <span className="h4 mb-0 fw-bold text-dark brand-font">Aiveexa</span>
           </Link>
           <div className="d-flex align-items-center gap-3">
             <Link to="/terms" className="btn btn-sm btn-outline-secondary">Terms of Service</Link>
@@ -37,7 +37,7 @@ export default function PrivacyPolicy() {
           <section className="mb-4">
             <h4 className="fw-bold text-dark mb-3">1. Introduction & Overview</h4>
             <p className="text-secondary leading-relaxed">
-              Welcome to <strong>CampaignFlow</strong> ("we", "our", or "us"). We provide a multi-tenant WhatsApp marketing, customer communication, and broadcast automation Software-as-a-Service (SaaS) platform built on the official <strong>Meta WhatsApp Business Cloud API</strong>.
+              Welcome to <strong>Aiveexa</strong> ("we", "our", or "us"). We provide a multi-tenant WhatsApp marketing, customer communication, and broadcast automation Software-as-a-Service (SaaS) platform built on the official <strong>Meta WhatsApp Business Cloud API</strong>.
             </p>
             <p className="text-secondary leading-relaxed">
               We respect your privacy and are committed to protecting the personal data of our SaaS customers (businesses and workspace owners) as well as the end-user contacts who interact with our customers via WhatsApp. This Privacy Policy explains how we collect, use, store, and safeguard your information.
@@ -139,9 +139,9 @@ export default function PrivacyPolicy() {
               <li className="mb-2">
                 <strong>Email Deletion Request:</strong> Send an email from your registered account email to:
                 <div className="my-2 p-2 bg-white rounded border font-monospace text-primary fw-bold">
-                  support@campaignflow.io / yuvgamers12@gmail.com
+                  support@aiveexa.com / yuvgamers12@gmail.com
                 </div>
-                with the subject line: <code>"User Data Deletion Request - CampaignFlow"</code>. Please include your business name and registered WhatsApp phone number.
+                with the subject line: <code>"User Data Deletion Request - Aiveexa"</code>. Please include your business name and registered WhatsApp phone number.
               </li>
             </ol>
             <p className="text-secondary small mb-0">
@@ -153,7 +153,7 @@ export default function PrivacyPolicy() {
           <section className="mb-4">
             <h4 className="fw-bold text-dark mb-3">7. Opt-In & Customer Messaging Consent</h4>
             <p className="text-secondary leading-relaxed">
-              CampaignFlow strictly enforces Meta's WhatsApp Business Messaging Policies. Customers using our service are required to obtain verifiable opt-in consent from end-users before initiating marketing or promotional WhatsApp communications. Customers must also honor recipient opt-out requests (e.g., "STOP") immediately.
+              Aiveexa strictly enforces Meta's WhatsApp Business Messaging Policies. Customers using our service are required to obtain verifiable opt-in consent from end-users before initiating marketing or promotional WhatsApp communications. Customers must also honor recipient opt-out requests (e.g., "STOP") immediately.
             </p>
           </section>
 
@@ -164,9 +164,9 @@ export default function PrivacyPolicy() {
               If you have any questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact our Data Protection Team:
             </p>
             <div className="p-3 bg-light rounded-3 border">
-              <div className="fw-bold text-dark">CampaignFlow Data Protection Office</div>
-              <div className="text-muted small mt-1">Domain: <a href="https://bhaktisong.fun" target="_blank" rel="noopener noreferrer">bhaktisong.fun</a> / <a href="https://whatsapp.bhaktisong.fun" target="_blank" rel="noopener noreferrer">whatsapp.bhaktisong.fun</a></div>
-              <div className="text-muted small">Support & Privacy Email: <a href="mailto:yuvgamers12@gmail.com">yuvgamers12@gmail.com</a></div>
+              <div className="fw-bold text-dark">Aiveexa Data Protection Office</div>
+              <div className="text-muted small mt-1">Domain: <a href="https://aiveexa.com" target="_blank" rel="noopener noreferrer">aiveexa.com</a> / <a href="https://whatsapp.bhaktisong.fun" target="_blank" rel="noopener noreferrer">whatsapp.bhaktisong.fun</a></div>
+              <div className="text-muted small">Support & Privacy Email: <a href="mailto:support@aiveexa.com">support@aiveexa.com</a></div>
               <div className="text-muted small">Response Window: Within 24-48 business hours</div>
             </div>
           </section>
@@ -175,7 +175,7 @@ export default function PrivacyPolicy() {
 
         {/* Footer */}
         <div className="text-center text-muted small mt-4">
-          &copy; {new Date().getFullYear()} CampaignFlow SaaS Platform. All rights reserved. • <Link to="/terms" className="text-decoration-none text-muted">Terms of Service</Link>
+          &copy; {new Date().getFullYear()} Aiveexa Platform. All rights reserved. • <Link to="/terms" className="text-decoration-none text-muted">Terms of Service</Link>
         </div>
 
       </div>

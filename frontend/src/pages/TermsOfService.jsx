@@ -12,7 +12,7 @@ export default function TermsOfService() {
             <div className="bg-primary text-white rounded p-2 d-flex align-items-center justify-content-center shadow-xs" style={{ width: '38px', height: '38px' }}>
               <i className="bi bi-whatsapp fs-5"></i>
             </div>
-            <span className="h4 mb-0 fw-bold text-dark brand-font">CampaignFlow</span>
+            <span className="h4 mb-0 fw-bold text-dark brand-font">Aiveexa</span>
           </Link>
           <div className="d-flex align-items-center gap-3">
             <Link to="/privacy" className="btn btn-sm btn-outline-secondary">Privacy Policy</Link>
@@ -28,7 +28,7 @@ export default function TermsOfService() {
               Official SaaS Service Agreement
             </span>
             <h1 className="fw-bold text-dark mb-2">Terms of Service</h1>
-            <p className="text-muted small mb-0">Last Updated: November 1, 2026</p>
+            <p className="text-muted small mb-0">Last Updated: November 18, 2026</p>
           </div>
 
           <hr className="my-4" />
@@ -37,7 +37,7 @@ export default function TermsOfService() {
           <section className="mb-4">
             <h4 className="fw-bold text-dark mb-3">1. Acceptance of Terms</h4>
             <p className="text-secondary leading-relaxed">
-              By registering for, accessing, or using the <strong>CampaignFlow</strong> software platform ("Service"), available at <code>whatsapp.bhaktisong.fun</code> or associated domains, you agree to be bound by these Terms of Service ("Terms"). If you are entering into these Terms on behalf of a company or other legal entity, you represent that you have the authority to bind such entity.
+              By registering for, accessing, or using the <strong>Aiveexa</strong> software platform ("Service"), available at <code>aiveexa.com</code> or associated domains, you agree to be bound by these Terms of Service ("Terms"). If you are entering into these Terms on behalf of a company or other legal entity, you represent that you have the authority to bind such entity.
             </p>
           </section>
 
@@ -45,7 +45,7 @@ export default function TermsOfService() {
           <section className="mb-4">
             <h4 className="fw-bold text-dark mb-3">2. Description of Service</h4>
             <p className="text-secondary leading-relaxed">
-              CampaignFlow is a multi-tenant business communication SaaS platform that allows enterprises and businesses to manage WhatsApp marketing campaigns, template messaging, contacts, and customer support conversations utilizing the official <strong>Meta WhatsApp Business Cloud API</strong>.
+              Aiveexa is a multi-tenant business communication SaaS platform that allows enterprises and businesses to manage WhatsApp marketing campaigns, template messaging, contacts, and customer support conversations utilizing the official <strong>Meta WhatsApp Business Cloud API</strong>.
             </p>
           </section>
 
@@ -96,7 +96,7 @@ export default function TermsOfService() {
           <section className="mb-4">
             <h4 className="fw-bold text-dark mb-3">6. Intellectual Property & Data Ownership</h4>
             <p className="text-secondary leading-relaxed">
-              You retain all ownership rights to your business data, customer contacts, message copy, and media uploaded to the platform. CampaignFlow retains all rights, title, and interest in and to the platform software, algorithms, user interfaces, and documentation.
+              You retain all ownership rights to your business data, customer contacts, message copy, and media uploaded to the platform. Aiveexa retains all rights, title, and interest in and to the platform software, algorithms, user interfaces, and documentation.
             </p>
           </section>
 
@@ -123,9 +123,9 @@ export default function TermsOfService() {
               If you have any questions regarding these Terms of Service, please contact:
             </p>
             <div className="p-3 bg-light rounded-3 border">
-              <div className="fw-bold text-dark">CampaignFlow Legal & Support Team</div>
-              <div className="text-muted small mt-1">Platform URL: <a href="https://whatsapp.bhaktisong.fun" target="_blank" rel="noopener noreferrer">https://whatsapp.bhaktisong.fun</a></div>
-              <div className="text-muted small">Support Email: <a href="mailto:yuvgamers12@gmail.com">yuvgamers12@gmail.com</a></div>
+              <div className="fw-bold text-dark">Aiveexa Legal & Support Team</div>
+              <div className="text-muted small mt-1">Platform URL: <a href="https://aiveexa.com" target="_blank" rel="noopener noreferrer">https://aiveexa.com</a></div>
+              <div className="text-muted small">Support Email: <a href="mailto:support@aiveexa.com">support@aiveexa.com</a></div>
             </div>
           </section>
 
@@ -133,7 +133,7 @@ export default function TermsOfService() {
 
         {/* Footer */}
         <div className="text-center text-muted small mt-4">
-          &copy; {new Date().getFullYear()} CampaignFlow SaaS Platform. All rights reserved. • <Link to="/privacy" className="text-decoration-none text-muted">Privacy Policy</Link>
+          &copy; {new Date().getFullYear()} Aiveexa Platform. All rights reserved. • <Link to="/privacy" className="text-decoration-none text-muted">Privacy Policy</Link>
         </div>
 
       </div>

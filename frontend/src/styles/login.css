@@ -7,35 +7,39 @@
   justify-content: center;
   padding-top: 3rem;
   padding-bottom: 3rem;
-  background-color: #0f172a;
+  background-color: #F7F9FC;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(8, 102, 255, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(0, 200, 240, 0.06) 0%, transparent 45%);
 }
 
 .auth-logo-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   margin-bottom: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(8, 102, 255, 0.2);
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  background: #0866FF;
 }
 
 .auth-card {
-  border: none;
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
 }
 
 .auth-header-title {
   font-weight: 700;
-  color: #0f172a;
+  color: #172033;
   margin-bottom: 0.25rem;
 }
 
 .auth-header-subtitle {
-  color: #64748b;
+  color: #64748B;
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
@@ -44,7 +48,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #059669;
+  color: #0866FF;
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
@@ -53,7 +57,7 @@
 }
 
 .forgot-password-link:hover {
-  color: #047857;
+  color: #0756D6;
   text-decoration: underline;
 }
 

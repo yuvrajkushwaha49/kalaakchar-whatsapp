@@ -282,7 +282,7 @@ export default function CampaignBuilder() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'campaignflow_audience_template.csv';
+    a.download = 'aiveexa_audience_template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

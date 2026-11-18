@@ -15,6 +15,7 @@ import {
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import AiwavoHeader from '../components/AiwavoHeader';
+import iconImg from '../assets/icon.png';
 import '../styles/dashboard.css';
 
 /* ================= Skeleton Placeholder Component ================= */
@@ -333,11 +334,15 @@ export default function Dashboard() {
         <div className="aiwavo-top-row">
           {/* Welcome Card */}
           <div className="aiwavo-welcome-card">
-            <i className="bi bi-whatsapp aiwavo-welcome-watermark"></i>
-            <h2 className="aiwavo-welcome-title">👋 Welcome back, {firstName}!</h2>
-            <p className="aiwavo-welcome-text">
-              Manage your WhatsApp campaigns, automations and contacts from one place.
-            </p>
+            <div className="aiwavo-welcome-content">
+              <h2 className="aiwavo-welcome-title">👋 Welcome back, {firstName}!</h2>
+              <p className="aiwavo-welcome-text">
+                Manage your WhatsApp campaigns, automations and contacts from one place.
+              </p>
+            </div>
+            <div className="aiwavo-welcome-icon-wrap">
+              <img src={iconImg} alt="Aiveexa" className="aiwavo-welcome-infinity-icon" />
+            </div>
           </div>
 
           {/* Quick Actions Card */}
