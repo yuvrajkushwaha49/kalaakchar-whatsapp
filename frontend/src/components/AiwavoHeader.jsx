@@ -364,11 +364,11 @@ export default function AiwavoHeader({
                       className="aiwavo-notif-footer-link secondary btn p-0 border-0"
                       onClick={() => {
                         setShowNotifications(false);
-                        navigate('/templates');
+                        navigate('/contacts');
                       }}
                     >
-                      <i className="bi bi-chat-square-text"></i>
-                      <span>Templates</span>
+                      <i className="bi bi-people"></i>
+                      <span>Contacts</span>
                     </button>
                   </>
                 ) : user?.role === 'marketer' ? (

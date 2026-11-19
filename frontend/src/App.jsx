@@ -148,8 +148,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/templates/:id" element={<TemplateDetail />} />
+        <Route
+          path="/templates"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <Templates />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/templates/:id"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <TemplateDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/campaigns"
           element={

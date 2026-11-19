@@ -87,7 +87,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       shortName: 'Queue',
       badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
     },
-    { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
+    { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates', roles: ['owner', 'admin', 'marketer'] },
     { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts', roles: ['owner', 'admin', 'marketer'] },
     { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team', roles: ['owner', 'admin'] },
@@ -101,7 +101,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
     if (isSuperAdmin && isSuperAdmin()) return true;
     if (!item.roles) {
       if (isAgent) {
-        return ['/dashboard', '/inbox', '/templates', '/contacts'].includes(item.to);
+        return ['/dashboard', '/inbox', '/contacts'].includes(item.to);
       }
       return true;
     }

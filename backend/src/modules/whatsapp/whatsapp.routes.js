@@ -45,8 +45,8 @@ router.post('/webhook/ping', whatsappController.testWebhookPing);
 router.get('/templates', whatsappController.listTemplates);
 router.post('/templates', requireRole(['owner', 'admin', 'marketer']), whatsappController.createTemplate);
 router.post('/templates/sync', requireRole(['owner', 'admin', 'marketer']), whatsappController.syncTemplates);
-router.get('/templates/:id', whatsappController.getTemplate);
-router.get('/templates/:id/status', whatsappController.checkTemplateStatus);
+router.get('/templates/:id', requireRole(['owner', 'admin', 'marketer']), whatsappController.getTemplate);
+router.get('/templates/:id/status', requireRole(['owner', 'admin', 'marketer']), whatsappController.checkTemplateStatus);
 router.delete('/templates/:id', requireRole(['owner', 'admin']), whatsappController.deleteTemplate);
 
 // WhatsApp Inbox & Two-Way Conversations

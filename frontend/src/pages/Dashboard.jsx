@@ -352,7 +352,7 @@ export default function Dashboard() {
           <div className="aiwavo-quick-actions-card">
             <h3 className="aiwavo-card-title">Quick Actions</h3>
             {isAgent ? (
-              <div className="aiwavo-actions-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className="aiwavo-actions-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <Link to="/inbox" className="aiwavo-action-item action-send">
                   <div className="aiwavo-action-icon-wrap">
                     <i className="bi bi-chat-left-dots-fill"></i>
@@ -372,13 +372,6 @@ export default function Dashboard() {
                     <i className="bi bi-people-fill"></i>
                   </div>
                   <span className="aiwavo-action-label">Contacts</span>
-                </Link>
-
-                <Link to="/templates" className="aiwavo-action-item action-automation">
-                  <div className="aiwavo-action-icon-wrap">
-                    <i className="bi bi-chat-square-text-fill"></i>
-                  </div>
-                  <span className="aiwavo-action-label">Templates</span>
                 </Link>
               </div>
             ) : (
