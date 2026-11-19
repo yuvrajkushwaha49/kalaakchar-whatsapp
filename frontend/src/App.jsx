@@ -107,18 +107,81 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/contacts" element={<Contacts />} />
-        <Route path="/contacts/groups" element={<ContactGroups />} />
+        <Route
+          path="/contacts/groups"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <ContactGroups />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/contacts/:id" element={<ContactDetail />} />
-        <Route path="/imports" element={<CsvImport />} />
-        <Route path="/whatsapp" element={<WhatsAppAccounts />} />
-        <Route path="/whatsapp/accounts/:id" element={<WhatsAppAccountDetail />} />
-        <Route path="/whatsapp/:id" element={<WhatsAppAccountDetail />} />
+        <Route
+          path="/imports"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <CsvImport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/whatsapp"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <WhatsAppAccounts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/whatsapp/accounts/:id"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <WhatsAppAccountDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/whatsapp/:id"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <WhatsAppAccountDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/templates" element={<Templates />} />
         <Route path="/templates/:id" element={<TemplateDetail />} />
-        <Route path="/campaigns" element={<CampaignList />} />
-        <Route path="/campaigns/new" element={<CampaignBuilder />} />
-        <Route path="/campaigns/:id" element={<CampaignDetail />} />
-        <Route path="/campaigns/:id/report" element={<CampaignReport />} />
+        <Route
+          path="/campaigns"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <CampaignList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/campaigns/new"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <CampaignBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/campaigns/:id"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <CampaignDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/campaigns/:id/report"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin', 'marketer']}>
+              <CampaignReport />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/ai-assistant" element={<AiAssistant />} />
         <Route
           path="/team"

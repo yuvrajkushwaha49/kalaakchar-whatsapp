@@ -31,6 +31,7 @@ function formatErrorString(err, fallback = 'An unexpected error occurred') {
 
 export default function Templates() {
   const { user, isSuperAdmin } = useAuth();
+  const isAgent = user?.role === 'agent';
   const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
@@ -525,26 +526,28 @@ export default function Templates() {
               </p>
             </div>
           </div>
-          <div className="mt-hero-actions">
-            <button
-              type="button"
-              onClick={handleSyncFromMeta}
-              disabled={syncing}
-              className="mt-btn-sync"
-              title="Sync latest template approval statuses directly from Meta Cloud API"
-            >
-              <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
-              <span>Sync from Meta</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="mt-btn-create"
-            >
-              <i className="bi bi-plus-lg"></i>
-              <span>Create Template</span>
-            </button>
-          </div>
+          {!isAgent && (
+            <div className="mt-hero-actions">
+              <button
+                type="button"
+                onClick={handleSyncFromMeta}
+                disabled={syncing}
+                className="mt-btn-sync"
+                title="Sync latest template approval statuses directly from Meta Cloud API"
+              >
+                <i className={`bi bi-arrow-repeat ${syncing ? 'spin-icon' : ''}`}></i>
+                <span>Sync from Meta</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenCreateModal}
+                className="mt-btn-create"
+              >
+                <i className="bi bi-plus-lg"></i>
+                <span>Create Template</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Feedback Banner */}
@@ -746,12 +749,16 @@ export default function Templates() {
                   <i className="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
                 </button>
               )}
-              <button onClick={handleSyncFromMeta} className="btn btn-outline-success btn-sm">
-                <i className="bi bi-arrow-repeat me-1"></i> Sync from Meta
-              </button>
-              <button onClick={handleOpenCreateModal} className="btn btn-success btn-sm">
-                <i className="bi bi-plus-circle me-1"></i> Create New Template
-              </button>
+              {!isAgent && (
+                <>
+                  <button onClick={handleSyncFromMeta} className="btn btn-outline-success btn-sm">
+                    <i className="bi bi-arrow-repeat me-1"></i> Sync from Meta
+                  </button>
+                  <button onClick={handleOpenCreateModal} className="btn btn-success btn-sm">
+                    <i className="bi bi-plus-circle me-1"></i> Create New Template
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : viewMode === 'grid' ? (

@@ -9,6 +9,7 @@ export default function TemplateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isSuperAdmin } = useAuth();
+  const isAgent = user?.role === 'agent';
   const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
@@ -354,19 +355,21 @@ export default function TemplateDetail() {
                 <span>Test Send</span>
               </button>
 
-              {isApproved ? (
-                <Link
-                  to={`/campaigns/new?templateId=${template.id}`}
-                  className="td-btn-launch"
-                >
-                  <i className="bi bi-megaphone-fill"></i>
-                  <span>Launch Campaign</span>
-                </Link>
-              ) : (
-                <button disabled className="td-btn-launch opacity-75">
-                  <i className="bi bi-lock-fill"></i>
-                  <span>Launch Campaign</span>
-                </button>
+              {!isAgent && (
+                isApproved ? (
+                  <Link
+                    to={`/campaigns/new?templateId=${template.id}`}
+                    className="td-btn-launch"
+                  >
+                    <i className="bi bi-megaphone-fill"></i>
+                    <span>Launch Campaign</span>
+                  </Link>
+                ) : (
+                  <button disabled className="td-btn-launch opacity-75">
+                    <i className="bi bi-lock-fill"></i>
+                    <span>Launch Campaign</span>
+                  </button>
+                )
               )}
 
               <div className="dropdown">

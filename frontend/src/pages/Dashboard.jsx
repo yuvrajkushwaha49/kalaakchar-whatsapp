@@ -212,6 +212,7 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const isAgent = user?.role === 'agent';
   const navigate = useNavigate();
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
@@ -337,7 +338,9 @@ export default function Dashboard() {
             <div className="aiwavo-welcome-content">
               <h2 className="aiwavo-welcome-title">👋 Welcome back, {firstName}!</h2>
               <p className="aiwavo-welcome-text">
-                Manage your WhatsApp campaigns, automations and contacts from one place.
+                {isAgent
+                  ? 'Manage customer inquiries, active support chats, and customer communications.'
+                  : 'Manage your WhatsApp campaigns, automations and contacts from one place.'}
               </p>
             </div>
             <div className="aiwavo-welcome-icon-wrap">
@@ -348,42 +351,74 @@ export default function Dashboard() {
           {/* Quick Actions Card */}
           <div className="aiwavo-quick-actions-card">
             <h3 className="aiwavo-card-title">Quick Actions</h3>
-            <div className="aiwavo-actions-grid">
-              <Link to="/campaigns/new" className="aiwavo-action-item action-send">
-                <div className="aiwavo-action-icon-wrap">
-                  <i className="bi bi-send-fill"></i>
-                </div>
-                <span className="aiwavo-action-label">Send Message</span>
-              </Link>
+            {isAgent ? (
+              <div className="aiwavo-actions-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <Link to="/inbox" className="aiwavo-action-item action-send">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-chat-left-dots-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Open Inbox</span>
+                </Link>
 
-              <Link to="/campaigns/new" className="aiwavo-action-item action-campaign">
-                <div className="aiwavo-action-icon-wrap">
-                  <i className="bi bi-layers-fill"></i>
-                </div>
-                <span className="aiwavo-action-label">Create Campaign</span>
-              </Link>
+                <Link to="/inbox" className="aiwavo-action-item action-campaign">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-person-check-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">My Chats</span>
+                </Link>
 
-              <Link to="/imports" className="aiwavo-action-item action-excel">
-                <div className="aiwavo-action-icon-wrap">
-                  <i className="bi bi-file-earmark-excel-fill"></i>
-                </div>
-                <span className="aiwavo-action-label">Import Excel</span>
-              </Link>
+                <Link to="/contacts" className="aiwavo-action-item action-excel">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-people-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Contacts</span>
+                </Link>
 
-              <Link to="/campaigns" className="aiwavo-action-item action-automation">
-                <div className="aiwavo-action-icon-wrap">
-                  <i className="bi bi-diagram-3-fill"></i>
-                </div>
-                <span className="aiwavo-action-label">Create Automation</span>
-              </Link>
+                <Link to="/templates" className="aiwavo-action-item action-automation">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-chat-square-text-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Templates</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="aiwavo-actions-grid">
+                <Link to="/campaigns/new" className="aiwavo-action-item action-send">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-send-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Send Message</span>
+                </Link>
 
-              <Link to="/whatsapp" className="aiwavo-action-item action-whatsapp">
-                <div className="aiwavo-action-icon-wrap">
-                  <i className="bi bi-whatsapp"></i>
-                </div>
-                <span className="aiwavo-action-label">Connect WhatsApp</span>
-              </Link>
-            </div>
+                <Link to="/campaigns/new" className="aiwavo-action-item action-campaign">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-layers-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Create Campaign</span>
+                </Link>
+
+                <Link to="/imports" className="aiwavo-action-item action-excel">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-file-earmark-excel-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Import Excel</span>
+                </Link>
+
+                <Link to="/campaigns" className="aiwavo-action-item action-automation">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-diagram-3-fill"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Create Automation</span>
+                </Link>
+
+                <Link to="/whatsapp" className="aiwavo-action-item action-whatsapp">
+                  <div className="aiwavo-action-icon-wrap">
+                    <i className="bi bi-whatsapp"></i>
+                  </div>
+                  <span className="aiwavo-action-label">Connect WhatsApp</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1014,12 +1049,14 @@ export default function Dashboard() {
           <div className="aiwavo-section-card">
             <div className="aiwavo-section-header">
               <h3 className="aiwavo-section-title">
-                <i className="bi bi-megaphone-fill text-success"></i>
-                Recent Campaigns
+                <i className={`bi ${isAgent ? 'bi-chat-left-dots-fill text-primary' : 'bi-megaphone-fill text-success'}`}></i>
+                {isAgent ? 'Recent Broadcast Activity' : 'Recent Campaigns'}
               </h3>
-              <Link to="/campaigns" className="aiwavo-section-link">
-                View All <i className="bi bi-arrow-right"></i>
-              </Link>
+              {!isAgent && (
+                <Link to="/campaigns" className="aiwavo-section-link">
+                  View All <i className="bi bi-arrow-right"></i>
+                </Link>
+              )}
             </div>
             <div className="table-responsive">
               <table className="aiwavo-campaigns-table">
@@ -1046,17 +1083,20 @@ export default function Dashboard() {
                       return (
                         <tr
                           key={`camp-row-${c.id || idx}`}
-                          className="aiwavo-clickable-row"
-                          onClick={() => (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
-                          title={`View ${c.name} details`}
+                          className={!isAgent ? 'aiwavo-clickable-row' : ''}
+                          onClick={() => (!isAgent ? (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns')) : null)}
+                          role={!isAgent ? 'button' : undefined}
+                          tabIndex={!isAgent ? 0 : undefined}
+                          style={isAgent ? { cursor: 'default' } : undefined}
+                          onKeyDown={(e) => (!isAgent && (e.key === 'Enter' || e.key === ' ')) && (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
+                          title={!isAgent ? `View ${c.name} details` : undefined}
                         >
                           <td className="aiwavo-campaign-name-cell">
                             <div className="d-flex align-items-center justify-content-between">
-                              <span className="aiwavo-campaign-name-link">{c.name}</span>
-                              <i className="bi bi-box-arrow-up-right small text-muted opacity-50 ms-2 aiwavo-row-icon"></i>
+                              <span className={!isAgent ? 'aiwavo-campaign-name-link' : 'fw-medium text-dark'}>{c.name}</span>
+                              {!isAgent && (
+                                <i className="bi bi-box-arrow-up-right small text-muted opacity-50 ms-2 aiwavo-row-icon"></i>
+                              )}
                             </div>
                           </td>
                           <td>

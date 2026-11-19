@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function Contacts() {
   const { user, isSuperAdmin } = useAuth();
+  const isAgent = user?.role === 'agent';
   const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
@@ -321,15 +322,19 @@ export default function Contacts() {
           </div>
 
           <div className="cnt-hero-actions">
-            <Link to="/contacts/groups" className="cnt-hero-btn-green-outline" title="Manage Contact Groups">
-              <i className="bi bi-folder-fill"></i>
-              <span>Contact Groups</span>
-            </Link>
+            {!isAgent && (
+              <>
+                <Link to="/contacts/groups" className="cnt-hero-btn-green-outline" title="Manage Contact Groups">
+                  <i className="bi bi-folder-fill"></i>
+                  <span>Contact Groups</span>
+                </Link>
 
-            <Link to="/imports" className="cnt-hero-btn-outline" title="Bulk Import Contacts from CSV / Excel">
-              <i className="bi bi-file-earmark-arrow-up"></i>
-              <span>Import CSV / Excel</span>
-            </Link>
+                <Link to="/imports" className="cnt-hero-btn-outline" title="Bulk Import Contacts from CSV / Excel">
+                  <i className="bi bi-file-earmark-arrow-up"></i>
+                  <span>Import CSV / Excel</span>
+                </Link>
+              </>
+            )}
 
             <button
               type="button"
@@ -659,9 +664,10 @@ export default function Contacts() {
           </div>
         </div>
 
-        {/* 5. Imported Excel & CSV Files Section with Pagination (Directly below Contacts list) */}
-        <div className="cnt-table-card mb-4">
-          <div className="cnt-table-header-row">
+        {/* 5. Imported Excel & CSV Files Section with Pagination (Hidden for Support Agents) */}
+        {!isAgent && (
+          <div className="cnt-table-card mb-4">
+            <div className="cnt-table-header-row">
             <div className="d-flex align-items-center gap-3">
               <div
                 style={{
@@ -913,6 +919,7 @@ export default function Contacts() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Change Past Import Tag Modal */}
         {editTagTargetJob && (

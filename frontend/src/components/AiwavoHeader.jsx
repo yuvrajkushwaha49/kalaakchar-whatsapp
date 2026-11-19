@@ -345,7 +345,33 @@ export default function AiwavoHeader({
 
               {/* Dropdown Footer */}
               <div className="aiwavo-notif-footer">
-                {user?.role && ['marketer', 'agent'].includes(user.role) ? (
+                {user?.role === 'agent' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/inbox');
+                      }}
+                    >
+                      <i className="bi bi-chat-left-dots"></i>
+                      <span>Open Inbox</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link secondary btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/templates');
+                      }}
+                    >
+                      <i className="bi bi-chat-square-text"></i>
+                      <span>Templates</span>
+                    </button>
+                  </>
+                ) : user?.role === 'marketer' ? (
                   <>
                     <button
                       type="button"
