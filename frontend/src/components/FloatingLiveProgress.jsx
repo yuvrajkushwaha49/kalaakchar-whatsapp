@@ -24,7 +24,7 @@ export default function FloatingLiveProgress() {
   };
 
   // Don't render on public auth pages
-  const isAuthPage = ['/login', '/register', '/forgot-password', '/privacy', '/terms'].includes(location.pathname);
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/privacy', '/privacy-policy', '/terms', '/tos'].includes(location.pathname);
 
   // Initial check on mount to discover already running jobs
   useEffect(() => {

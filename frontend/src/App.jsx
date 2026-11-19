@@ -45,7 +45,6 @@ import AdminAccounts from './pages/admin/AdminAccounts';
 import WhatsAppOAuthCallback from './pages/WhatsAppOAuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
-import Landing from './pages/Landing';
 
 // Protected Route Guard
 function ProtectedRoute({ children, requireSuperAdmin = false }) {
@@ -73,10 +72,11 @@ function ProtectedRoute({ children, requireSuperAdmin = false }) {
 export default function App() {
   return (
     <Routes>
-      {/* Public Landing & Compliance Pages */}
-      <Route path="/" element={<Landing />} />
+      {/* Public Legal & Compliance Pages */}
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/tos" element={<TermsOfService />} />
 
       {/* Public Auth Routes & OAuth Callbacks */}
       <Route path="/whatsapp/callback" element={<WhatsAppOAuthCallback />} />
@@ -94,6 +94,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/contacts" element={<Contacts />} />

@@ -1,374 +1,528 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import iconImg from '../assets/icon.png';
 import logoImg from '../assets/logo.png';
-import '../styles/landing.css';
+import iconImg from '../assets/icon.png';
+import '../styles/legal.css';
 
 export default function PrivacyPolicy() {
-  const sections = [
-    { id: 'intro', title: '1. Introduction & Overview' },
-    { id: 'info-collected', title: '2. Information We Collect' },
-    { id: 'how-we-process', title: '3. How We Process Your Information' },
-    { id: 'legal-bases', title: '4. Legal Bases for Processing (GDPR & Global)' },
-    { id: 'multi-tenant', title: '5. Multi-Tenant Architecture & Security Standards' },
-    { id: 'whatsapp-policy', title: '6. WhatsApp Business Messaging & Opt-In Rules' },
-    { id: 'third-parties', title: '7. Third-Party Sharing & Meta Platform Integration' },
-    { id: 'cookies', title: '8. Cookies & Tracking Technologies' },
-    { id: 'data-retention', title: '9. Data Retention & Account Deletion' },
-    { id: 'privacy-rights', title: '10. Your Privacy Rights & Choices' },
-    { id: 'international', title: '11. International Data Transfers' },
-    { id: 'children', title: '12. Policy Regarding Minors' },
-    { id: 'updates', title: '13. Modifications to This Privacy Policy' },
-    { id: 'contact', title: '14. Contact Us & Data Protection Officer' }
+  const [activeSection, setActiveSection] = useState('section-1');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = 'Privacy Policy — Aiveexa';
+
+    const handleScroll = () => {
+      const sections = document.querySelectorAll('.legal-section');
+      const scrollPos = window.scrollY + 140;
+
+      sections.forEach((sec) => {
+        const top = sec.offsetTop;
+        const height = sec.offsetHeight;
+        if (scrollPos >= top && scrollPos < top + height) {
+          setActiveSection(sec.id);
+        }
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const navItems = [
+    { id: 'section-1', title: '1. Introduction & Overview' },
+    { id: 'section-2', title: '2. Information We Collect' },
+    { id: 'section-3', title: '3. How We Process Information' },
+    { id: 'section-4', title: '4. Legal Bases for Processing' },
+    { id: 'section-5', title: '5. Sharing & Third-Party Processors' },
+    { id: 'section-6', title: '6. Multi-Tenant Data Security' },
+    { id: 'section-7', title: '7. Meta OAuth & Embedded Signup' },
+    { id: 'section-8', title: '8. Opt-In & Anti-Spam Compliance' },
+    { id: 'section-9', title: '9. Data Retention & Storage' },
+    { id: 'section-10', title: '10. Cookies & Tracking' },
+    { id: 'section-11', title: '11. Your Privacy Rights (GDPR/CCPA)' },
+    { id: 'section-12', title: '12. User Data Deletion (Meta App)' },
+    { id: 'section-13', title: '13. Do-Not-Track Controls' },
+    { id: 'section-14', title: '14. Policy on Minors' },
+    { id: 'section-15', title: '15. Policy Updates & Notice' },
+    { id: 'section-16', title: '16. Contact & Grievance Officer' },
   ];
 
   return (
     <div className="legal-page-wrapper">
-      {/* ---------------------------------------------------------------------
-          Legal Top Navbar
-          --------------------------------------------------------------------- */}
-      <header className="legal-header-navbar py-2">
-        <div className="landing-container d-flex align-items-center justify-content-between">
+      {/* Top Navigation */}
+      <header className="legal-header">
+        <div className="container d-flex align-items-center justify-content-between legal-header-inner">
           <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
-            <img src={iconImg} alt="Aiveexa" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            <img src={logoImg} alt="Aiveexa" style={{ height: '32px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }} />
+            <img
+              src={iconImg}
+              alt="Aiveexa"
+              style={{ width: '38px', height: '38px', objectFit: 'contain' }}
+            />
+            <img
+              src={logoImg}
+              alt="Aiveexa"
+              style={{ height: '34px', width: 'auto', maxWidth: '145px', objectFit: 'contain' }}
+            />
           </Link>
-          <div className="d-flex align-items-center gap-3">
-            <Link to="/terms" className="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex">
+
+          <div className="d-flex align-items-center gap-2 gap-md-3">
+            <Link to="/terms" className="btn btn-sm btn-outline-secondary fw-medium">
               Terms of Service
             </Link>
-            <Link to="/login" className="btn btn-sm btn-outline-primary">
+            <Link to="/login" className="btn btn-sm btn-primary fw-medium px-3">
               Log In
-            </Link>
-            <Link to="/register" className="btn btn-sm btn-primary">
-              Start Free Trial
             </Link>
           </div>
         </div>
       </header>
 
-      {/* ---------------------------------------------------------------------
-          Main Content Area with Sticky Sidebar
-          --------------------------------------------------------------------- */}
-      <main className="py-5">
-        <div className="landing-container">
-          <div className="row g-4">
-            {/* Sidebar Navigation */}
-            <aside className="col-12 col-lg-3 d-none d-lg-block">
-              <div className="legal-sidebar-nav">
-                <div className="fw-bold text-dark mb-3 px-2 text-uppercase small" style={{ letterSpacing: '0.05em' }}>
-                  Table of Contents
-                </div>
-                {sections.map((s) => (
-                  <a key={s.id} href={`#${s.id}`} className="legal-nav-link">
-                    {s.title}
-                  </a>
+      {/* Hero Banner */}
+      <section className="legal-hero">
+        <div className="container">
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span className="legal-badge-meta">
+              <i className="bi bi-shield-check fs-6"></i>
+              Official Meta WhatsApp Business Cloud API Compliant
+            </span>
+            <span className="badge bg-light text-muted border px-3 py-2 rounded-pill small">
+              GDPR • CCPA • DPDP Compliant
+            </span>
+          </div>
+
+          <h1 className="legal-hero-title mb-3">Privacy Policy</h1>
+          <p className="legal-hero-subtitle mb-3">
+            This Privacy Policy explains how <strong>Aiveexa</strong> ("we", "us", or "our") collects, protects, processes, and respects personal data when you use our WhatsApp marketing and customer engagement SaaS platform.
+          </p>
+
+          <div className="d-flex align-items-center gap-3 text-muted small">
+            <span><strong>Effective Date:</strong> November 1, 2026</span>
+            <span>•</span>
+            <span><strong>Last Updated:</strong> November 19, 2026</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Body */}
+      <div className="container py-5">
+        <div className="row g-4">
+          {/* Sticky Table of Contents (Left Column) */}
+          <div className="col-lg-4 d-none d-lg-block">
+            <div className="legal-toc-sticky">
+              <div className="legal-toc-title">Table of Contents</div>
+              <nav className="nav flex-column">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => scrollTo(item.id)}
+                    className={`nav-link text-start border-0 bg-transparent legal-toc-link ${
+                      activeSection === item.id ? 'active' : ''
+                    }`}
+                  >
+                    {item.title}
+                  </button>
                 ))}
-                <hr className="my-3" />
-                <div className="p-3 bg-light rounded-3 border">
-                  <div className="fw-semibold text-dark small mb-1">Need help or clarification?</div>
-                  <p className="text-muted small mb-2">Our privacy compliance team is here for you.</p>
-                  <a href="mailto:privacy@aiveexa.com" className="btn btn-sm btn-outline-primary w-100">
-                    Email Privacy Team
+              </nav>
+
+              <hr className="my-3" />
+
+              <div className="p-3 bg-light rounded-3 border">
+                <div className="fw-bold small text-dark mb-1">
+                  <i className="bi bi-info-circle text-primary me-1"></i> Need Legal Assistance?
+                </div>
+                <div className="text-muted small">
+                  Email our Data Protection Officer at{' '}
+                  <a href="mailto:support@aiveexa.com" className="text-primary fw-medium text-decoration-none">
+                    support@aiveexa.com
                   </a>
                 </div>
-              </div>
-            </aside>
-
-            {/* Document Body Card */}
-            <div className="col-12 col-lg-9">
-              <div className="legal-content-card">
-                {/* Header Banner */}
-                <div className="mb-4">
-                  <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
-                      <i className="bi bi-shield-check me-1"></i> Meta Cloud API & GDPR Compliant
-                    </span>
-                    <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill">
-                      Official Aiveexa Legal Policy
-                    </span>
-                  </div>
-                  <h1 className="fw-bold text-dark display-6 mb-2">Privacy Policy</h1>
-                  <p className="text-muted small mb-0">
-                    Effective Date: November 1, 2026 • Last Updated: November 19, 2026
-                  </p>
-                </div>
-
-                <div className="legal-callout-box">
-                  <strong>Summary of Key Points:</strong> We at <strong>Aiveexa</strong> respect your privacy. We collect only necessary business and contact data required to operate our WhatsApp marketing and team inbox SaaS platform built on the official <strong>Meta WhatsApp Business Cloud API</strong>. We strictly encrypt all credentials (AES-256), enforce multi-tenant isolation, never sell or monetize your personal or contact data, and honor all global data protection standards (GDPR, UK GDPR, and India DPDP).
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Section 1 */}
-                <section id="intro" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-info-circle text-primary"></i> 1. Introduction & Overview
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    This Privacy Policy applies to <strong>Aiveexa Technologies Private Limited</strong>, operating as <strong>Aiveexa</strong> ("we", "our", or "us"), and describes how we collect, store, process, and protect your information when you access or use our software applications, customer portal (<code>aiveexa.com</code> and related domains), APIs, and services (collectively, the "Services").
-                  </p>
-                  <p className="text-secondary leading-relaxed">
-                    Aiveexa is an enterprise-grade multi-tenant Software-as-a-Service (SaaS) provider facilitating business customer communication, broadcast campaigns, template management, and team collaboration powered by the official <strong>Meta WhatsApp Business Cloud API</strong>.
-                  </p>
-                  <p className="text-secondary leading-relaxed">
-                    By registering for an account or using any of our Services, you acknowledge that you have read and understood this Privacy Policy. If you do not agree with our policies, please discontinue using our Services immediately.
-                  </p>
-                </section>
-
-                {/* Section 2 */}
-                <section id="info-collected" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-database text-primary"></i> 2. Information We Collect
-                  </h2>
-                  <p className="text-secondary">We collect information across several categories based on how you interact with our platform:</p>
-
-                  <h6 className="fw-bold text-dark mt-3">A. Personal Information You Disclose to Us</h6>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Account & Registration Details:</strong> Full name, business email address, phone number, company/brand name, account credentials, and billing information.</li>
-                    <li className="mb-2"><strong>Workspace Team Members:</strong> Names, roles, emails, and permissions of team members invited to your shared inbox.</li>
-                    <li className="mb-2"><strong>Payment & Transaction Data:</strong> Payment card details, billing address, and transaction histories. All payment credentials are processed securely by PCI-DSS compliant third-party payment gateways (e.g., Stripe / Razorpay). Aiveexa does not store complete raw credit card numbers.</li>
-                  </ul>
-
-                  <h6 className="fw-bold text-dark mt-3">B. Meta WhatsApp Account Credentials</h6>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Meta Business Platform Data:</strong> Meta Business Portfolio ID, WhatsApp Business Account (WABA) ID, WhatsApp Phone Number ID, display names, and verification statuses.</li>
-                    <li className="mb-2"><strong>OAuth Access Tokens:</strong> Meta permanent or system user access tokens acquired via Meta Embedded Signup / Facebook Login. These tokens are stored encrypted at rest using AES-256-CBC encryption.</li>
-                  </ul>
-
-                  <h6 className="fw-bold text-dark mt-3">C. Customer Contacts & Audience Lists (Customer Data)</h6>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Contact Records:</strong> Recipient phone numbers, names, tags, customer segments, and custom field attributes uploaded or imported by you via CSV, Excel, or API.</li>
-                    <li className="mb-2"><strong>Ownership:</strong> You maintain sole ownership of your contact lists. Aiveexa acts strictly as a Data Processor on your behalf.</li>
-                  </ul>
-
-                  <h6 className="fw-bold text-dark mt-3">D. WhatsApp Messages & Webhook Telemetry</h6>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Message Payloads:</strong> Inbound and outbound message text, template parameters, interactive button clicks, and media attachments transmitted through Meta Cloud API.</li>
-                    <li className="mb-2"><strong>Delivery Statuses:</strong> Real-time webhook events received from Meta indicating message state (Sent, Delivered, Read, Failed).</li>
-                  </ul>
-
-                  <h6 className="fw-bold text-dark mt-3">E. Automatically Collected Technical Data</h6>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2">IP addresses, browser type, operating system, session timestamps, device identifiers, and platform activity logs used for security monitoring and fraud prevention.</li>
-                  </ul>
-                </section>
-
-                {/* Section 3 */}
-                <section id="how-we-process" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-gear-wide-connected text-primary"></i> 3. How We Process Your Information
-                  </h2>
-                  <p className="text-secondary">We process your data strictly for legitimate operational purposes:</p>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2">To provision, manage, and maintain your workspace account and team permissions.</li>
-                    <li className="mb-2">To dispatch authorized broadcast campaigns and 1-on-1 chats via the Meta WhatsApp Cloud API.</li>
-                    <li className="mb-2">To synchronize approved message templates with Meta’s template library and manage phone number quality tiers.</li>
-                    <li className="mb-2">To power our shared multi-agent team inbox, canned responses, and AI auto-reply chatbots.</li>
-                    <li className="mb-2">To detect and prevent fraudulent use, spam, unauthorized account takeovers, and security breaches.</li>
-                    <li className="mb-2">To compute billing, conversation usage tiers, and generate exportable analytics reports.</li>
-                    <li className="mb-2">To comply with applicable legal obligations and official Meta WhatsApp Business Messaging Policies.</li>
-                  </ul>
-                </section>
-
-                {/* Section 4 */}
-                <section id="legal-bases" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-journal-bookmark text-primary"></i> 4. Legal Bases for Processing (GDPR & Global Standards)
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    Under the General Data Protection Regulation (GDPR), UK Data Protection Act, and applicable international laws, we process personal information on the following lawful bases:
-                  </p>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Performance of a Contract:</strong> Processing necessary to deliver the SaaS services you requested upon signing up.</li>
-                    <li className="mb-2"><strong>Legitimate Interests:</strong> Operating, protecting, and optimizing our platform infrastructure, preventing security threats, and providing customer support.</li>
-                    <li className="mb-2"><strong>Legal Compliance:</strong> Retaining financial transaction records for tax compliance and responding to lawful governmental requests.</li>
-                    <li className="mb-2"><strong>Explicit Consent:</strong> Where you have granted explicit consent for specific features or optional communications (which you may withdraw at any time).</li>
-                  </ul>
-                </section>
-
-                {/* Section 5 */}
-                <section id="multi-tenant" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-shield-lock text-primary"></i> 5. Multi-Tenant Architecture & Security Standards
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    Aiveexa is architected with strict multi-tenant boundaries to safeguard confidential business information:
-                  </p>
-                  <div className="row g-3 my-2">
-                    <div className="col-12 col-md-6">
-                      <div className="p-3 bg-light rounded-3 border h-100">
-                        <div className="fw-bold text-dark mb-1"><i className="bi bi-key-fill text-primary me-1"></i> AES-256 Token Encryption</div>
-                        <p className="text-muted small mb-0">All Meta OAuth access tokens and credentials are encrypted at rest with AES-256-CBC and are never exposed in browser payloads.</p>
-                      </div>
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <div className="p-3 bg-light rounded-3 border h-100">
-                        <div className="fw-bold text-dark mb-1"><i className="bi bi-layers-fill text-success me-1"></i> Tenant Isolation</div>
-                        <p className="text-muted small mb-0">Every database query is strictly scoped and parameterized by <code>business_id</code>, guaranteeing zero cross-tenant data leakage.</p>
-                      </div>
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <div className="p-3 bg-light rounded-3 border h-100">
-                        <div className="fw-bold text-dark mb-1"><i className="bi bi-lock-fill text-info me-1"></i> TLS 1.3 Transport Security</div>
-                        <p className="text-muted small mb-0">All traffic between your browser, our servers, and Meta Cloud API is transmitted over HTTPS with TLS 1.3 encryption.</p>
-                      </div>
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <div className="p-3 bg-light rounded-3 border h-100">
-                        <div className="fw-bold text-dark mb-1"><i className="bi bi-person-badge-fill text-warning me-1"></i> Role-Based Access Control</div>
-                        <p className="text-muted small mb-0">Workspace owners configure granular permissions for Admins, Managers, and Agents to restrict access to sensitive features.</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Section 6 */}
-                <section id="whatsapp-policy" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-whatsapp text-success"></i> 6. WhatsApp Business Messaging & Opt-In Rules
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    As an official Meta WhatsApp Cloud API SaaS solution, all customers must strictly adhere to the <a href="https://www.whatsapp.com/legal/business-policy/" target="_blank" rel="noopener noreferrer" className="text-primary fw-semibold">WhatsApp Business Messaging Policy</a>:
-                  </p>
-                  <div className="legal-callout-warning">
-                    <strong>Mandatory Opt-In Requirement:</strong> You must obtain explicit, verifiable opt-in consent from individuals before initiating WhatsApp broadcast messages. Sending unsolicited messages, spam, or misleading marketing is strictly prohibited and will result in immediate workspace suspension.
-                  </div>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Opt-Out Mechanism:</strong> You must provide an explicit opt-out path (such as replying "STOP" or "UNSUBSCRIBE") and honor customer opt-out requests immediately.</li>
-                    <li className="mb-2"><strong>24-Hour Service Window:</strong> Free-form messaging is only permitted within 24 hours of the customer's last incoming message. Outside this window, only pre-approved Meta message templates may be used.</li>
-                  </ul>
-                </section>
-
-                {/* Section 7 */}
-                <section id="third-parties" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-diagram-3 text-primary"></i> 7. Third-Party Sharing & Meta Integration
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    <strong>We do not sell, rent, or trade your personal data or your contact lists to data brokers or advertisers.</strong>
-                  </p>
-                  <p className="text-secondary">We share data only in the following limited scenarios:</p>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Meta Platforms, Inc.:</strong> Message contents, recipient phone numbers, and template IDs are transmitted to Meta Cloud API to route and deliver WhatsApp messages.</li>
-                    <li className="mb-2"><strong>Cloud Infrastructure:</strong> Secure tier-1 cloud hosting providers (e.g., AWS / DigitalOcean) hosting our databases and application servers.</li>
-                    <li className="mb-2"><strong>Payment Gateways:</strong> Payment processors (Stripe, Razorpay) handling subscription billing and invoices.</li>
-                    <li className="mb-2"><strong>Legal Compliance:</strong> If required by law, subpoena, or lawful court order.</li>
-                  </ul>
-                </section>
-
-                {/* Section 8 */}
-                <section id="cookies" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-cookie text-primary"></i> 8. Cookies & Tracking Technologies
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    We use cookies, session tokens, and local storage strictly to keep you authenticated, remember your workspace preferences, and ensure application security. You can adjust your browser cookie settings at any time; however, disabling essential session cookies will prevent login to the dashboard.
-                  </p>
-                </section>
-
-                {/* Section 9 */}
-                <section id="data-retention" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-clock-history text-primary"></i> 9. Data Retention & Account Deletion
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    We retain your workspace data for as long as your account is active and in good standing. If you choose to close your account:
-                  </p>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2">Your contacts, imported CSVs, and message records will be queued for permanent purging within 30 days.</li>
-                    <li className="mb-2">Meta OAuth access tokens are immediately invalidated and deleted from our database.</li>
-                    <li className="mb-2">Aggregated, anonymized telemetry logs may be retained solely for financial reporting, tax audit, and security fraud analysis as required by law.</li>
-                  </ul>
-                </section>
-
-                {/* Section 10 */}
-                <section id="privacy-rights" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-person-check text-primary"></i> 10. Your Privacy Rights & Choices
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    Depending on your geographic location (including the EU, UK, Canada, and India under DPDP Act 2023), you possess specific statutory rights regarding your personal information:
-                  </p>
-                  <ul className="text-secondary ps-3">
-                    <li className="mb-2"><strong>Right of Access:</strong> Request a copy of the personal information we maintain about you.</li>
-                    <li className="mb-2"><strong>Right to Rectification:</strong> Update or correct inaccurate or incomplete profile data directly from your Settings page.</li>
-                    <li className="mb-2"><strong>Right to Erasure ("Right to be Forgotten"):</strong> Request the complete deletion of your personal account data.</li>
-                    <li className="mb-2"><strong>Right to Data Portability:</strong> Export your contacts, broadcast logs, and campaign reports in CSV format at any time.</li>
-                    <li className="mb-2"><strong>Right to Withdraw Consent:</strong> Revoke consent for optional communications without affecting the lawfulness of prior processing.</li>
-                  </ul>
-                  <p className="text-secondary">
-                    To exercise any of these rights, email us at <a href="mailto:privacy@aiveexa.com" className="text-primary">privacy@aiveexa.com</a>. We respond to all verified requests within 30 days.
-                  </p>
-                </section>
-
-                {/* Section 11 */}
-                <section id="international" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-globe text-primary"></i> 11. International Data Transfers
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    Our platform infrastructure is hosted in secure, globally distributed data centers. When data is transferred across international borders, we ensure adequate protection through standard contractual clauses (SCCs) and robust encryption standards aligned with GDPR.
-                  </p>
-                </section>
-
-                {/* Section 12 */}
-                <section id="children" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-people text-primary"></i> 12. Policy Regarding Minors
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    Aiveexa is an enterprise B2B SaaS platform intended exclusively for commercial entities and individuals aged 18 and older. We do not knowingly solicit or collect data from minors. If we learn that personal data from a child under 18 has been collected, we will take prompt steps to delete it.
-                  </p>
-                </section>
-
-                {/* Section 13 */}
-                <section id="updates" className="legal-section">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-arrow-repeat text-primary"></i> 13. Modifications to This Privacy Policy
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    We may update this Privacy Policy from time to time to reflect operational, legal, or regulatory modifications. When updates are published, the "Last Updated" timestamp at the top will be updated. Continued use of our Services following any modifications constitutes your acceptance of the revised policy.
-                  </p>
-                </section>
-
-                {/* Section 14 */}
-                <section id="contact" className="legal-section mb-0">
-                  <h2 className="legal-section-title">
-                    <i className="bi bi-envelope text-primary"></i> 14. Contact Us & Data Protection Officer
-                  </h2>
-                  <p className="text-secondary leading-relaxed">
-                    If you have questions, feedback, or concerns regarding our privacy practices or wish to submit a data subject request, please reach out to our team:
-                  </p>
-                  <div className="p-4 bg-light rounded-3 border">
-                    <div className="fw-bold text-dark h5 mb-2">Aiveexa Technologies Private Limited</div>
-                    <div className="text-secondary mb-1"><strong>Attention:</strong> Data Protection & Privacy Compliance Officer</div>
-                    <div className="text-secondary mb-1"><strong>Email:</strong> <a href="mailto:privacy@aiveexa.com" className="text-primary text-decoration-none">privacy@aiveexa.com</a> / <a href="mailto:support@aiveexa.com" className="text-primary text-decoration-none">support@aiveexa.com</a></div>
-                    <div className="text-secondary mb-1"><strong>Website:</strong> <a href="https://aiveexa.com" className="text-primary text-decoration-none">https://aiveexa.com</a></div>
-                    <div className="text-secondary"><strong>Response SLA:</strong> Within 24-48 business hours</div>
-                  </div>
-                </section>
               </div>
             </div>
           </div>
-        </div>
-      </main>
 
-      {/* ---------------------------------------------------------------------
-          Legal Footer
-          --------------------------------------------------------------------- */}
-      <footer className="landing-footer py-4 mt-5">
-        <div className="landing-container text-center small text-muted">
-          <div className="d-flex flex-wrap justify-content-center align-items-center gap-3 mb-2">
-            <Link to="/" className="text-white text-decoration-none">Home</Link>
-            <span>•</span>
-            <Link to="/terms" className="text-white text-decoration-none">Terms of Service</Link>
-            <span>•</span>
-            <Link to="/login" className="text-white text-decoration-none">Log In</Link>
-            <span>•</span>
-            <Link to="/register" className="text-white text-decoration-none">Start Free Trial</Link>
+          {/* Legal Content Card (Right Column) */}
+          <div className="col-lg-8">
+            <div className="legal-content-card">
+
+              {/* Section 1 */}
+              <section className="legal-section" id="section-1">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">1</span>
+                  Introduction & Overview
+                </div>
+                <p className="legal-text">
+                  Welcome to <strong>Aiveexa</strong> (accessible via <code>https://aiveexa.com</code> and related domains). Aiveexa operates an enterprise-grade multi-tenant Software-as-a-Service (SaaS) platform that empowers businesses, e-commerce stores, and organizations to automate customer messaging, run broadcast campaigns, manage customer inquiries via a team inbox, and deploy automated conversational workflows using the official <strong>Meta WhatsApp Business Cloud API</strong>.
+                </p>
+                <p className="legal-text">
+                  We respect the privacy of our platform customers (business owners, workspace admins, and team agents) and their end-user recipients (consumers and contacts who receive WhatsApp messages from our customers). This policy governs how we collect, store, handle, and protect that data in compliance with international data privacy laws including the General Data Protection Regulation (GDPR), California Consumer Privacy Act (CCPA/CPRA), and the Digital Personal Data Protection Act (DPDP).
+                </p>
+                <div className="legal-callout-info">
+                  <strong>Important Notice:</strong> By creating an account, connecting your Meta WhatsApp Business Account (WABA), or accessing the Aiveexa platform, you acknowledge that you have read and agreed to the practices outlined in this Privacy Policy and our <Link to="/terms" className="text-primary fw-bold text-decoration-none">Terms of Service</Link>.
+                </div>
+              </section>
+
+              {/* Section 2 */}
+              <section className="legal-section" id="section-2">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">2</span>
+                  Information We Collect
+                </div>
+                <p className="legal-text">
+                  Depending on how you use our Services, the information we collect falls into the following categories:
+                </p>
+                <ul className="legal-list">
+                  <li>
+                    <strong>Account & Organization Information:</strong> When you register, we collect your full name, business email address, phone number, company name, workspace settings, job title, and securely hashed passwords (using <code>bcrypt</code>).
+                  </li>
+                  <li>
+                    <strong>Meta & WhatsApp Business Account Identifiers:</strong> Through Facebook Login / Meta Embedded Signup, we receive your Meta Business Portfolio ID, WhatsApp Business Account (WABA) ID, Phone Number ID, verified display name, and authorized System User Access Tokens. Access tokens are encrypted at rest using AES-256-CBC.
+                  </li>
+                  <li>
+                    <strong>Customer Contact Lists & Custom Attributes:</strong> Audience lists, phone numbers, contact names, custom parameters, tags, and demographic data that you upload or import via CSV/Excel or sync from third-party CRMs.
+                  </li>
+                  <li>
+                    <strong>WhatsApp Messaging Data & Webhooks:</strong> Inbound and outbound message text, template parameters, media attachments, delivery status callbacks (sent, delivered, read, failed), and webhook events received in real time from Meta Cloud API.
+                  </li>
+                  <li>
+                    <strong>Billing & Payment Information:</strong> When subscribing to paid tiers, transaction identifiers, billing addresses, and invoices are handled through PCI-DSS compliant third-party payment processors (e.g., Razorpay/Stripe). <em>We never store credit card numbers, CVVs, or bank account credentials on our servers.</em>
+                  </li>
+                  <li>
+                    <strong>Automated Device, Usage & Audit Logs:</strong> Internet Protocol (IP) addresses, browser type, operating system, referrer URLs, session timestamps, and administrative audit logs collected to prevent fraud and maintain security.
+                  </li>
+                </ul>
+              </section>
+
+              {/* Section 3 */}
+              <section className="legal-section" id="section-3">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">3</span>
+                  How We Process Your Information
+                </div>
+                <p className="legal-text">
+                  We process personal and business data strictly to fulfill our contractual commitments and operate our SaaS platform, including:
+                </p>
+                <ul className="legal-list">
+                  <li>Providing, operating, and improving the Aiveexa WhatsApp automation and CRM platform.</li>
+                  <li>Transmitting outbound template and conversational messages via the official Meta WhatsApp Business Cloud API.</li>
+                  <li>Managing WhatsApp message template submissions, syncs, and status approvals.</li>
+                  <li>Ingesting incoming WhatsApp messages and delivering them to your unified Team Inbox in real time.</li>
+                  <li>Enforcing multi-tenant isolation so that customer databases, contact lists, and campaigns remain completely segregated.</li>
+                  <li>Preventing security abuse, malicious traffic, spamming, and unauthorized account access.</li>
+                  <li>Fulfilling statutory tax, accounting, and legal compliance obligations.</li>
+                </ul>
+              </section>
+
+              {/* Section 4 */}
+              <section className="legal-section" id="section-4">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">4</span>
+                  Legal Bases for Processing (GDPR & DPDP)
+                </div>
+                <p className="legal-text">
+                  Under the GDPR and global privacy frameworks, we only process personal information when we have a recognized legal basis:
+                </p>
+                <ul className="legal-list">
+                  <li>
+                    <strong>Performance of a Contract:</strong> Processing is required to deliver the SaaS service, maintain your workspace, and execute campaigns requested by you.
+                  </li>
+                  <li>
+                    <strong>Legitimate Business Interests:</strong> Maintaining platform stability, bug fixing, audit logging, multi-tenant security enforcement, and fraud prevention.
+                  </li>
+                  <li>
+                    <strong>Legal Compliance:</strong> Retaining financial records, invoices, and audit trails required under applicable laws and regulations.
+                  </li>
+                  <li>
+                    <strong>Explicit Consent:</strong> Sending non-essential product announcements or when you explicitly opt in to preview new platform beta features.
+                  </li>
+                </ul>
+              </section>
+
+              {/* Section 5 */}
+              <section className="legal-section" id="section-5">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">5</span>
+                  Sharing & Third-Party Processors
+                </div>
+                <div className="legal-callout-success">
+                  <strong>Strict Anti-Monetization Commitment:</strong> Aiveexa does <u>not</u> sell, rent, monetize, or trade your personal data or your uploaded customer contact lists to any third party, broker, or advertising network under any circumstances.
+                </div>
+                <p className="legal-text">
+                  Data is only shared with trusted sub-processors strictly necessary to deliver the service:
+                </p>
+                <ul className="legal-list">
+                  <li>
+                    <strong>Meta Platforms, Inc.:</strong> Message payloads, recipient phone numbers, and template IDs are routed through Meta’s WhatsApp Business Cloud API servers to reach recipient devices.
+                  </li>
+                  <li>
+                    <strong>Cloud Hosting & Infrastructure Providers:</strong> Managed server infrastructure (e.g., AWS, secure cloud hosting) located in enterprise-grade data centers with 24/7 physical security and encrypted storage.
+                  </li>
+                  <li>
+                    <strong>Payment Gateways:</strong> Certified PCI-DSS Level 1 compliant processors (such as Razorpay or Stripe) for secure subscription billing.
+                  </li>
+                  <li>
+                    <strong>Legal Authorities:</strong> Only when strictly mandated by a valid court order, subpoena, or lawful request by government regulatory bodies.
+                  </li>
+                </ul>
+              </section>
+
+              {/* Section 6 */}
+              <section className="legal-section" id="section-6">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">6</span>
+                  Multi-Tenant Architecture & Enterprise Data Security
+                </div>
+                <p className="legal-text">
+                  Aiveexa incorporates defense-in-depth security principles engineered to protect your data:
+                </p>
+                <ul className="legal-list">
+                  <li>
+                    <strong>AES-256-CBC Encryption at Rest:</strong> All Meta OAuth tokens, System User secrets, and sensitive credentials are encrypted using military-grade AES-256-CBC with secure server-side salt keys. Plaintext tokens are never exposed in frontend code.
+                  </li>
+                  <li>
+                    <strong>Multi-Tenant Workspace Boundaries:</strong> Every database transaction is strictly scoped and filtered by <code>business_id</code>. No user or tenant can query, view, or dispatch messages using another organization's data.
+                  </li>
+                  <li>
+                    <strong>Transport Layer Security (TLS 1.3):</strong> All communications between user browsers, our API servers, and Meta Cloud API endpoints are encrypted over TLS 1.3 / HTTPS.
+                  </li>
+                  <li>
+                    <strong>Role-Based Access Control (RBAC):</strong> Granular permissions ensure that only authorized team members (Owner, Admin, Agent) can access assigned inboxes and modules.
+                  </li>
+                </ul>
+              </section>
+
+              {/* Section 7 */}
+              <section className="legal-section" id="section-7">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">7</span>
+                  Meta OAuth & Embedded Signup
+                </div>
+                <p className="legal-text">
+                  When you connect your WhatsApp Business Account via Meta Embedded Signup or Facebook Login:
+                </p>
+                <ul className="legal-list">
+                  <li>We only request permissions strictly necessary for WhatsApp Business messaging (<code>whatsapp_business_management</code> and <code>whatsapp_business_messaging</code>).</li>
+                  <li>We never request or access your private personal Facebook profile posts, friend lists, or non-business media.</li>
+                  <li>You can revoke Aiveexa’s authorized access at any time through your Meta Business Manager (<code>business.facebook.com</code>) under Integrations → Connected Apps.</li>
+                </ul>
+              </section>
+
+              {/* Section 8 */}
+              <section className="legal-section" id="section-8">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">8</span>
+                  WhatsApp Recipient Opt-In & Anti-Spam Compliance
+                </div>
+                <div className="legal-callout-warning">
+                  <strong>Compliance Mandate:</strong> Aiveexa strictly enforces Meta’s WhatsApp Business Messaging Policy. You are legally required to obtain verifiable opt-in consent before messaging end-users.
+                </div>
+                <p className="legal-text">
+                  Every business using Aiveexa must:
+                </p>
+                <ul className="legal-list">
+                  <li>Clearly inform end-users that they will receive WhatsApp communications from your brand.</li>
+                  <li>Immediately honor all recipient opt-out requests (e.g., when a contact replies "STOP", "UNSUBSCRIBE", or asks to cease messages).</li>
+                  <li>Refrain from purchasing, scraping, or utilizing cold/unverified phone lists. Violation of this rule leads to immediate workspace suspension without refund.</li>
+                </ul>
+              </section>
+
+              {/* Section 9 */}
+              <section className="legal-section" id="section-9">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">9</span>
+                  Data Retention & Storage Limits
+                </div>
+                <p className="legal-text">
+                  We retain personal data only for as long as necessary to provide the Services:
+                </p>
+                <ul className="legal-list">
+                  <li>
+                    <strong>Active Accounts:</strong> Contact records, campaign analytics, and conversation logs are retained while your subscription remains active or until deleted by you.
+                  </li>
+                  <li>
+                    <strong>Closed Accounts:</strong> When an account is terminated, all associated Meta access tokens, contacts, and message logs are queued for permanent deletion within <strong>30 days</strong>.
+                  </li>
+                  <li>
+                    <strong>Financial Records:</strong> Invoices and transaction receipts are retained for statutory periods required by tax and accounting regulations (typically up to 7 years).
+                  </li>
+                  <li>
+                    <strong>Operational Logs:</strong> Technical debug logs and temporary webhook traces are automatically purged after 90 days.
+                  </li>
+                </ul>
+              </section>
+
+              {/* Section 10 */}
+              <section className="legal-section" id="section-10">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">10</span>
+                  Cookies & Tracking Technologies
+                </div>
+                <p className="legal-text">
+                  Aiveexa uses essential session tokens and cookies solely to keep you logged in securely and preserve your preferences (such as selected language, theme, and active workspace). We do <strong>not</strong> employ third-party tracking pixels or behavioral cross-site advertising cookies. You can manage cookie permissions in your browser settings.
+                </p>
+              </section>
+
+              {/* Section 11 */}
+              <section className="legal-section" id="section-11">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">11</span>
+                  Your Global Privacy Rights (GDPR, CCPA & DPDP)
+                </div>
+                <p className="legal-text">
+                  Regardless of your location, Aiveexa honors the following privacy rights for all users:
+                </p>
+                <ul className="legal-list">
+                  <li><strong>Right to Access:</strong> Request a copy of the personal information we hold about you.</li>
+                  <li><strong>Right to Rectification:</strong> Update inaccurate, incomplete, or outdated profile data directly via Settings.</li>
+                  <li><strong>Right to Erasure ("Right to Be Forgotten"):</strong> Request complete deletion of your personal account and associated data.</li>
+                  <li><strong>Right to Data Portability:</strong> Export your contacts, broadcast reports, and chat logs in standard CSV/JSON formats at any time.</li>
+                  <li><strong>Right to Restrict or Object:</strong> Object to processing of your information under specific legal grounds.</li>
+                </ul>
+              </section>
+
+              {/* Section 12 - CRITICAL FOR META COMPLIANCE */}
+              <section className="legal-section" id="section-12">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">12</span>
+                  User Data Deletion Instructions (Meta App Review Compliance)
+                </div>
+                <div className="legal-callout-info">
+                  <strong>Meta Platform Compliance:</strong> In accordance with Meta Platform Terms and international data protection laws, Aiveexa provides straightforward mechanisms to delete your personal data and WhatsApp Business account mappings.
+                </div>
+                <p className="legal-text">
+                  Follow any of the methods below to initiate data deletion:
+                </p>
+
+                <div className="card bg-light border p-3 p-md-4 rounded-3 mb-3">
+                  <h6 className="fw-bold text-dark mb-2">
+                    <i className="bi bi-gear-wide-connected text-primary me-2"></i> Method A: Self-Service Disconnection (Immediate)
+                  </h6>
+                  <p className="text-secondary small mb-2">
+                    Navigate to your Aiveexa dashboard: <code>Settings → WhatsApp Accounts → Disconnect Account</code>.
+                  </p>
+                  <p className="text-secondary small mb-0">
+                    This immediately revokes our access to your Meta System User token, invalidates webhook subscriptions, and terminates live synchronization.
+                  </p>
+                </div>
+
+                <div className="card bg-light border p-3 p-md-4 rounded-3 mb-3">
+                  <h6 className="fw-bold text-dark mb-2">
+                    <i className="bi bi-trash3 text-danger me-2"></i> Method B: Delete Contacts & Chat Conversations
+                  </h6>
+                  <p className="text-secondary small mb-0">
+                    You can selectively or bulk-delete contact lists from the <strong>Contacts</strong> module, and permanently delete conversations directly from the <strong>WhatsApp Inbox</strong> using the "Delete Conversation" action.
+                  </p>
+                </div>
+
+                <div className="card bg-light border p-3 p-md-4 rounded-3">
+                  <h6 className="fw-bold text-dark mb-2">
+                    <i className="bi bi-envelope-at text-success me-2"></i> Method C: Complete Account Purge Request via Email
+                  </h6>
+                  <p className="text-secondary small mb-2">
+                    Send an email from your registered account address to:
+                  </p>
+                  <div className="p-2 bg-white rounded border font-monospace text-primary fw-bold small mb-2">
+                    support@aiveexa.com
+                  </div>
+                  <p className="text-secondary small mb-0">
+                    Subject Line: <code>User Data Deletion Request - Aiveexa</code>.<br />
+                    Please specify your Organization Name and registered WhatsApp Phone Number. Our compliance team will process the purge within <strong>30 days</strong> and return a confirmation code.
+                  </p>
+                </div>
+              </section>
+
+              {/* Section 13 */}
+              <section className="legal-section" id="section-13">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">13</span>
+                  Do-Not-Track (DNT) Controls
+                </div>
+                <p className="legal-text">
+                  Most modern web browsers incorporate Do-Not-Track (DNT) signaling. Because no uniform technological standard has been adopted across the industry, Aiveexa does not alter its operational logging in response to generic DNT signals. However, we do not track your activity across third-party websites.
+                </p>
+              </section>
+
+              {/* Section 14 */}
+              <section className="legal-section" id="section-14">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">14</span>
+                  Policy on Minors
+                </div>
+                <p className="legal-text">
+                  Aiveexa is an enterprise B2B SaaS platform designed exclusively for businesses and individuals aged <strong>18 years or older</strong>. We do not intentionally solicit or collect personal data from minors under the age of 18. If we discover that an account has been created by a minor, we will promptly terminate the account and purge associated data.
+                </p>
+              </section>
+
+              {/* Section 15 */}
+              <section className="legal-section" id="section-15">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">15</span>
+                  Policy Updates & Notice
+                </div>
+                <p className="legal-text">
+                  We may periodically revise this Privacy Policy to reflect changes in our service offerings, technical enhancements, or evolving legal frameworks. When updates occur, we will adjust the "Last Updated" date at the top of this document. For material updates, we will provide prominent notice via email or within the workspace dashboard before changes take effect.
+                </p>
+              </section>
+
+              {/* Section 16 */}
+              <section className="legal-section" id="section-16">
+                <div className="legal-section-title">
+                  <span className="legal-section-num">16</span>
+                  Contact Us & Grievance Officer
+                </div>
+                <p className="legal-text">
+                  If you have questions, inquiries, or complaints concerning this Privacy Policy or our data handling practices, please contact our dedicated Data Protection & Compliance Office:
+                </p>
+                <div className="p-4 bg-light rounded-3 border">
+                  <div className="fw-bold text-dark fs-6 mb-2">Aiveexa Legal & Compliance Team</div>
+                  <div className="text-secondary small mb-1">
+                    <strong>Platform URL:</strong>{' '}
+                    <a href="https://aiveexa.com" target="_blank" rel="noopener noreferrer" className="text-primary text-decoration-none">
+                      https://aiveexa.com
+                    </a>
+                  </div>
+                  <div className="text-secondary small mb-1">
+                    <strong>Data Protection Officer Email:</strong>{' '}
+                    <a href="mailto:support@aiveexa.com" className="text-primary text-decoration-none fw-medium">
+                      support@aiveexa.com
+                    </a>
+                  </div>
+                  <div className="text-secondary small mb-0">
+                    <strong>Expected Response Window:</strong> Within 24 to 48 business hours.
+                  </div>
+                </div>
+              </section>
+
+            </div>
           </div>
-          <div>&copy; {new Date().getFullYear()} Aiveexa Technologies. All rights reserved.</div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="legal-footer">
+        <div className="container text-center text-muted small">
+          <div className="mb-2">
+            &copy; {new Date().getFullYear()} Aiveexa Platform. All rights reserved.
+          </div>
+          <div className="d-flex align-items-center justify-content-center gap-3">
+            <Link to="/privacy" className="text-decoration-none text-muted fw-medium">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link to="/terms" className="text-decoration-none text-muted fw-medium">
+              Terms of Service
+            </Link>
+            <span>•</span>
+            <a href="mailto:support@aiveexa.com" className="text-decoration-none text-muted">
+              support@aiveexa.com
+            </a>
+          </div>
         </div>
       </footer>
     </div>
