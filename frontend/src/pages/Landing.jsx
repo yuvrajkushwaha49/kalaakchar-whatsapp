@@ -344,7 +344,7 @@ export default function Landing() {
                 </div>
                 <h4 className="fw-bold text-dark mb-2">Excel & CSV Audience Manager</h4>
                 <p className="text-secondary mb-0">
-                  Easily upload 100,000+ contacts with custom parameters (`{{name}}`, `{{city}}`, `{{expiry_date}}`). Automatic phone number normalization and deduplication.
+                  Easily upload 100,000+ contacts with custom parameters (such as name, city, order ID). Automatic phone number normalization and deduplication.
                 </p>
               </div>
             </div>
@@ -754,3 +754,4 @@ export default function Landing() {
     </div>
   );
 }
+
