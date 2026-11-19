@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/templates.css';
 
 const LANGUAGES = [
@@ -29,6 +30,8 @@ function formatErrorString(err, fallback = 'An unexpected error occurred') {
 }
 
 export default function Templates() {
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const [templates, setTemplates] = useState([]);
@@ -905,12 +908,16 @@ export default function Templates() {
                             <i className="bi bi-fonts me-2 text-secondary"></i>Copy Template Name
                           </button>
                         </li>
-                        <li><hr className="dropdown-divider" /></li>
-                        <li>
-                          <button className="dropdown-item small text-danger" onClick={() => handleDeleteTemplate(tpl)}>
-                            <i className="bi bi-trash me-2"></i>Delete Template
-                          </button>
-                        </li>
+                        {canDelete && (
+                          <>
+                            <li><hr className="dropdown-divider" /></li>
+                            <li>
+                              <button className="dropdown-item small text-danger" onClick={() => handleDeleteTemplate(tpl)}>
+                                <i className="bi bi-trash me-2"></i>Delete Template
+                              </button>
+                            </li>
+                          </>
+                        )}
                       </ul>
                     </div>
                   </div>
@@ -1005,13 +1012,15 @@ export default function Templates() {
                           >
                             <i className="bi bi-arrow-clockwise"></i>
                           </button>
-                          <button
-                            onClick={() => handleDeleteTemplate(tpl)}
-                            className="btn btn-sm btn-outline-danger py-1 px-2"
-                            title="Delete Template"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteTemplate(tpl)}
+                              className="btn btn-sm btn-outline-danger py-1 px-2"
+                              title="Delete Template"
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1457,12 +1466,14 @@ export default function Templates() {
                           <span>{statusCheckLoading ? 'Checking...' : 'Check Live Status'}</span>
                         </button>
 
-                        <button
-                          onClick={() => handleDeleteTemplate(detailTemplate)}
-                          className="btn btn-outline-danger btn-sm shadow-xs"
-                        >
-                          <i className="bi bi-trash me-1"></i>Delete
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDeleteTemplate(detailTemplate)}
+                            className="btn btn-outline-danger btn-sm shadow-xs"
+                          >
+                            <i className="bi bi-trash me-1"></i>Delete
+                          </button>
+                        )}
                       </div>
                     </div>
 

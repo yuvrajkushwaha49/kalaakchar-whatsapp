@@ -2,11 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/templates.css';
 
 export default function TemplateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
 
@@ -383,12 +386,16 @@ export default function TemplateDetail() {
                       </button>
                     </li>
                   )}
-                  <li><hr className="dropdown-divider" /></li>
-                  <li>
-                    <button className="dropdown-item small text-danger" onClick={() => setShowDeleteModal(true)}>
-                      <i className="bi bi-trash me-2"></i>Delete Template
-                    </button>
-                  </li>
+                  {canDelete && (
+                    <>
+                      <li><hr className="dropdown-divider" /></li>
+                      <li>
+                        <button className="dropdown-item small text-danger" onClick={() => setShowDeleteModal(true)}>
+                          <i className="bi bi-trash me-2"></i>Delete Template
+                        </button>
+                      </li>
+                    </>
+                  )}
                 </ul>
               </div>
             </div>

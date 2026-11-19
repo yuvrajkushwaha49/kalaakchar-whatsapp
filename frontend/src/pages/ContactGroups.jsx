@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/dashboard.css';
 
 const PRESET_COLORS = [
@@ -16,6 +17,8 @@ const PRESET_COLORS = [
 ];
 
 export default function ContactGroups() {
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const [groups, setGroups] = useState([]);
@@ -376,14 +379,16 @@ export default function ContactGroups() {
                         >
                           <i className="bi bi-pencil"></i>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingGroup(group)}
-                          className="cg-btn-delete"
-                          title="Delete Group"
-                        >
-                          <i className="bi bi-trash3"></i>
-                        </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingGroup(group)}
+                            className="cg-btn-delete"
+                            title="Delete Group"
+                          >
+                            <i className="bi bi-trash3"></i>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

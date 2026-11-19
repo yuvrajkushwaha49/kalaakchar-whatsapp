@@ -7,7 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import '../styles/inbox.css';
 
 export default function Inbox() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const [searchParams] = useSearchParams();
   const targetContactId = searchParams.get('contactId');
   const targetPhone = searchParams.get('phone');
@@ -1704,14 +1705,16 @@ export default function Inbox() {
                   <i className="bi bi-envelope-badge"></i>
                   <span>Mark as Unread</span>
                 </button>
-                <button
-                  className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center gap-1"
-                  onClick={() => setShowDeleteModal(true)}
-                  title="Permanently delete this conversation"
-                >
-                  <i className="bi bi-trash3"></i>
-                  <span>Delete Conversation</span>
-                </button>
+                {canDelete && (
+                  <button
+                    className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center gap-1"
+                    onClick={() => setShowDeleteModal(true)}
+                    title="Permanently delete this conversation"
+                  >
+                    <i className="bi bi-trash3"></i>
+                    <span>Delete Conversation</span>
+                  </button>
+                )}
               </div>
             </div>
 

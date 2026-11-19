@@ -12,7 +12,7 @@ export default function WhatsAppAccounts() {
   const isSuper = isSuperAdmin ? isSuperAdmin() : (user?.role === 'superadmin');
   const isSuperAdminClientView = localStorage.getItem('cf_impersonating') === 'true' || Boolean(localStorage.getItem('cf_superadmin_token'));
   const canManageConnections = Boolean(isSuper || isSuperAdminClientView);
-  const canDisconnectOrDelete = Boolean(isSuper || ['owner', 'admin'].includes(user?.role));
+  const canDisconnectOrDelete = Boolean(isSuper || user?.role === 'owner');
 
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;

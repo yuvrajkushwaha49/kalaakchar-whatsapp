@@ -20,7 +20,7 @@ router.get('/conversations/:id', inboxController.getConversation);
 router.post('/conversations/:id/assign', requireRole(['owner', 'admin', 'team_lead', 'agent']), inboxController.assign);
 router.post('/conversations/:id/close', inboxController.closeConversation);
 router.post('/conversations/:id/reopen', inboxController.reopenConversation);
-router.delete('/conversations/:id', inboxController.deleteConversation);
+router.delete('/conversations/:id', requireRole(['owner', 'admin']), inboxController.deleteConversation);
 router.post('/conversations/:id/read', inboxController.markRead);
 router.post('/conversations/:id/unread', inboxController.markUnread);
 

@@ -20,7 +20,7 @@ export default function WhatsAppAccountDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isSuperAdmin } = useAuth();
-  const canManage = isSuperAdmin ? isSuperAdmin() : (user?.role === 'superadmin' || ['owner', 'admin'].includes(user?.role));
+  const canManage = isSuperAdmin ? isSuperAdmin() : (user?.role === 'superadmin' || user?.role === 'owner');
 
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Contacts() {
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const [contacts, setContacts] = useState([]);
@@ -577,14 +580,16 @@ export default function Contacts() {
                               {isOptedIn ? 'Opt-Out' : 'Opt-In'}
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(c.id)}
-                              className="cnt-btn-delete"
-                              title="Delete Contact"
-                            >
-                              <i className="bi bi-trash3"></i>
-                            </button>
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(c.id)}
+                                className="cnt-btn-delete"
+                                title="Delete Contact"
+                              >
+                                <i className="bi bi-trash3"></i>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -827,18 +832,20 @@ export default function Contacts() {
                               </button>
                             )}
 
-                            {/* Delete import button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteTargetJob(job);
-                                setAlsoDeleteContacts(false);
-                              }}
-                              className="btn btn-sm btn-outline-danger p-1 px-2"
-                              title="Delete Import Job & Rollback Contacts"
-                            >
-                              <i className="bi bi-trash3"></i>
-                            </button>
+                            {/* Delete import button (Only Owner / Super Admin) */}
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteTargetJob(job);
+                                  setAlsoDeleteContacts(false);
+                                }}
+                                className="btn btn-sm btn-outline-danger p-1 px-2"
+                                title="Delete Import Job & Rollback Contacts"
+                              >
+                                <i className="bi bi-trash3"></i>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

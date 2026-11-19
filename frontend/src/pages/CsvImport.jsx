@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/dashboard.css';
 
 const SAMPLE_CSV = `phone,name,email,consent
@@ -13,6 +14,8 @@ const SAMPLE_CSV = `phone,name,email,consent
 9877700011,Karan Johar,karan@test.com,yes`;
 
 export default function CsvImport() {
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const fileInputRef = useRef(null);
@@ -1174,17 +1177,19 @@ export default function CsvImport() {
                               <i className="bi bi-arrow-repeat"></i>
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDeleteTargetJob(job);
-                              setAlsoDeleteContacts(false);
-                            }}
-                            className="btn btn-sm btn-outline-danger p-1"
-                            title="Delete Import Job & Records"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeleteTargetJob(job);
+                                setAlsoDeleteContacts(false);
+                              }}
+                              className="btn btn-sm btn-outline-danger p-1"
+                              title="Delete Import Job & Records"
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

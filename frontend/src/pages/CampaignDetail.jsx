@@ -17,6 +17,7 @@ import api from '../services/api';
 import { initSocket } from '../services/socket';
 import AiwavoHeader from '../components/AiwavoHeader';
 import ResendCampaignModal from '../components/ResendCampaignModal';
+import { useAuth } from '../hooks/useAuth';
 import '../styles/campaigns.css';
 
 const PIE_COLORS = {
@@ -32,6 +33,8 @@ export default function CampaignDetail() {
   const navigate = useNavigate();
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -395,7 +398,7 @@ export default function CampaignDetail() {
               </button>
             )}
 
-            {['running', 'scheduled', 'draft'].includes(campaign?.status) && (
+            {canDelete && ['running', 'scheduled', 'draft'].includes(campaign?.status) && (
               <button
                 onClick={handleCancelCampaign}
                 disabled={actionLoading}

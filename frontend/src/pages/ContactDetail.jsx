@@ -14,6 +14,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 const PIE_COLORS = {
   Read: '#198754',      // WhatsApp Green
@@ -26,6 +27,8 @@ const PIE_COLORS = {
 export default function ContactDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
+  const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -308,15 +311,17 @@ export default function ContactDetail() {
             <span>{isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
           </button>
 
-          <button
-            onClick={handleDeleteContact}
-            disabled={actionLoading}
-            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-            title="Delete this contact"
-          >
-            <i className="bi bi-trash"></i>
-            <span>Delete</span>
-          </button>
+          {canDelete && (
+            <button
+              onClick={handleDeleteContact}
+              disabled={actionLoading}
+              className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+              title="Delete this contact"
+            >
+              <i className="bi bi-trash"></i>
+              <span>Delete</span>
+            </button>
+          )}
         </div>
       </div>
 
