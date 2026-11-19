@@ -1,0 +1,482 @@
+/* ==========================================================================
+   Aiveexa — Modern SaaS Landing Page & Legal Pages Stylesheet
+   Meta Developer-Inspired Clean White UI + Royal Blue (#0866FF) Theme
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   General & Layout Utilities
+   -------------------------------------------------------------------------- */
+.landing-root {
+  min-height: 100vh;
+  background-color: #FFFFFF;
+  color: #172033;
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.landing-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Sticky Glassmorphism Navbar
+   -------------------------------------------------------------------------- */
+.landing-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #E5EAF2;
+  transition: all 0.25s ease;
+}
+
+.landing-nav-link {
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.landing-nav-link:hover {
+  color: #0866FF;
+  background-color: #F0F6FF;
+}
+
+/* --------------------------------------------------------------------------
+   Hero Section
+   -------------------------------------------------------------------------- */
+.landing-hero {
+  position: relative;
+  padding: 4.5rem 0 3.5rem;
+  background: radial-gradient(circle at 50% 0%, rgba(8, 102, 255, 0.06) 0%, rgba(0, 200, 240, 0.03) 40%, transparent 70%);
+  overflow: hidden;
+}
+
+.hero-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: #FFFFFF;
+  border: 1px solid #D8E5F8;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0866FF;
+  box-shadow: 0 2px 8px rgba(8, 102, 255, 0.06);
+  margin-bottom: 1.5rem;
+}
+
+.hero-title {
+  font-size: 3.25rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0F172A;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.25rem;
+  }
+}
+
+.hero-gradient-text {
+  background: linear-gradient(135deg, #0866FF 0%, #00A3FF 50%, #8B00FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 760px;
+  margin: 0 auto 2rem;
+}
+
+/* Buttons */
+.btn-aiveexa-primary {
+  background-color: #0866FF;
+  border-color: #0866FF;
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(8, 102, 255, 0.28);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-aiveexa-primary:hover {
+  background-color: #0756D6;
+  border-color: #0756D6;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(8, 102, 255, 0.35);
+}
+
+.btn-aiveexa-outline {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #1E293B;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-aiveexa-outline:hover {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+/* --------------------------------------------------------------------------
+   Hero Visual Dashboard Mockup
+   -------------------------------------------------------------------------- */
+.dashboard-mockup-frame {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.12), 0 0 1px 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  position: relative;
+}
+
+.mockup-header-bar {
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mockup-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mockup-floating-badge {
+  position: absolute;
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 0.75rem 1.1rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid #E5EAF2;
+  z-index: 10;
+  animation: floatBounce 4s ease-in-out infinite;
+}
+
+@keyframes floatBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* --------------------------------------------------------------------------
+   Stats & Trust Metrics
+   -------------------------------------------------------------------------- */
+.stats-banner {
+  background: #F8FAFC;
+  border-top: 1px solid #E5EAF2;
+  border-bottom: 1px solid #E5EAF2;
+  padding: 3rem 0;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #0866FF;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Feature Cards
+   -------------------------------------------------------------------------- */
+.feature-card {
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(8, 102, 255, 0.08);
+  border-color: #BFDBFE;
+}
+
+.feature-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   How It Works Steps
+   -------------------------------------------------------------------------- */
+.step-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 2rem;
+  position: relative;
+  height: 100%;
+  transition: all 0.25s ease;
+}
+
+.step-card:hover {
+  background: #FFFFFF;
+  border-color: #0866FF;
+  box-shadow: 0 8px 24px rgba(8, 102, 255, 0.08);
+}
+
+.step-number-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #0866FF;
+  color: #FFFFFF;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Pricing Section
+   -------------------------------------------------------------------------- */
+.pricing-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  padding: 2.25rem;
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.pricing-card.featured {
+  border: 2px solid #0866FF;
+  box-shadow: 0 16px 40px rgba(8, 102, 255, 0.12);
+  transform: scale(1.02);
+}
+
+.pricing-popular-tag {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0866FF;
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 1rem;
+  border-radius: 9999px;
+  box-shadow: 0 4px 10px rgba(8, 102, 255, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   FAQ Accordions
+   -------------------------------------------------------------------------- */
+.landing-faq-item {
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.landing-faq-item:hover {
+  border-color: #CBD5E1;
+}
+
+.landing-faq-btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 1.25rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.landing-faq-content {
+  padding: 0 1.5rem 1.25rem;
+  color: #64748B;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   CTA Pre-Footer Banner
+   -------------------------------------------------------------------------- */
+.landing-cta-banner {
+  background: linear-gradient(135deg, #0866FF 0%, #0756D6 60%, #8B00FF 100%);
+  border-radius: 24px;
+  padding: 4rem 2rem;
+  color: #FFFFFF;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(8, 102, 255, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.landing-footer {
+  background: #0B1120;
+  color: #94A3B8;
+  padding: 4.5rem 0 2rem;
+  font-size: 0.92rem;
+}
+
+.landing-footer a {
+  color: #94A3B8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.landing-footer a:hover {
+  color: #FFFFFF;
+}
+
+.landing-footer-heading {
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------------------------------------
+   Legal Docs Layout (Privacy Policy & Terms of Service)
+   -------------------------------------------------------------------------- */
+.legal-page-wrapper {
+  background-color: #F8FAFC;
+  min-height: 100vh;
+}
+
+.legal-header-navbar {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.legal-sidebar-nav {
+  position: sticky;
+  top: 90px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.legal-nav-link {
+  display: block;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.88rem;
+  color: #475569;
+  text-decoration: none;
+  border-radius: 6px;
+  margin-bottom: 0.2rem;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.legal-nav-link:hover,
+.legal-nav-link.active {
+  background: #EDF4FF;
+  color: #0866FF;
+  font-weight: 600;
+}
+
+.legal-content-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  padding: 3rem;
+}
+
+@media (max-width: 768px) {
+  .legal-content-card {
+    padding: 1.5rem;
+  }
+}
+
+.legal-section {
+  margin-bottom: 2.75rem;
+  scroll-margin-top: 100px;
+}
+
+.legal-section-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.legal-callout-box {
+  background: #F1F7FF;
+  border-left: 4px solid #0866FF;
+  border-radius: 0 8px 8px 0;
+  padding: 1.15rem 1.4rem;
+  margin: 1.25rem 0;
+  font-size: 0.92rem;
+  color: #1E3A8A;
+}
+
+.legal-callout-warning {
+  background: #FEF3C7;
+  border-left: 4px solid #F59E0B;
+  border-radius: 0 8px 8px 0;
+  padding: 1.15rem 1.4rem;
+  margin: 1.25rem 0;
+  font-size: 0.92rem;
+  color: #92400E;
+}
