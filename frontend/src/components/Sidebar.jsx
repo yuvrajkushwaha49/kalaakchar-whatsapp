@@ -7,8 +7,12 @@ import iconImg from '../assets/icon.png';
 import logoImg from '../assets/logo.png';
 
 export default function Sidebar({ isOpen, onClose, onToggle }) {
-  const { isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const location = useLocation();
+
+  const userRole = user?.role || 'owner';
+  const isMarketer = userRole === 'marketer';
+  const isAgent = userRole === 'agent';
 
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
@@ -75,22 +79,34 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
 
   const menuItems = [
     { to: '/dashboard', icon: 'bi-house-door-fill', name: 'Dashboard', shortName: 'Dashboard' },
-    { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns' },
+    { to: '/campaigns', icon: 'bi-megaphone-fill', name: 'Campaigns', shortName: 'Campaigns', roles: ['owner', 'admin', 'marketer'] },
     {
       to: '/inbox',
       icon: 'bi-chat-left-dots-fill',
-      name: 'Message Queue',
+      name: 'Inbox',
       shortName: 'Queue',
       badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
     },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates' },
-    { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts' },
+    { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts', roles: ['owner', 'admin', 'marketer'] },
     { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
-    { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team' },
-    { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing' },
-    { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs' },
-    { to: '/settings', icon: 'bi-gear-fill', name: 'Settings', shortName: 'Settings' }
+    { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team', roles: ['owner', 'admin'] },
+    { to: '/billing', icon: 'bi-credit-card-fill', name: 'Billing & Plans', shortName: 'Billing', roles: ['owner', 'admin'] },
+    { to: '/activity-logs', icon: 'bi-clock-history', name: 'Activity Logs', shortName: 'Logs', roles: ['owner', 'admin'] },
+    { to: '/settings', icon: 'bi-gear-fill', name: 'Settings', shortName: 'Settings', roles: ['owner', 'admin'] }
   ];
+
+  // RBAC Menu Filtering
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (isSuperAdmin && isSuperAdmin()) return true;
+    if (!item.roles) {
+      if (isAgent) {
+        return ['/dashboard', '/inbox', '/templates', '/contacts'].includes(item.to);
+      }
+      return true;
+    }
+    return item.roles.includes(userRole);
+  });
 
   const handleLinkClick = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 992 && onClose) {
@@ -148,7 +164,7 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       <div className="sidebar-body">
         {/* Menu List */}
         <ul className="sidebar-menu">
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <li key={item.to} className="sidebar-item">
               <NavLink
                 to={item.to}
@@ -231,18 +247,32 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
                   <div className="sidebar-pro-progress-fill" style={{ width: progressWidth }}></div>
                 </div>
                 <div className="sidebar-pro-text">{currentMsgs.toLocaleString()} / {limitMsgs.toLocaleString()} Messages</div>
-                <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
-                  <span>Upgrade Plan</span>
-                  <i className="bi bi-arrow-right"></i>
-                </NavLink>
+                {!isMarketer && !isAgent ? (
+                  <NavLink to="/billing" className="sidebar-pro-btn" onClick={handleLinkClick}>
+                    <span>Upgrade Plan</span>
+                    <i className="bi bi-arrow-right"></i>
+                  </NavLink>
+                ) : (
+                  <div className="sidebar-pro-role-tag">
+                    <i className="bi bi-person-badge-fill me-1"></i>
+                    <span>{isMarketer ? 'Marketing Panel' : 'Support Agent'}</span>
+                  </div>
+                )}
               </div>
 
               {/* Mini View when Collapsed */}
               <div className="sidebar-pro-mini" title={`${planName} (${currentMsgs.toLocaleString()} / ${limitMsgs.toLocaleString()} Messages)`}>
-                <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
-                  <i className="bi bi-crown-fill sidebar-pro-crown"></i>
-                  <span className="sidebar-pro-mini-label">{planShort}</span>
-                </NavLink>
+                {!isMarketer && !isAgent ? (
+                  <NavLink to="/billing" className="sidebar-pro-mini-btn" onClick={handleLinkClick}>
+                    <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+                    <span className="sidebar-pro-mini-label">{planShort}</span>
+                  </NavLink>
+                ) : (
+                  <div className="sidebar-pro-mini-btn" style={{ cursor: 'default' }}>
+                    <i className="bi bi-crown-fill sidebar-pro-crown"></i>
+                    <span className="sidebar-pro-mini-label">{planShort}</span>
+                  </div>
+                )}
               </div>
             </div>
           );

@@ -31,7 +31,7 @@ router.post('/accounts/:id/test-message', requireRole(['owner', 'admin', 'market
 router.post('/send-test', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
 router.post('/templates/send-test', requireRole(['owner', 'admin', 'marketer']), whatsappController.sendTestMessage);
 router.delete('/accounts/:id/permanent', requireRole(['owner', 'admin']), whatsappController.deleteAccount);
-router.delete('/accounts/:id', requireRole(['owner', 'admin', 'marketer']), (req, res, next) => {
+router.delete('/accounts/:id', requireRole(['owner', 'admin']), (req, res, next) => {
   if (req.query.permanent === 'true') {
     return whatsappController.deleteAccount(req, res, next);
   }

@@ -19,7 +19,8 @@ import { useAuth } from '../hooks/useAuth';
 export default function WhatsAppAccountDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
+  const canManage = isSuperAdmin ? isSuperAdmin() : (user?.role === 'superadmin' || ['owner', 'admin'].includes(user?.role));
 
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -696,46 +697,48 @@ export default function WhatsAppAccountDetail() {
             </div>
           )}
 
-          {/* Danger Zone Card */}
-          <div className="card border-0 shadow-sm" style={{ borderRadius: '14px' }}>
-            <div className="card-header bg-white border-bottom py-3">
-              <h6 className="mb-0 fw-bold text-danger d-flex align-items-center gap-2">
-                <i className="bi bi-exclamation-octagon-fill"></i>
-                <span>Danger Zone</span>
-              </h6>
-            </div>
-            <div className="card-body p-4">
-              <div className="d-flex flex-column gap-3">
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="fw-semibold small">Disconnect Number</div>
-                    <div className="text-muted small">Temporarily pause message sending (can reconnect anytime).</div>
+          {/* Danger Zone Card (Only Owner / Admin) */}
+          {canManage && (
+            <div className="card border-0 shadow-sm" style={{ borderRadius: '14px' }}>
+              <div className="card-header bg-white border-bottom py-3">
+                <h6 className="mb-0 fw-bold text-danger d-flex align-items-center gap-2">
+                  <i className="bi bi-exclamation-octagon-fill"></i>
+                  <span>Danger Zone</span>
+                </h6>
+              </div>
+              <div className="card-body p-4">
+                <div className="d-flex flex-column gap-3">
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="fw-semibold small">Disconnect Number</div>
+                      <div className="text-muted small">Temporarily pause message sending (can reconnect anytime).</div>
+                    </div>
+                    <button
+                      className="btn btn-outline-warning btn-sm text-dark"
+                      onClick={() => setShowDisconnectModal(true)}
+                    >
+                      Disconnect
+                    </button>
                   </div>
-                  <button
-                    className="btn btn-outline-warning btn-sm text-dark"
-                    onClick={() => setShowDisconnectModal(true)}
-                  >
-                    Disconnect
-                  </button>
-                </div>
 
-                <hr className="my-1" />
+                  <hr className="my-1" />
 
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="fw-semibold small text-danger">Permanently Delete</div>
-                    <div className="text-muted small">Remove this number and credentials completely.</div>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="fw-semibold small text-danger">Permanently Delete</div>
+                      <div className="text-muted small">Remove this number and credentials completely.</div>
+                    </div>
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <button
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={() => setShowDeleteModal(true)}
-                  >
-                    Delete
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

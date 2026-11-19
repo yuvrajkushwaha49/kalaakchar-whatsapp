@@ -46,14 +46,14 @@ import WhatsAppOAuthCallback from './pages/WhatsAppOAuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 
-// Protected Route Guard
-function ProtectedRoute({ children, requireSuperAdmin = false }) {
+// Protected Route Guard with Role-Based Access Control (RBAC)
+function ProtectedRoute({ children, requireSuperAdmin = false, allowedRoles = null }) {
   const { user, loading, isSuperAdmin } = useAuth();
 
   if (loading) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center">
-        <div className="spinner-border text-success" role="status"></div>
+        <div className="spinner-border text-primary" role="status"></div>
       </div>
     );
   }
@@ -62,8 +62,17 @@ function ProtectedRoute({ children, requireSuperAdmin = false }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requireSuperAdmin && !isSuperAdmin()) {
+  const isSuper = isSuperAdmin ? isSuperAdmin() : (user.role === 'superadmin');
+
+  if (requireSuperAdmin && !isSuper) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Guard routes against non-permitted roles (e.g. Marketer / Agent accessing Billing or Team)
+  if (allowedRoles && Array.isArray(allowedRoles) && !isSuper) {
+    if (!allowedRoles.includes(user.role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -111,10 +120,38 @@ export default function App() {
         <Route path="/campaigns/:id" element={<CampaignDetail />} />
         <Route path="/campaigns/:id/report" element={<CampaignReport />} />
         <Route path="/ai-assistant" element={<AiAssistant />} />
-        <Route path="/team" element={<TeamManagement />} />
-        <Route path="/billing" element={<Billing />} />
-        <Route path="/activity-logs" element={<ActivityLogs />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin']}>
+              <TeamManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/billing"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin']}>
+              <Billing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/activity-logs"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin']}>
+              <ActivityLogs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'admin']}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
         {/* SuperAdmin Legacy Console inside client layout */}
         <Route

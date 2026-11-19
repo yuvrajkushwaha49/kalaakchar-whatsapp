@@ -1109,6 +1109,22 @@
   box-shadow: 0 4px 12px rgba(8, 102, 255, 0.3);
 }
 
+.sidebar-pro-role-tag {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  background: #EFF6FF;
+  color: #0866FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  user-select: none;
+}
+
 /* ================= Dashboard Skeleton Loading Effects ================= */
 .aiwavo-skeleton {
   background: linear-gradient(90deg,

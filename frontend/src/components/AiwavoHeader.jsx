@@ -345,29 +345,59 @@ export default function AiwavoHeader({
 
               {/* Dropdown Footer */}
               <div className="aiwavo-notif-footer">
-                <button
-                  type="button"
-                  className="aiwavo-notif-footer-link btn p-0 border-0"
-                  onClick={() => {
-                    setShowNotifications(false);
-                    navigate('/logs');
-                  }}
-                >
-                  <i className="bi bi-journal-text"></i>
-                  <span>View Activity Logs</span>
-                </button>
+                {user?.role && ['marketer', 'agent'].includes(user.role) ? (
+                  <>
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/campaigns');
+                      }}
+                    >
+                      <i className="bi bi-megaphone"></i>
+                      <span>View Campaigns</span>
+                    </button>
 
-                <button
-                  type="button"
-                  className="aiwavo-notif-footer-link secondary btn p-0 border-0"
-                  onClick={() => {
-                    setShowNotifications(false);
-                    navigate('/settings');
-                  }}
-                >
-                  <i className="bi bi-gear"></i>
-                  <span>Settings</span>
-                </button>
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link secondary btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/templates');
+                      }}
+                    >
+                      <i className="bi bi-chat-square-text"></i>
+                      <span>Templates</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/activity-logs');
+                      }}
+                    >
+                      <i className="bi bi-journal-text"></i>
+                      <span>View Activity Logs</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="aiwavo-notif-footer-link secondary btn p-0 border-0"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/settings');
+                      }}
+                    >
+                      <i className="bi bi-gear"></i>
+                      <span>Settings</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -380,6 +410,7 @@ export default function AiwavoHeader({
           title="Help & Documentation"
           onClick={() => {
             if (onHelpClick) onHelpClick();
+            else if (user?.role && ['marketer', 'agent'].includes(user.role)) navigate('/dashboard');
             else navigate('/settings');
           }}
           aria-label="Help"

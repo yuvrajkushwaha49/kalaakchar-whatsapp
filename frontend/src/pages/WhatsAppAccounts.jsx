@@ -12,6 +12,7 @@ export default function WhatsAppAccounts() {
   const isSuper = isSuperAdmin ? isSuperAdmin() : (user?.role === 'superadmin');
   const isSuperAdminClientView = localStorage.getItem('cf_impersonating') === 'true' || Boolean(localStorage.getItem('cf_superadmin_token'));
   const canManageConnections = Boolean(isSuper || isSuperAdminClientView);
+  const canDisconnectOrDelete = Boolean(isSuper || ['owner', 'admin'].includes(user?.role));
 
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
@@ -980,28 +981,30 @@ export default function WhatsAppAccounts() {
                       </Link>
                     </div>
 
-                    {/* Action Buttons: Row 2 (Disconnect & Delete) */}
-                    <div className="wa-actions-row-2">
-                      <button
-                        type="button"
-                        className="wa-btn-disconnect"
-                        onClick={() => setDisconnectModal(acc)}
-                        title="Disconnect WhatsApp Account"
-                      >
-                        <i className="bi bi-link-45deg"></i>
-                        <span>Disconnect</span>
-                      </button>
+                    {/* Action Buttons: Row 2 (Disconnect & Delete - Only Owner / Admin) */}
+                    {canDisconnectOrDelete && (
+                      <div className="wa-actions-row-2">
+                        <button
+                          type="button"
+                          className="wa-btn-disconnect"
+                          onClick={() => setDisconnectModal(acc)}
+                          title="Disconnect WhatsApp Account"
+                        >
+                          <i className="bi bi-link-45deg"></i>
+                          <span>Disconnect</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        className="wa-btn-delete"
-                        onClick={() => setDeleteModal(acc)}
-                        title="Permanently Delete account from database"
-                      >
-                        <i className="bi bi-trash3"></i>
-                        <span>Delete</span>
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          className="wa-btn-delete"
+                          onClick={() => setDeleteModal(acc)}
+                          title="Permanently Delete account from database"
+                        >
+                          <i className="bi bi-trash3"></i>
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
