@@ -1,12 +1,31 @@
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
 import { normalizePhone } from '../../utils/phone.js';
 
-export async function listContacts(businessId, { page = 1, limit = 20, search = '', tag = '', status = '', optedIn = '' }) {
+export async function listContacts(businessId, { page = 1, limit = 20, search = '', tag = '', status = '', optedIn = '' }, user = null) {
   const offset = (Number(page) - 1) * Number(limit);
 
   if (isUsingFallback()) {
     const store = getMemoryStore();
     let contacts = store.contacts.filter(c => c.business_id === Number(businessId));
+
+    // Role-based scoping: Agents only see assigned / allotted contacts
+    if (user?.role === 'agent') {
+      const agentConvCustomerPhones = new Set(
+        (store.whatsapp_conversations || [])
+          .filter(wc => wc.business_id === Number(businessId) && wc.assigned_user_id === user.id)
+          .map(wc => wc.customer_phone)
+      );
+      const agentConvContactIds = new Set(
+        (store.whatsapp_conversations || [])
+          .filter(wc => wc.business_id === Number(businessId) && wc.assigned_user_id === user.id && wc.contact_id)
+          .map(wc => wc.contact_id)
+      );
+      contacts = contacts.filter(c => 
+        c.assigned_user_id === user.id || 
+        agentConvContactIds.has(c.id) || 
+        agentConvCustomerPhones.has(c.phone)
+      );
+    }
 
     if (search) {
       const q = search.toLowerCase();
@@ -28,7 +47,24 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
       return { ...c, tags };
     });
 
-    const allTenant = store.contacts.filter(c => c.business_id === Number(businessId));
+    let allTenant = store.contacts.filter(c => c.business_id === Number(businessId));
+    if (user?.role === 'agent') {
+      const agentConvCustomerPhones = new Set(
+        (store.whatsapp_conversations || [])
+          .filter(wc => wc.business_id === Number(businessId) && wc.assigned_user_id === user.id)
+          .map(wc => wc.customer_phone)
+      );
+      const agentConvContactIds = new Set(
+        (store.whatsapp_conversations || [])
+          .filter(wc => wc.business_id === Number(businessId) && wc.assigned_user_id === user.id && wc.contact_id)
+          .map(wc => wc.contact_id)
+      );
+      allTenant = allTenant.filter(c => 
+        c.assigned_user_id === user.id || 
+        agentConvContactIds.has(c.id) || 
+        agentConvCustomerPhones.has(c.phone)
+      );
+    }
     const stats = {
       total: allTenant.length,
       optedIn: allTenant.filter(c => Boolean(c.is_opted_in)).length,
@@ -42,6 +78,18 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
   // Real MySQL execution with strict tenant scoping
   let whereClauses = ['c.business_id = ?'];
   let params = [businessId];
+
+  if (user?.role === 'agent') {
+    whereClauses.push(`(
+      c.assigned_user_id = ? OR EXISTS (
+        SELECT 1 FROM whatsapp_conversations wc 
+        WHERE wc.business_id = c.business_id 
+          AND (wc.contact_id = c.id OR wc.customer_phone = c.phone) 
+          AND wc.assigned_user_id = ?
+      )
+    )`);
+    params.push(user.id, user.id);
+  }
 
   if (search) {
     whereClauses.push('(c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)');
@@ -87,6 +135,20 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
 
   const contacts = await executeQuery(dataSql, params);
 
+  let statsWhere = 'business_id = ?';
+  const statsParams = [businessId];
+  if (user?.role === 'agent') {
+    statsWhere += ` AND (
+      assigned_user_id = ? OR EXISTS (
+        SELECT 1 FROM whatsapp_conversations wc 
+        WHERE wc.business_id = contacts.business_id 
+          AND (wc.contact_id = contacts.id OR wc.customer_phone = contacts.phone) 
+          AND wc.assigned_user_id = ?
+      )
+    )`;
+    statsParams.push(user.id, user.id);
+  }
+
   const statsRows = await executeQuery(`
     SELECT 
       COUNT(*) as total,
@@ -94,8 +156,8 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
       COUNT(CASE WHEN is_opted_in = 0 THEN 1 END) as unsubscribed,
       COUNT(CASE WHEN is_opted_in = 0 OR status != 'active' THEN 1 END) as suppressed
     FROM contacts
-    WHERE business_id = ?
-  `, [businessId]);
+    WHERE ${statsWhere}
+  `, statsParams);
   const stats = statsRows[0] ? {
     total: Number(statsRows[0].total || 0),
     optedIn: Number(statsRows[0].optedIn || 0),
@@ -118,7 +180,7 @@ export async function listContacts(businessId, { page = 1, limit = 20, search = 
   };
 }
 
-export async function createContact(businessId, { phone, name, email, countryCode = '91', tags = [], customFields = {}, consentProof = 'Manual creation by staff' }) {
+export async function createContact(businessId, { phone, name, email, countryCode = '91', tags = [], customFields = {}, consentProof = 'Manual creation by staff' }, user = null) {
   const norm = normalizePhone(phone, countryCode);
   if (!norm.isValid) {
     const error = new Error(`Invalid phone number format: ${norm.error}`);
@@ -137,6 +199,8 @@ export async function createContact(businessId, { phone, name, email, countryCod
     throw error;
   }
 
+  const assignedUserId = user?.role === 'agent' ? user.id : null;
+
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const newId = store.contacts.length + 1;
@@ -149,6 +213,7 @@ export async function createContact(businessId, { phone, name, email, countryCod
       email: email || null,
       is_opted_in: 1,
       status: 'active',
+      assigned_user_id: assignedUserId,
       custom_fields: customFields,
       created_at: new Date()
     };
@@ -170,9 +235,9 @@ export async function createContact(businessId, { phone, name, email, countryCod
   }
 
   const result = await executeQuery(
-    `INSERT INTO contacts (business_id, phone, country_code, name, email, is_opted_in, status, custom_fields)
-     VALUES (?, ?, ?, ?, ?, TRUE, 'active', ?)`,
-    [businessId, cleanPhone, countryCode, name || null, email || null, JSON.stringify(customFields)]
+    `INSERT INTO contacts (business_id, phone, country_code, name, email, is_opted_in, status, assigned_user_id, custom_fields)
+     VALUES (?, ?, ?, ?, ?, TRUE, 'active', ?, ?)`,
+    [businessId, cleanPhone, countryCode, name || null, email || null, assignedUserId, JSON.stringify(customFields)]
   );
   const contactId = result.insertId;
 
@@ -186,12 +251,26 @@ export async function createContact(businessId, { phone, name, email, countryCod
   return { id: contactId, phone: cleanPhone, name, email };
 }
 
-export async function updateConsent(businessId, contactId, { optedIn, reason = 'User request' }) {
-  const contacts = await executeQuery('SELECT id, phone, is_opted_in FROM contacts WHERE business_id = ? AND id = ? LIMIT 1', [businessId, contactId]);
+export async function updateConsent(businessId, contactId, { optedIn, reason = 'User request' }, user = null) {
+  const contacts = await executeQuery('SELECT id, phone, is_opted_in, assigned_user_id FROM contacts WHERE business_id = ? AND id = ? LIMIT 1', [businessId, contactId]);
   if (contacts.length === 0) {
     const error = new Error('Contact not found');
     error.statusCode = 404;
     throw error;
+  }
+
+  if (user?.role === 'agent') {
+    const cRow = contacts[0];
+    const isAssigned = cRow.assigned_user_id === user.id || (await executeQuery(
+      `SELECT 1 FROM whatsapp_conversations 
+       WHERE business_id = ? AND assigned_user_id = ? AND (contact_id = ? OR customer_phone = ?) LIMIT 1`,
+      [businessId, user.id, contactId, cRow.phone]
+    )).length > 0;
+    if (!isAssigned) {
+      const error = new Error('Access denied: You can only update contacts assigned to you.');
+      error.statusCode = 403;
+      throw error;
+    }
   }
 
   const newStatus = optedIn ? 'active' : 'unsubscribed';
@@ -199,6 +278,24 @@ export async function updateConsent(businessId, contactId, { optedIn, reason = '
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const contact = store.contacts.find(c => c.id === Number(contactId) && c.business_id === Number(businessId));
+    if (!contact) {
+      const error = new Error('Contact not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (user?.role === 'agent') {
+      const isAssigned = contact.assigned_user_id === user.id || 
+        (store.whatsapp_conversations || []).some(wc => 
+          wc.business_id === Number(businessId) && 
+          wc.assigned_user_id === user.id && 
+          (wc.contact_id === contact.id || wc.customer_phone === contact.phone)
+        );
+      if (!isAssigned) {
+        const error = new Error('Access denied: You can only update contacts assigned to you.');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
     if (contact) {
       contact.is_opted_in = optedIn ? 1 : 0;
       contact.status = newStatus;
@@ -241,7 +338,7 @@ export async function deleteContact(businessId, contactId) {
   return { success: true };
 }
 
-export async function getContactDetails(businessId, contactId) {
+export async function getContactDetails(businessId, contactId, user = null) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const contact = store.contacts?.find(c => c.id === Number(contactId) && c.business_id === Number(businessId));
@@ -249,6 +346,20 @@ export async function getContactDetails(businessId, contactId) {
       const error = new Error('Contact not found');
       error.statusCode = 404;
       throw error;
+    }
+
+    if (user?.role === 'agent') {
+      const isAssigned = contact.assigned_user_id === user.id || 
+        (store.whatsapp_conversations || []).some(wc => 
+          wc.business_id === Number(businessId) && 
+          wc.assigned_user_id === user.id && 
+          (wc.contact_id === contact.id || wc.customer_phone === contact.phone)
+        );
+      if (!isAssigned) {
+        const error = new Error('Access denied: You can only view contacts assigned to you.');
+        error.statusCode = 403;
+        throw error;
+      }
     }
     const contactTagIds = store.contact_tags?.filter(ct => ct.contact_id === contact.id).map(ct => ct.tag_id) || [];
     const tags = store.tags?.filter(t => contactTagIds.includes(t.id)) || [];
@@ -293,6 +404,21 @@ export async function getContactDetails(businessId, contactId) {
   }
 
   const rawContact = contacts[0];
+
+  if (user?.role === 'agent') {
+    const isAssigned = rawContact.assigned_user_id === user.id || (await executeQuery(
+      `SELECT 1 FROM whatsapp_conversations 
+       WHERE business_id = ? AND assigned_user_id = ? AND (contact_id = ? OR customer_phone = ?) LIMIT 1`,
+      [businessId, user.id, contactId, rawContact.phone]
+    )).length > 0;
+
+    if (!isAssigned) {
+      const error = new Error('Access denied: You can only view contacts assigned to you.');
+      error.statusCode = 403;
+      throw error;
+    }
+  }
+
   const tags = typeof rawContact.tags === 'string' ? JSON.parse(rawContact.tags) : (rawContact.tags || []);
 
   const consents = await executeQuery(
@@ -329,7 +455,7 @@ export async function getContactDetails(businessId, contactId) {
   };
 }
 
-export async function updateContact(businessId, contactId, { name, email, phone, status, tags = [], customFields = {} }) {
+export async function updateContact(businessId, contactId, { name, email, phone, status, tags = [], customFields = {} }, user = null) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
     const contact = store.contacts?.find(c => c.id === Number(contactId) && c.business_id === Number(businessId));
@@ -338,10 +464,42 @@ export async function updateContact(businessId, contactId, { name, email, phone,
       error.statusCode = 404;
       throw error;
     }
+    if (user?.role === 'agent') {
+      const isAssigned = contact.assigned_user_id === user.id || 
+        (store.whatsapp_conversations || []).some(wc => 
+          wc.business_id === Number(businessId) && 
+          wc.assigned_user_id === user.id && 
+          (wc.contact_id === contact.id || wc.customer_phone === contact.phone)
+        );
+      if (!isAssigned) {
+        const error = new Error('Access denied: You can only update contacts assigned to you.');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
     if (name !== undefined) contact.name = name;
     if (email !== undefined) contact.email = email;
     if (status !== undefined) contact.status = status;
     return contact;
+  }
+
+  if (user?.role === 'agent') {
+    const check = await executeQuery('SELECT id, phone, assigned_user_id FROM contacts WHERE business_id = ? AND id = ? LIMIT 1', [businessId, contactId]);
+    if (!check.length) {
+      const error = new Error('Contact not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    const isAssigned = check[0].assigned_user_id === user.id || (await executeQuery(
+      `SELECT 1 FROM whatsapp_conversations 
+       WHERE business_id = ? AND assigned_user_id = ? AND (contact_id = ? OR customer_phone = ?) LIMIT 1`,
+      [businessId, user.id, contactId, check[0].phone]
+    )).length > 0;
+    if (!isAssigned) {
+      const error = new Error('Access denied: You can only update contacts assigned to you.');
+      error.statusCode = 403;
+      throw error;
+    }
   }
 
   const updates = [];
@@ -388,7 +546,7 @@ export async function updateContact(businessId, contactId, { name, email, phone,
     }
   }
 
-  return getContactDetails(businessId, contactId);
+  return getContactDetails(businessId, contactId, user);
 }
 
 export async function listTags(businessId) {

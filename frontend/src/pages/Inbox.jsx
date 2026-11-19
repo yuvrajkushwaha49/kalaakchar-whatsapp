@@ -8,6 +8,7 @@ import '../styles/inbox.css';
 
 export default function Inbox() {
   const { user, isSuperAdmin } = useAuth();
+  const isAgent = user?.role === 'agent';
   const canDelete = Boolean((isSuperAdmin && isSuperAdmin()) || user?.role === 'superadmin' || user?.role === 'owner');
   const [searchParams] = useSearchParams();
   const targetContactId = searchParams.get('contactId');
@@ -1145,13 +1146,15 @@ export default function Inbox() {
               >
                 Mine ({stats?.assignedToMe ?? 0})
               </button>
-              <button
-                type="button"
-                className={`filter-chip ${filter === 'unassigned' ? 'active' : ''}`}
-                onClick={() => setFilter('unassigned')}
-              >
-                Unassigned ({stats?.unassigned ?? 0})
-              </button>
+              {!isAgent && (
+                <button
+                  type="button"
+                  className={`filter-chip ${filter === 'unassigned' ? 'active' : ''}`}
+                  onClick={() => setFilter('unassigned')}
+                >
+                  Unassigned ({stats?.unassigned ?? 0})
+                </button>
+              )}
             </div>
             <button type="button" className="inbox-filter-menu-btn" title="Filter options">
               <i className="bi bi-funnel"></i>
@@ -1728,6 +1731,7 @@ export default function Inbox() {
                 className="form-select form-select-sm"
                 value={selectedConversation.assigned_user_id || ''}
                 onChange={(e) => handleAssignAgent(e.target.value)}
+                disabled={isAgent}
               >
                 <option value="">Unassigned</option>
                 {teamMembers.map((m) => (

@@ -2,7 +2,7 @@ import * as contactsService from './contacts.service.js';
 
 export async function list(req, res, next) {
   try {
-    const result = await contactsService.listContacts(req.businessId, req.query);
+    const result = await contactsService.listContacts(req.businessId, req.query, req.user);
     res.json({ success: true, ...result });
   } catch (error) {
     next(error);
@@ -11,7 +11,7 @@ export async function list(req, res, next) {
 
 export async function details(req, res, next) {
   try {
-    const result = await contactsService.getContactDetails(req.businessId, req.params.id);
+    const result = await contactsService.getContactDetails(req.businessId, req.params.id, req.user);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -20,7 +20,7 @@ export async function details(req, res, next) {
 
 export async function update(req, res, next) {
   try {
-    const result = await contactsService.updateContact(req.businessId, req.params.id, req.body);
+    const result = await contactsService.updateContact(req.businessId, req.params.id, req.body, req.user);
     res.json({ success: true, message: 'Contact updated successfully', data: result });
   } catch (error) {
     next(error);
@@ -29,7 +29,7 @@ export async function update(req, res, next) {
 
 export async function create(req, res, next) {
   try {
-    const result = await contactsService.createContact(req.businessId, req.body);
+    const result = await contactsService.createContact(req.businessId, req.body, req.user);
     res.status(201).json({ success: true, message: 'Contact created successfully', data: result });
   } catch (error) {
     next(error);
@@ -38,7 +38,7 @@ export async function create(req, res, next) {
 
 export async function updateConsent(req, res, next) {
   try {
-    const result = await contactsService.updateConsent(req.businessId, req.params.id, req.body);
+    const result = await contactsService.updateConsent(req.businessId, req.params.id, req.body, req.user);
     res.json({ success: true, message: 'Consent updated successfully', data: result });
   } catch (error) {
     next(error);
@@ -47,6 +47,9 @@ export async function updateConsent(req, res, next) {
 
 export async function remove(req, res, next) {
   try {
+    if (req.user?.role === 'marketer' || req.user?.role === 'agent') {
+      return res.status(403).json({ success: false, message: 'Forbidden: only Owner and SuperAdmin can delete contacts' });
+    }
     await contactsService.deleteContact(req.businessId, req.params.id);
     res.json({ success: true, message: 'Contact deleted successfully' });
   } catch (error) {

@@ -33,8 +33,9 @@ export async function getConversation(req, res, next) {
   try {
     const businessId = req.businessId;
     const { id } = req.params;
+    const user = req.user;
 
-    const conversation = await inboxService.getConversation(businessId, id);
+    const conversation = await inboxService.getConversation(businessId, id, user);
     if (!conversation) {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
@@ -127,6 +128,9 @@ export async function sendMedia(req, res, next) {
 
 export async function assign(req, res, next) {
   try {
+    if (req.user?.role === 'agent') {
+      return res.status(403).json({ success: false, message: 'Agents are not authorized to reassign conversations' });
+    }
     const businessId = req.businessId;
     const user = req.user;
     const { id } = req.params;

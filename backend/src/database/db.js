@@ -280,7 +280,7 @@ async function initFallbackStore() {
   ];
 
   memoryStore.contacts = [
-    { id: 1, business_id: 1, phone: '+919811122233', country_code: '91', name: 'Ananya Gupta', email: 'ananya@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'gold' }, created_at: new Date() },
+    { id: 1, business_id: 1, phone: '+919811122233', country_code: '91', name: 'Ananya Gupta', email: 'ananya@example.com', is_opted_in: 1, status: 'active', assigned_user_id: 4, custom_fields: { tier: 'gold' }, created_at: new Date() },
     { id: 2, business_id: 1, phone: '+919822233344', country_code: '91', name: 'Vikram Malhotra', email: 'vikram@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'silver' }, created_at: new Date() },
     { id: 3, business_id: 1, phone: '+919833344455', country_code: '91', name: 'Sunita Rao', email: 'sunita@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'platinum' }, created_at: new Date() },
     { id: 4, business_id: 1, phone: '+919844455566', country_code: '91', name: 'Rohan Mehra', email: 'rohan@example.com', is_opted_in: 1, status: 'active', custom_fields: { tier: 'silver' }, created_at: new Date() },

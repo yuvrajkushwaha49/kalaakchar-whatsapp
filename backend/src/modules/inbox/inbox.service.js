@@ -74,9 +74,9 @@ export async function listConversations(businessId, user, options = {}) {
       conversations = conversations.filter(c => c.status !== 'closed');
     }
 
-    // Role-based visibility: Agent only sees assigned conversations unless admin/owner
-    if (user.role === 'agent' && filter !== 'assigned_to_me') {
-      conversations = conversations.filter(c => c.assigned_user_id === user.id || !c.assigned_user_id);
+    // Role-based visibility: Agent strictly only sees assigned conversations
+    if (user.role === 'agent') {
+      conversations = conversations.filter(c => c.assigned_user_id === user.id);
     }
 
     // Search by name or phone
@@ -194,8 +194,8 @@ export async function listConversations(businessId, user, options = {}) {
     query += ' AND c.status != "closed"';
   }
 
-  if (user.role === 'agent' && filter !== 'assigned_to_me') {
-    query += ' AND (c.assigned_user_id = ? OR c.assigned_user_id IS NULL)';
+  if (user.role === 'agent') {
+    query += ' AND c.assigned_user_id = ?';
     params.push(user.id);
   }
 
@@ -269,7 +269,7 @@ export async function listConversations(businessId, user, options = {}) {
 /**
  * 2. Get Single Conversation with details
  */
-export async function getConversation(businessId, conversationId) {
+export async function getConversation(businessId, conversationId, user = null) {
   const numBusinessId = Number(businessId);
   const numConvId = Number(conversationId);
   const now = new Date();
@@ -278,6 +278,7 @@ export async function getConversation(businessId, conversationId) {
     const store = getMemoryStore();
     const conv = store.whatsapp_conversations?.find(c => c.id === numConvId && c.business_id === numBusinessId);
     if (!conv) return null;
+    if (user?.role === 'agent' && conv.assigned_user_id !== user.id) return null;
 
     const contact = store.contacts?.find(ct => ct.id === conv.contact_id || (ct.phone && ct.phone === conv.customer_phone));
     const assignedUser = store.users?.find(u => u.id === conv.assigned_user_id);
@@ -333,6 +334,7 @@ export async function getConversation(businessId, conversationId) {
 
   if (!rows || rows.length === 0) return null;
   const r = rows[0];
+  if (user?.role === 'agent' && r.assigned_user_id !== user.id) return null;
 
   let parsedTags = [];
   try {
@@ -1367,6 +1369,9 @@ export async function getInboxStats(businessId, user, accountId = null) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
     let convs = (store.whatsapp_conversations || []).filter(c => c.business_id === numBusinessId);
+    if (user?.role === 'agent') {
+      convs = convs.filter(c => c.assigned_user_id === user.id);
+    }
     if (accountId && accountId !== 'all') {
       convs = convs.filter(c => String(c.whatsapp_account_id) === String(accountId));
     }
@@ -1410,6 +1415,11 @@ export async function getInboxStats(businessId, user, accountId = null) {
   if (accountId && accountId !== 'all') {
     statsQuery += ' AND whatsapp_account_id = ?';
     statsParams.push(Number(accountId));
+  }
+
+  if (user?.role === 'agent') {
+    statsQuery += ' AND assigned_user_id = ?';
+    statsParams.push(user.id);
   }
 
   const [stats] = await executeQuery(statsQuery, statsParams);
