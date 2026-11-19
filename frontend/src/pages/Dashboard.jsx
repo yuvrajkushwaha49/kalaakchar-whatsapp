@@ -309,6 +309,9 @@ export default function Dashboard() {
   // Recent Campaigns Table (from MySQL)
   const recentCampaigns = stats?.recentCampaigns || [];
 
+  // Recent Assigned Conversations (for Agents)
+  const recentConversations = stats?.recentConversations || [];
+
   // System Health (from MySQL & services)
   const systemHealth = stats?.systemHealth || {
     operational: true,
@@ -427,7 +430,7 @@ export default function Dashboard() {
                 <span className="aiwavo-kpi-value">{totalContacts.toLocaleString()}</span>
                 <span className="aiwavo-kpi-badge badge-green">↑ {contactsGrowth}</span>
               </div>
-              <span className="aiwavo-kpi-label">Total Contacts</span>
+              <span className="aiwavo-kpi-label">{isAgent ? 'Assigned Contacts' : 'Total Contacts'}</span>
             </div>
           </div>
 
@@ -441,34 +444,35 @@ export default function Dashboard() {
                 <span className="aiwavo-kpi-value">{messagesSent.toLocaleString()}</span>
                 <span className="aiwavo-kpi-badge badge-green">↑ {messagesSentGrowth}</span>
               </div>
-              <span className="aiwavo-kpi-label">Messages Sent</span>
+              <span className="aiwavo-kpi-label">{isAgent ? 'My Messages Sent' : 'Messages Sent'}</span>
             </div>
           </div>
 
-          {/* 3. Total Campaigns */}
+          {/* 3. Total Campaigns / Assigned Chats */}
           <div className="aiwavo-kpi-card">
-            <div className="aiwavo-kpi-icon kpi-icon-campaigns">
-              <i className="bi bi-stack"></i>
+            <div className={`aiwavo-kpi-icon ${isAgent ? 'kpi-icon-contacts' : 'kpi-icon-campaigns'}`}>
+              <i className={`bi ${isAgent ? 'bi-chat-left-dots-fill' : 'bi-stack'}`}></i>
             </div>
             <div className="aiwavo-kpi-info">
               <div className="aiwavo-kpi-top">
                 <span className="aiwavo-kpi-value">{totalCampaigns.toLocaleString()}</span>
-                <span className="aiwavo-kpi-badge badge-green">↑ {campaignsGrowth}</span>
+                <span className="aiwavo-kpi-badge badge-green">{isAgent ? campaignsGrowth : `↑ ${campaignsGrowth}`}</span>
               </div>
-              <span className="aiwavo-kpi-label">Total Campaigns</span>
+              <span className="aiwavo-kpi-label">{isAgent ? 'Assigned Chats' : 'Total Campaigns'}</span>
             </div>
           </div>
 
-          {/* 4. Active Automations */}
+          {/* 4. Active Automations / Resolved Chats */}
           <div className="aiwavo-kpi-card">
-            <div className="aiwavo-kpi-icon kpi-icon-automations">
-              <i className="bi bi-diagram-3-fill"></i>
+            <div className={`aiwavo-kpi-icon ${isAgent ? 'kpi-icon-messages' : 'kpi-icon-automations'}`}>
+              <i className={`bi ${isAgent ? 'bi-check-circle-fill' : 'bi-diagram-3-fill'}`}></i>
             </div>
             <div className="aiwavo-kpi-info">
               <div className="aiwavo-kpi-top">
                 <span className="aiwavo-kpi-value">{activeAutomations.toLocaleString()}</span>
+                {isAgent && <span className="aiwavo-kpi-badge badge-green">Closed</span>}
               </div>
-              <span className="aiwavo-kpi-label">Active Automations</span>
+              <span className="aiwavo-kpi-label">{isAgent ? 'Resolved Chats' : 'Active Automations'}</span>
             </div>
           </div>
 
@@ -480,7 +484,7 @@ export default function Dashboard() {
             <div className="aiwavo-kpi-info">
               <div className="aiwavo-kpi-top">
                 <span className="aiwavo-kpi-value">{failedMessages.toLocaleString()}</span>
-                <span className="aiwavo-kpi-badge badge-red">↑ {failedMessagesGrowth}</span>
+                <span className="aiwavo-kpi-badge badge-red">{isAgent ? `${failedMessages} Total` : `↑ ${failedMessagesGrowth}`}</span>
               </div>
               <span className="aiwavo-kpi-label">Failed Messages</span>
             </div>
@@ -495,9 +499,11 @@ export default function Dashboard() {
               <div className="d-flex align-items-center gap-2">
                 <h3 className="aiwavo-chart-title">
                   <i className="bi bi-bar-chart-fill aiwavo-chart-title-icon"></i>
-                  Campaigns Delivery Trend
+                  {isAgent ? 'Support Messages Trend' : 'Campaigns Delivery Trend'}
                 </h3>
-                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Campaigns</span>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">
+                  {isAgent ? 'Support' : 'Campaigns'}
+                </span>
               </div>
               <div className="aiwavo-legend-row">
                 <div>
@@ -589,8 +595,8 @@ export default function Dashboard() {
           <div className="aiwavo-chart-card">
             <div className="aiwavo-chart-header">
               <div className="d-flex align-items-center gap-2">
-                <h3 className="aiwavo-chart-title">Delivery Overview</h3>
-                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">Campaigns</span>
+                <h3 className="aiwavo-chart-title">{isAgent ? 'Support Delivery Overview' : 'Delivery Overview'}</h3>
+                <span className="aiwavo-chart-badge aiwavo-chart-badge-campaigns">{isAgent ? 'Inbox' : 'Campaigns'}</span>
               </div>
             </div>
             <div className="aiwavo-donut-container">
@@ -871,22 +877,24 @@ export default function Dashboard() {
 
         {/* ================= Row 4: 3 Section Cards ================= */}
         <div className="aiwavo-sections-row">
-          {/* Card 1: WhatsApp Accounts */}
+          {/* Card 1: WhatsApp Accounts / Channels */}
           <div className="aiwavo-section-card">
             <div className="aiwavo-section-header">
               <h3 className="aiwavo-section-title">
                 <i className="bi bi-whatsapp text-success"></i>
-                WhatsApp Accounts ({whatsappAccountsSummary})
+                {isAgent ? 'WhatsApp Channels' : `WhatsApp Accounts (${whatsappAccountsSummary})`}
               </h3>
-              <Link to="/whatsapp" className="aiwavo-section-link">
-                Manage <i className="bi bi-arrow-right"></i>
-              </Link>
+              {!isAgent && (
+                <Link to="/whatsapp" className="aiwavo-section-link">
+                  Manage <i className="bi bi-arrow-right"></i>
+                </Link>
+              )}
             </div>
             <div className="aiwavo-list-container">
               {whatsappAccountsList.length === 0 ? (
                 <div className="text-center py-4 text-muted">
                   <i className="bi bi-whatsapp fs-3 d-block mb-1 text-secondary opacity-50"></i>
-                  <span className="small">No WhatsApp accounts connected</span>
+                  <span className="small">No WhatsApp channels active</span>
                 </div>
               ) : (
                 whatsappAccountsList.map((acc, idx) => (
@@ -917,9 +925,6 @@ export default function Dashboard() {
                         ></span>
                         {acc.status}
                       </span>
-                      {/* <button type="button" className="aiwavo-more-btn" title="Options">
-                      <i className="bi bi-three-dots-vertical"></i>
-                    </button> */}
                     </div>
                   </div>
                 ))
@@ -927,198 +932,375 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Card 2: Automation Activity */}
+          {/* Card 2: Automation Activity (or Support Queue for Agent) */}
           <div className="aiwavo-section-card">
             <div className="aiwavo-section-header">
               <h3 className="aiwavo-section-title">
-                <i className="bi bi-diagram-3 text-success"></i>
-                Automation Activity
+                <i className={`bi ${isAgent ? 'bi-chat-left-dots-fill text-primary' : 'bi-diagram-3 text-success'}`}></i>
+                {isAgent ? 'My Support Queue' : 'Automation Activity'}
               </h3>
-              <Link to="/campaigns" className="aiwavo-section-link">
-                View All <i className="bi bi-arrow-right"></i>
+              <Link to={isAgent ? '/inbox' : '/campaigns'} className="aiwavo-section-link">
+                {isAgent ? 'Open Inbox' : 'View All'} <i className="bi bi-arrow-right"></i>
               </Link>
             </div>
-            <div className="aiwavo-list-container">
-              {automationsList.length === 0 ? (
-                <div className="text-center py-4 text-muted">
-                  <i className="bi bi-diagram-3 fs-3 d-block mb-1 text-secondary opacity-50"></i>
-                  <span className="small">No automations configured yet</span>
-                </div>
-              ) : (
-                automationsList.map((auto, idx) => (
-                  <div key={`auto-${auto.id || idx}`} className="aiwavo-list-item">
-                    <div className="aiwavo-list-left">
-                      <div
-                        className={`aiwavo-item-icon ${auto.icon === 'play' ? 'icon-play' : 'icon-pause'
-                          }`}
-                      >
-                        <i
-                          className={`bi ${auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
-                            }`}
-                        ></i>
-                      </div>
-                      <div className="aiwavo-item-info">
-                        <span className="aiwavo-item-name">{auto.name}</span>
-                      </div>
+            {isAgent ? (
+              <div className="aiwavo-list-container">
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/inbox')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-send">
+                      <i className="bi bi-chat-dots-fill"></i>
                     </div>
-                    <div className="aiwavo-list-right">
-                      <span
-                        className={`aiwavo-status-pill ${auto.status === 'Running' ? 'status-running' : 'status-paused'
-                          }`}
-                      >
-                        {auto.status}
-                      </span>
-                      {/* <button type="button" className="aiwavo-more-btn" title="Options">
-                        <i className="bi bi-three-dots-vertical"></i>
-                      </button> */}
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">Open Conversations</span>
+                      <span className="aiwavo-item-subtext">Active support chats assigned to you</span>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Card 3: Scheduled Campaigns */}
-          <div className="aiwavo-section-card">
-            <div className="aiwavo-section-header">
-              <h3 className="aiwavo-section-title">
-                <i className="bi bi-calendar-event text-success"></i>
-                Scheduled Campaigns
-              </h3>
-              <Link to="/campaigns" className="aiwavo-section-link">
-                View All <i className="bi bi-arrow-right"></i>
-              </Link>
-            </div>
-            <div className="aiwavo-list-container">
-              {scheduledCampaigns.length === 0 ? (
-                <div className="text-center py-4 text-muted">
-                  <i className="bi bi-calendar-x fs-3 d-block mb-1 text-secondary opacity-50"></i>
-                  <span className="small">No scheduled campaigns</span>
+                  <div className="aiwavo-list-right">
+                    <span className="badge bg-primary rounded-pill px-2 py-1">{stats?.kpi?.openChats ?? 0}</span>
+                  </div>
                 </div>
-              ) : (
-                scheduledCampaigns.map((camp, idx) => {
-                  const iconClass =
-                    camp.icon === 'gift'
-                      ? 'bi-gift-fill'
-                      : camp.icon === 'tag'
-                        ? 'bi-tag-fill'
-                        : 'bi-bell-fill';
-                  return (
-                    <div
-                      key={`sched-${camp.id || idx}`}
-                      className="aiwavo-list-item aiwavo-clickable-item"
-                      onClick={() => (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
-                      title={`View ${camp.name} details`}
-                    >
+
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/inbox?filter=unread')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-failed">
+                      <i className="bi bi-envelope-exclamation-fill"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">Unread Customer Inquiries</span>
+                      <span className="aiwavo-item-subtext">Customer messages waiting for response</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <span className="badge bg-danger rounded-pill px-2 py-1">{stats?.kpi?.unreadChats ?? 0}</span>
+                  </div>
+                </div>
+
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/inbox')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-whatsapp">
+                      <i className="bi bi-clock-history"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">24-Hour Windows Open</span>
+                      <span className="aiwavo-item-subtext">Direct 2-way live messaging permitted</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <span className="badge bg-success rounded-pill px-2 py-1">{stats?.kpi?.windowActiveChats ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="aiwavo-list-container">
+                {automationsList.length === 0 ? (
+                  <div className="text-center py-4 text-muted">
+                    <i className="bi bi-diagram-3 fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                    <span className="small">No automations configured yet</span>
+                  </div>
+                ) : (
+                  automationsList.map((auto, idx) => (
+                    <div key={`auto-${auto.id || idx}`} className="aiwavo-list-item">
                       <div className="aiwavo-list-left">
-                        <div className="aiwavo-item-icon icon-purple">
-                          <i className={`bi ${iconClass}`}></i>
+                        <div
+                          className={`aiwavo-item-icon ${auto.icon === 'play' ? 'icon-play' : 'icon-pause'
+                            }`}
+                        >
+                          <i
+                            className={`bi ${auto.icon === 'play' ? 'bi-play-fill' : 'bi-pause-fill'
+                              }`}
+                          ></i>
                         </div>
                         <div className="aiwavo-item-info">
-                          <span className="aiwavo-item-name">{camp.name}</span>
+                          <span className="aiwavo-item-name">{auto.name}</span>
                         </div>
                       </div>
                       <div className="aiwavo-list-right">
-                        <span className="aiwavo-item-subtext text-nowrap">
-                          <i className="bi bi-calendar3 me-1"></i>
-                          {camp.date}
+                        <span
+                          className={`aiwavo-status-pill ${auto.status === 'Running' ? 'status-running' : 'status-paused'
+                            }`}
+                        >
+                          {auto.status}
                         </span>
-                        <i className="bi bi-chevron-right text-muted ms-2 small aiwavo-arrow-hover"></i>
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Scheduled Campaigns (or Support Shortcuts for Agent) */}
+          <div className="aiwavo-section-card">
+            <div className="aiwavo-section-header">
+              <h3 className="aiwavo-section-title">
+                <i className={`bi ${isAgent ? 'bi-lightning-charge-fill text-warning' : 'bi-calendar-event text-success'}`}></i>
+                {isAgent ? 'Support Shortcuts' : 'Scheduled Campaigns'}
+              </h3>
+              <Link to={isAgent ? '/inbox' : '/campaigns'} className="aiwavo-section-link">
+                {isAgent ? 'View Inbox' : 'View All'} <i className="bi bi-arrow-right"></i>
+              </Link>
             </div>
+            {isAgent ? (
+              <div className="aiwavo-list-container">
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/inbox')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-send">
+                      <i className="bi bi-chat-text-fill"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">Reply to Assigned Chats</span>
+                      <span className="aiwavo-item-subtext">Live conversation with assigned customers</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <i className="bi bi-chevron-right text-muted small"></i>
+                  </div>
+                </div>
+
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/contacts')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-campaigns">
+                      <i className="bi bi-person-lines-fill"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">Manage Assigned Contacts</span>
+                      <span className="aiwavo-item-subtext">Review allotted customer profiles</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <i className="bi bi-chevron-right text-muted small"></i>
+                  </div>
+                </div>
+
+                <div className="aiwavo-list-item aiwavo-clickable-item" onClick={() => navigate('/inbox')} role="button" tabIndex={0}>
+                  <div className="aiwavo-list-left">
+                    <div className="aiwavo-item-icon icon-whatsapp">
+                      <i className="bi bi-check2-all"></i>
+                    </div>
+                    <div className="aiwavo-item-info">
+                      <span className="aiwavo-item-name">Mark Chats Resolved</span>
+                      <span className="aiwavo-item-subtext">Close inquiries once customer is satisfied</span>
+                    </div>
+                  </div>
+                  <div className="aiwavo-list-right">
+                    <i className="bi bi-chevron-right text-muted small"></i>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="aiwavo-list-container">
+                {scheduledCampaigns.length === 0 ? (
+                  <div className="text-center py-4 text-muted">
+                    <i className="bi bi-calendar-x fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                    <span className="small">No scheduled campaigns</span>
+                  </div>
+                ) : (
+                  scheduledCampaigns.map((camp, idx) => {
+                    const iconClass =
+                      camp.icon === 'gift'
+                        ? 'bi-gift-fill'
+                        : camp.icon === 'tag'
+                          ? 'bi-tag-fill'
+                          : 'bi-bell-fill';
+                    return (
+                      <div
+                        key={`sched-${camp.id || idx}`}
+                        className="aiwavo-list-item aiwavo-clickable-item"
+                        onClick={() => (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (camp.id ? navigate(`/campaigns/${camp.id}`) : navigate('/campaigns'))}
+                        title={`View ${camp.name} details`}
+                      >
+                        <div className="aiwavo-list-left">
+                          <div className="aiwavo-item-icon icon-purple">
+                            <i className={`bi ${iconClass}`}></i>
+                          </div>
+                          <div className="aiwavo-item-info">
+                            <span className="aiwavo-item-name">{camp.name}</span>
+                          </div>
+                        </div>
+                        <div className="aiwavo-list-right">
+                          <span className="aiwavo-item-subtext text-nowrap">
+                            <i className="bi bi-calendar3 me-1"></i>
+                            {camp.date}
+                          </span>
+                          <i className="bi bi-chevron-right text-muted ms-2 small aiwavo-arrow-hover"></i>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ================= Row 5: 2 Bottom Cards ================= */}
         <div className="aiwavo-bottom-row">
-          {/* Card 1: Recent Campaigns */}
+          {/* Card 1: Recent Table (Conversations for Agent / Campaigns for Admin/Marketer) */}
           <div className="aiwavo-section-card">
             <div className="aiwavo-section-header">
               <h3 className="aiwavo-section-title">
                 <i className={`bi ${isAgent ? 'bi-chat-left-dots-fill text-primary' : 'bi-megaphone-fill text-success'}`}></i>
-                {isAgent ? 'Recent Broadcast Activity' : 'Recent Campaigns'}
+                {isAgent ? 'My Recent Assigned Conversations' : 'Recent Campaigns'}
               </h3>
-              {!isAgent && (
-                <Link to="/campaigns" className="aiwavo-section-link">
-                  View All <i className="bi bi-arrow-right"></i>
-                </Link>
-              )}
+              <Link to={isAgent ? '/inbox' : '/campaigns'} className="aiwavo-section-link">
+                {isAgent ? 'Open Inbox' : 'View All'} <i className="bi bi-arrow-right"></i>
+              </Link>
             </div>
             <div className="table-responsive">
-              <table className="aiwavo-campaigns-table">
-                <thead>
-                  <tr>
-                    <th>Campaign Name</th>
-                    <th>Status</th>
-                    <th>Sent</th>
-                    <th>Delivered</th>
-                    <th>Delivery Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentCampaigns.length === 0 ? (
+              {isAgent ? (
+                <table className="aiwavo-campaigns-table">
+                  <thead>
                     <tr>
-                      <td colSpan="5" className="text-center py-4 text-muted">
-                        No recent campaigns found
-                      </td>
+                      <th>Customer Contact</th>
+                      <th>WhatsApp Channel</th>
+                      <th>Last Message</th>
+                      <th>Status</th>
+                      <th>24h Window</th>
+                      <th>Action</th>
                     </tr>
-                  ) : (
-                    recentCampaigns.map((c, idx) => {
-                      const rateVal = Math.min(Number(c.deliveryRate || 0), 100);
-                      const isCompleted = c.status === 'Completed';
-                      return (
+                  </thead>
+                  <tbody>
+                    {recentConversations.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center py-4 text-muted">
+                          No assigned conversations yet. Open Inbox to start chatting.
+                        </td>
+                      </tr>
+                    ) : (
+                      recentConversations.map((c, idx) => (
                         <tr
-                          key={`camp-row-${c.id || idx}`}
-                          className={!isAgent ? 'aiwavo-clickable-row' : ''}
-                          onClick={() => (!isAgent ? (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns')) : null)}
-                          role={!isAgent ? 'button' : undefined}
-                          tabIndex={!isAgent ? 0 : undefined}
-                          style={isAgent ? { cursor: 'default' } : undefined}
-                          onKeyDown={(e) => (!isAgent && (e.key === 'Enter' || e.key === ' ')) && (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
-                          title={!isAgent ? `View ${c.name} details` : undefined}
+                          key={`conv-row-${c.id || idx}`}
+                          className="aiwavo-clickable-row"
+                          onClick={() => navigate('/inbox')}
+                          role="button"
+                          tabIndex={0}
+                          title={`Chat with ${c.name}`}
                         >
                           <td className="aiwavo-campaign-name-cell">
-                            <div className="d-flex align-items-center justify-content-between">
-                              <span className={!isAgent ? 'aiwavo-campaign-name-link' : 'fw-medium text-dark'}>{c.name}</span>
-                              {!isAgent && (
-                                <i className="bi bi-box-arrow-up-right small text-muted opacity-50 ms-2 aiwavo-row-icon"></i>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            <span
-                              className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'
-                                }`}
-                            >
-                              {c.status}
-                            </span>
-                          </td>
-                          <td>{c.sent.toLocaleString()}</td>
-                          <td>{c.delivered.toLocaleString()}</td>
-                          <td>
-                            <div className="aiwavo-rate-cell">
-                              <span className="aiwavo-rate-val">{rateVal}%</span>
-                              <div className="aiwavo-rate-bar-bg">
-                                <div
-                                  className="aiwavo-rate-bar-fill"
-                                  style={{ width: `${rateVal}%` }}
-                                ></div>
+                            <div className="d-flex align-items-center gap-2">
+                              <div
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '50%',
+                                  background: '#eff6ff',
+                                  color: '#0866FF',
+                                  fontWeight: '600',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '11px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                {(c.name || 'C')[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="fw-semibold text-dark small">{c.name}</div>
+                                <div className="text-muted" style={{ fontSize: '11px' }}>{c.phone}</div>
                               </div>
                             </div>
                           </td>
+                          <td className="small text-muted">{c.accountName}</td>
+                          <td className="small text-truncate" style={{ maxWidth: '180px' }}>
+                            {c.lastMessage}
+                          </td>
+                          <td>
+                            <span className={`aiwavo-status-pill ${c.status === 'Open' ? 'status-connected' : 'status-disconnected'}`}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`badge ${c.isWindowOpen ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary'}`}
+                              style={{ fontSize: '11px', fontWeight: '500' }}
+                            >
+                              <i className={`bi ${c.isWindowOpen ? 'bi-clock-fill me-1' : 'bi-lock-fill me-1'}`}></i>
+                              {c.isWindowOpen ? 'Window Open' : 'Closed'}
+                            </span>
+                          </td>
+                          <td>
+                            <Link to="/inbox" className="btn btn-sm btn-outline-primary py-0 px-2" style={{ fontSize: '11px' }}>
+                              Chat <i className="bi bi-arrow-right"></i>
+                            </Link>
+                          </td>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="aiwavo-campaigns-table">
+                  <thead>
+                    <tr>
+                      <th>Campaign Name</th>
+                      <th>Status</th>
+                      <th>Sent</th>
+                      <th>Delivered</th>
+                      <th>Delivery Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentCampaigns.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center py-4 text-muted">
+                          No recent campaigns found
+                        </td>
+                      </tr>
+                    ) : (
+                      recentCampaigns.map((c, idx) => {
+                        const rateVal = Math.min(Number(c.deliveryRate || 0), 100);
+                        const isCompleted = c.status === 'Completed';
+                        return (
+                          <tr
+                            key={`camp-row-${c.id || idx}`}
+                            className={!isAgent ? 'aiwavo-clickable-row' : ''}
+                            onClick={() => (!isAgent ? (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns')) : null)}
+                            role={!isAgent ? 'button' : undefined}
+                            tabIndex={!isAgent ? 0 : undefined}
+                            style={isAgent ? { cursor: 'default' } : undefined}
+                            onKeyDown={(e) => (!isAgent && (e.key === 'Enter' || e.key === ' ')) && (c.id ? navigate(`/campaigns/${c.id}`) : navigate('/campaigns'))}
+                            title={!isAgent ? `View ${c.name} details` : undefined}
+                          >
+                            <td className="aiwavo-campaign-name-cell">
+                              <div className="d-flex align-items-center justify-content-between">
+                                <span className={!isAgent ? 'aiwavo-campaign-name-link' : 'fw-medium text-dark'}>{c.name}</span>
+                                {!isAgent && (
+                                  <i className="bi bi-box-arrow-up-right small text-muted opacity-50 ms-2 aiwavo-row-icon"></i>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <span
+                                className={`aiwavo-status-pill ${isCompleted ? 'status-connected' : 'status-running'
+                                  }`}
+                              >
+                                {c.status}
+                              </span>
+                            </td>
+                            <td>{c.sent.toLocaleString()}</td>
+                            <td>{c.delivered.toLocaleString()}</td>
+                            <td>
+                              <div className="aiwavo-rate-cell">
+                                <span className="aiwavo-rate-val">{rateVal}%</span>
+                                <div className="aiwavo-rate-bar-bg">
+                                  <div
+                                    className="aiwavo-rate-bar-fill"
+                                    style={{ width: `${rateVal}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 

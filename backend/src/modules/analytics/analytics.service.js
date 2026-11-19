@@ -1,7 +1,12 @@
 import { executeQuery, isUsingFallback, getMemoryStore } from '../../database/db.js';
 
-export async function getDashboardStats(businessId, timeRange = 'Last 7 Days') {
+export async function getDashboardStats(businessId, timeRange = 'Last 7 Days', user = null) {
   const normalizedRange = String(timeRange || 'Last 7 Days').trim();
+
+  // If the requesting user is an Agent, strictly return their personal allotted data
+  if (user?.role === 'agent') {
+    return await getAgentDashboardStats(businessId, normalizedRange, user);
+  }
 
   // Construct SQL date conditions according to selected timeRange
   let dateFilter = '';
@@ -530,6 +535,536 @@ export async function getDashboardStats(businessId, timeRange = 'Last 7 Days') {
     scheduledCampaigns: scheduledCampaignsList,
     recentCampaigns: recentCampaignsList,
     systemHealth
+  };
+}
+
+/**
+ * Strictly scoped dashboard metrics for Support Agents
+ */
+export async function getAgentDashboardStats(businessId, normalizedRange, user) {
+  const numBusinessId = Number(businessId);
+  const agentId = Number(user.id);
+  const now = new Date();
+
+  // Date filtering logic
+  let msgDateFilter = '';
+  let contactDateFilter = '';
+  let cutoffDate = null;
+
+  if (normalizedRange === 'Today') {
+    msgDateFilter = 'AND DATE(m.created_at) = CURDATE()';
+    contactDateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (normalizedRange === 'Last 7 Days') {
+    msgDateFilter = 'AND m.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+    contactDateFilter = 'AND c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+    cutoffDate = new Date(now.getTime() - 7 * 24 * 3600000);
+  } else if (normalizedRange === 'Last 30 Days') {
+    msgDateFilter = 'AND m.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+    contactDateFilter = 'AND c.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+    cutoffDate = new Date(now.getTime() - 30 * 24 * 3600000);
+  } else if (normalizedRange === 'This Month') {
+    msgDateFilter = "AND m.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00')";
+    contactDateFilter = "AND c.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00')";
+    cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  // Trend Map builder
+  const trendMap = {};
+  const dateLabels = [];
+  const totalDays = normalizedRange === 'Today' ? 1 : (normalizedRange === 'Last 7 Days' ? 7 : (normalizedRange === 'This Month' ? now.getDate() : 30));
+  const step = normalizedRange === 'Last 30 Days' ? 3 : 1;
+
+  for (let i = totalDays; i >= 0; i -= step) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+    trendMap[key] = { date: label, sent: 0, delivered: 0, failed: 0, received: 0 };
+    dateLabels.push(key);
+  }
+
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+
+    // 1. All conversations assigned to this agent
+    const agentConvs = (store.whatsapp_conversations || []).filter(c =>
+      c.business_id === numBusinessId && c.assigned_user_id === agentId
+    );
+    const agentConvIds = new Set(agentConvs.map(c => c.id));
+    const agentConvCustomerPhones = new Set(agentConvs.map(c => c.customer_phone).filter(Boolean));
+    const agentConvContactIds = new Set(agentConvs.map(c => c.contact_id).filter(Boolean));
+
+    // 2. All contacts allotted to this agent
+    const agentContacts = (store.contacts || []).filter(c =>
+      c.business_id === numBusinessId && (
+        c.assigned_user_id === agentId ||
+        agentConvContactIds.has(c.id) ||
+        agentConvCustomerPhones.has(c.phone)
+      )
+    );
+    const totalContacts = agentContacts.length;
+    const periodContacts = cutoffDate
+      ? agentContacts.filter(c => new Date(c.created_at || c.updated_at) >= cutoffDate).length
+      : totalContacts;
+
+    // 3. Conversations breakdown
+    const totalConvs = agentConvs.length;
+    const openConvs = agentConvs.filter(c => c.status !== 'closed').length;
+    const closedConvs = agentConvs.filter(c => c.status === 'closed').length;
+    const unreadConvs = agentConvs.filter(c => (c.unread_count || 0) > 0 && c.status !== 'closed').length;
+    const windowActive = agentConvs.filter(c => c.service_window_expires_at && now < new Date(c.service_window_expires_at)).length;
+
+    // 4. Outbound & Inbound messages for this agent
+    const allMessages = store.whatsapp_messages || [];
+    const agentOutbound = allMessages.filter(m =>
+      m.business_id === numBusinessId && (
+        m.sender_user_id === agentId || (agentConvIds.has(m.conversation_id) && m.direction === 'OUTBOUND')
+      ) && (!cutoffDate || new Date(m.created_at) >= cutoffDate)
+    );
+    const agentInbound = allMessages.filter(m =>
+      m.business_id === numBusinessId && agentConvIds.has(m.conversation_id) && m.direction === 'INBOUND' &&
+      (!cutoffDate || new Date(m.created_at) >= cutoffDate)
+    );
+
+    const totalSent = agentOutbound.length;
+    const totalDelivered = agentOutbound.filter(m => m.message_status === 'delivered' || m.message_status === 'read').length;
+    const totalFailed = agentOutbound.filter(m => m.message_status === 'failed').length;
+    const inTransit = Math.max(0, totalSent - totalDelivered - totalFailed);
+
+    // 5. Populate Trend Map
+    for (const m of agentOutbound) {
+      const dStr = new Date(m.created_at).toISOString().split('T')[0];
+      if (trendMap[dStr]) {
+        trendMap[dStr].sent += 1;
+        if (m.message_status === 'delivered' || m.message_status === 'read') {
+          trendMap[dStr].delivered += 1;
+        } else if (m.message_status === 'failed') {
+          trendMap[dStr].failed += 1;
+        }
+      }
+    }
+    for (const m of agentInbound) {
+      const dStr = new Date(m.created_at).toISOString().split('T')[0];
+      if (trendMap[dStr]) {
+        trendMap[dStr].received += 1;
+      }
+    }
+    dateLabels.sort();
+    const deliveryTrend = dateLabels.map(k => trendMap[k]);
+
+    // 6. Delivery Overview percentages
+    const delPct = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+    const failPct = totalSent > 0 ? Math.round((totalFailed / totalSent) * 100) : 0;
+    const sentPct = totalSent > 0 ? Math.max(0, 100 - delPct - failPct) : 0;
+
+    const deliveryOverview = {
+      total: totalSent,
+      breakdown: [
+        { name: 'Delivered', pct: delPct, count: totalDelivered, color: '#10b981' },
+        { name: 'Sent', pct: sentPct, count: inTransit, color: '#3b82f6' },
+        { name: 'Failed', pct: failPct, count: totalFailed, color: '#ef4444' }
+      ]
+    };
+
+    const combTotal = totalSent + agentInbound.length;
+    const combDelPct = combTotal > 0 ? Math.round((totalDelivered / combTotal) * 100) : 0;
+    const combRecPct = combTotal > 0 ? Math.round((agentInbound.length / combTotal) * 100) : 0;
+    const combFailPct = combTotal > 0 ? Math.round((totalFailed / combTotal) * 100) : 0;
+    const combSentPct = combTotal > 0 ? Math.max(0, 100 - combDelPct - combRecPct - combFailPct) : 0;
+
+    const allMessagesOverview = {
+      total: combTotal,
+      breakdown: [
+        { name: 'Delivered', pct: combDelPct, count: totalDelivered, color: '#10b981' },
+        { name: 'Sent', pct: combSentPct, count: inTransit, color: '#3b82f6' },
+        { name: 'Received', pct: combRecPct, count: agentInbound.length, color: '#8b5cf6' },
+        { name: 'Failed', pct: combFailPct, count: totalFailed, color: '#ef4444' }
+      ]
+    };
+
+    // 7. Contact Growth
+    const monthlyGrowth = [];
+    for (let m = 3; m >= 0; m--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - m + 1, 0);
+      const name = d.toLocaleDateString('en-US', { month: 'short' });
+      const count = agentContacts.filter(c => new Date(c.created_at || c.updated_at) <= d).length;
+      monthlyGrowth.push({ month: name, contacts: count });
+    }
+
+    // 8. Recent Conversations assigned to agent
+    const recentConvs = [...agentConvs]
+      .sort((a, b) => new Date(b.last_message_at || b.updated_at) - new Date(a.last_message_at || a.updated_at))
+      .slice(0, 5)
+      .map(c => {
+        const ct = (store.contacts || []).find(x => x.id === c.contact_id || x.phone === c.customer_phone);
+        const wa = (store.whatsapp_accounts || []).find(a => a.id === c.whatsapp_account_id);
+        const isWinOpen = c.service_window_expires_at ? now < new Date(c.service_window_expires_at) : false;
+        return {
+          id: c.id,
+          contactId: ct?.id || c.contact_id,
+          name: ct?.name || `${ct?.first_name || ''} ${ct?.last_name || ''}`.trim() || c.customer_phone,
+          phone: c.customer_phone,
+          lastMessage: c.last_message_text || 'Conversation active',
+          status: c.status === 'closed' ? 'Closed' : 'Open',
+          unreadCount: c.unread_count || 0,
+          accountName: wa?.display_name || wa?.verified_name || wa?.phone_number || 'WhatsApp Channel',
+          isWindowOpen: isWinOpen
+        };
+      });
+
+    // 9. Active WhatsApp Accounts for Agent
+    const assignedAccIds = new Set(agentConvs.map(c => c.whatsapp_account_id).filter(Boolean));
+    const agentAccounts = (store.whatsapp_accounts || [])
+      .filter(a => a.business_id === numBusinessId && (assignedAccIds.size === 0 || assignedAccIds.has(a.id)))
+      .map(a => ({
+        id: a.id,
+        name: a.display_name || a.account_name || 'WhatsApp Account',
+        phone: a.phone_number || a.phone_number_id || '',
+        status: (a.status === 'connected' || a.connection_status === 'CONNECTED') ? 'Connected' : 'Disconnected',
+        isPrimary: Boolean(a.is_primary)
+      }));
+
+    return {
+      timeRange: normalizedRange,
+      isAgent: true,
+      kpi: {
+        totalContacts,
+        contactsGrowth: periodContacts > 0 ? `+${periodContacts}` : '+0',
+        messagesSent: totalSent,
+        messagesSentGrowth: totalSent > 0 ? `+${totalSent}` : '+0',
+        totalCampaigns: totalConvs,
+        campaignsGrowth: openConvs > 0 ? `${openConvs} Open` : '0 Open',
+        activeAutomations: closedConvs,
+        failedMessages: totalFailed,
+        failedMessagesGrowth: totalFailed > 0 ? `${totalFailed}` : '+0',
+        openChats: openConvs,
+        closedChats: closedConvs,
+        unreadChats: unreadConvs,
+        windowActiveChats: windowActive
+      },
+      deliveryTrend,
+      allMessagesTrend: deliveryTrend,
+      deliveryOverview,
+      allMessagesOverview,
+      contactGrowth: monthlyGrowth,
+      whatsappAccounts: {
+        summary: `${agentAccounts.length} Channels`,
+        list: agentAccounts
+      },
+      automations: [],
+      scheduledCampaigns: [],
+      recentCampaigns: [],
+      recentConversations: recentConvs,
+      systemHealth: {
+        operational: true,
+        whatsapp: agentAccounts.length > 0 ? 'Connected' : 'Disconnected',
+        automation: 'Idle',
+        system: 'All Good'
+      }
+    };
+  }
+
+  // Real MySQL Execution for Agent
+  let totalContacts = 0;
+  let periodContacts = 0;
+  try {
+    const contactRows = await executeQuery(
+      `SELECT COUNT(*) as totalContacts FROM contacts c
+       WHERE c.business_id = ? AND (
+         c.assigned_user_id = ? OR EXISTS (
+           SELECT 1 FROM whatsapp_conversations wc 
+           WHERE wc.business_id = c.business_id 
+             AND (wc.contact_id = c.id OR wc.customer_phone = c.phone) 
+             AND wc.assigned_user_id = ?
+         )
+       )`,
+      [numBusinessId, agentId, agentId]
+    );
+    totalContacts = Number(contactRows?.[0]?.totalContacts || 0);
+
+    const contactAggRows = await executeQuery(
+      `SELECT COUNT(*) as periodContacts FROM contacts c
+       WHERE c.business_id = ? AND (
+         c.assigned_user_id = ? OR EXISTS (
+           SELECT 1 FROM whatsapp_conversations wc 
+           WHERE wc.business_id = c.business_id 
+             AND (wc.contact_id = c.id OR wc.customer_phone = c.phone) 
+             AND wc.assigned_user_id = ?
+         )
+       ) ${contactDateFilter}`,
+      [numBusinessId, agentId, agentId]
+    );
+    periodContacts = Number(contactAggRows?.[0]?.periodContacts || 0);
+  } catch (e) {
+    console.error('Agent contacts aggregation error:', e);
+  }
+
+  // 2. Agent's assigned conversations counts
+  let totalConvs = 0;
+  let openConvs = 0;
+  let closedConvs = 0;
+  let unreadConvs = 0;
+  let windowActive = 0;
+  try {
+    const convStatsRows = await executeQuery(
+      `SELECT 
+         COUNT(*) as totalConvs,
+         COALESCE(SUM(CASE WHEN status != 'closed' THEN 1 ELSE 0 END), 0) as openConvs,
+         COALESCE(SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END), 0) as closedConvs,
+         COALESCE(SUM(CASE WHEN unread_count > 0 AND status != 'closed' THEN 1 ELSE 0 END), 0) as unreadConvs,
+         COALESCE(SUM(CASE WHEN service_window_expires_at > NOW() THEN 1 ELSE 0 END), 0) as windowActive
+       FROM whatsapp_conversations
+       WHERE business_id = ? AND assigned_user_id = ?`,
+      [numBusinessId, agentId]
+    );
+    const cs = convStatsRows?.[0] || {};
+    totalConvs = Number(cs.totalConvs || 0);
+    openConvs = Number(cs.openConvs || 0);
+    closedConvs = Number(cs.closedConvs || 0);
+    unreadConvs = Number(cs.unreadConvs || 0);
+    windowActive = Number(cs.windowActive || 0);
+  } catch (e) {
+    console.error('Agent conversation stats error:', e);
+  }
+
+  // 3. Agent's outbound & inbound messages count
+  let totalSent = 0;
+  let totalDelivered = 0;
+  let totalFailed = 0;
+  let totalReceived = 0;
+  try {
+    const msgStatsRows = await executeQuery(
+      `SELECT 
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' THEN 1 END) as totalSent,
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' AND m.message_status IN ('delivered', 'read') THEN 1 END) as totalDelivered,
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' AND m.message_status = 'failed' THEN 1 END) as totalFailed,
+         COUNT(CASE WHEN m.direction = 'INBOUND' THEN 1 END) as totalReceived
+       FROM whatsapp_messages m
+       JOIN whatsapp_conversations c ON m.conversation_id = c.id
+       WHERE m.business_id = ? AND (m.sender_user_id = ? OR c.assigned_user_id = ?) ${msgDateFilter}`,
+      [numBusinessId, agentId, agentId]
+    );
+    const ms = msgStatsRows?.[0] || {};
+    totalSent = Number(ms.totalSent || 0);
+    totalDelivered = Number(ms.totalDelivered || 0);
+    totalFailed = Number(ms.totalFailed || 0);
+    totalReceived = Number(ms.totalReceived || 0);
+  } catch (e) {
+    console.error('Agent message stats error:', e);
+  }
+
+  // 4. Delivery Trend for this agent
+  try {
+    const trendRows = await executeQuery(
+      `SELECT 
+         DATE(m.created_at) as dt,
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' THEN 1 END) as sent,
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' AND m.message_status IN ('delivered', 'read') THEN 1 END) as delivered,
+         COUNT(CASE WHEN m.direction = 'OUTBOUND' AND m.message_status = 'failed' THEN 1 END) as failed,
+         COUNT(CASE WHEN m.direction = 'INBOUND' THEN 1 END) as received
+       FROM whatsapp_messages m
+       JOIN whatsapp_conversations c ON m.conversation_id = c.id
+       WHERE m.business_id = ? AND (m.sender_user_id = ? OR c.assigned_user_id = ?) ${msgDateFilter}
+       GROUP BY dt
+       ORDER BY dt ASC`,
+      [numBusinessId, agentId, agentId]
+    );
+    if (Array.isArray(trendRows)) {
+      for (const r of trendRows) {
+        if (!r.dt) continue;
+        const dStr = new Date(r.dt).toISOString().split('T')[0];
+        if (trendMap[dStr]) {
+          trendMap[dStr].sent = Number(r.sent || 0);
+          trendMap[dStr].delivered = Number(r.delivered || 0);
+          trendMap[dStr].failed = Number(r.failed || 0);
+          trendMap[dStr].received = Number(r.received || 0);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Agent delivery trend error:', e);
+  }
+  dateLabels.sort();
+  const deliveryTrend = dateLabels.map(k => trendMap[k]);
+
+  // 5. Recent Conversations for Agent
+  let recentConvs = [];
+  try {
+    const rows = await executeQuery(
+      `SELECT 
+         c.id, c.contact_id, c.customer_phone, c.status, c.unread_count, c.last_message_text, c.last_message_at, c.service_window_expires_at,
+         ct.name as contact_name, ct.first_name, ct.last_name,
+         COALESCE(NULLIF(wa.verified_name, ''), NULLIF(wa.display_name, ''), wa.phone_number) as account_name
+       FROM whatsapp_conversations c
+       LEFT JOIN contacts ct ON (c.contact_id = ct.id OR (ct.phone = c.customer_phone AND ct.business_id = c.business_id))
+       LEFT JOIN whatsapp_accounts wa ON c.whatsapp_account_id = wa.id
+       WHERE c.business_id = ? AND c.assigned_user_id = ?
+       ORDER BY COALESCE(c.last_message_at, c.updated_at) DESC
+       LIMIT 5`,
+      [numBusinessId, agentId]
+    );
+    if (Array.isArray(rows)) {
+      recentConvs = rows.map(r => ({
+        id: r.id,
+        contactId: r.contact_id,
+        name: r.contact_name || `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.customer_phone,
+        phone: r.customer_phone,
+        lastMessage: r.last_message_text || 'Conversation active',
+        status: r.status === 'closed' ? 'Closed' : 'Open',
+        unreadCount: Number(r.unread_count || 0),
+        accountName: r.account_name || 'WhatsApp Channel',
+        isWindowOpen: r.service_window_expires_at ? now < new Date(r.service_window_expires_at) : false
+      }));
+    }
+  } catch (e) {
+    console.error('Agent recent convs error:', e);
+  }
+
+  // 6. WhatsApp Accounts for Agent
+  let agentAccounts = [];
+  try {
+    const accRows = await executeQuery(
+      `SELECT DISTINCT wa.id, wa.display_name, wa.phone_number, wa.status, wa.connection_status
+       FROM whatsapp_accounts wa
+       JOIN whatsapp_conversations wc ON wc.whatsapp_account_id = wa.id
+       WHERE wa.business_id = ? AND wc.assigned_user_id = ?`,
+      [numBusinessId, agentId]
+    );
+    if (Array.isArray(accRows) && accRows.length > 0) {
+      agentAccounts = accRows.map(a => ({
+        id: a.id,
+        name: a.display_name || 'WhatsApp Account',
+        phone: a.phone_number || '',
+        status: (a.status === 'connected' || a.connection_status === 'CONNECTED') ? 'Connected' : 'Disconnected',
+        isPrimary: false
+      }));
+    } else {
+      const fallbackAccs = await executeQuery(
+        `SELECT id, display_name, phone_number, status, connection_status FROM whatsapp_accounts WHERE business_id = ? LIMIT 2`,
+        [numBusinessId]
+      );
+      agentAccounts = (fallbackAccs || []).map(a => ({
+        id: a.id,
+        name: a.display_name || 'WhatsApp Channel',
+        phone: a.phone_number || '',
+        status: (a.status === 'connected' || a.connection_status === 'CONNECTED') ? 'Connected' : 'Disconnected',
+        isPrimary: false
+      }));
+    }
+  } catch (e) {
+    console.error('Agent accounts error:', e);
+  }
+
+  // Delivery Overviews
+  const inTransit = Math.max(0, totalSent - totalDelivered - totalFailed);
+  const delPct = totalSent > 0 ? Math.round((totalDelivered / totalSent) * 100) : 0;
+  const failPct = totalSent > 0 ? Math.round((totalFailed / totalSent) * 100) : 0;
+  const sentPct = totalSent > 0 ? Math.max(0, 100 - delPct - failPct) : 0;
+
+  const deliveryOverview = {
+    total: totalSent,
+    breakdown: [
+      { name: 'Delivered', pct: delPct, count: totalDelivered, color: '#10b981' },
+      { name: 'Sent', pct: sentPct, count: inTransit, color: '#3b82f6' },
+      { name: 'Failed', pct: failPct, count: totalFailed, color: '#ef4444' }
+    ]
+  };
+
+  const combTotal = totalSent + totalReceived;
+  const combDelPct = combTotal > 0 ? Math.round((totalDelivered / combTotal) * 100) : 0;
+  const combRecPct = combTotal > 0 ? Math.round((totalReceived / combTotal) * 100) : 0;
+  const combFailPct = combTotal > 0 ? Math.round((totalFailed / combTotal) * 100) : 0;
+  const combSentPct = combTotal > 0 ? Math.max(0, 100 - combDelPct - combRecPct - combFailPct) : 0;
+
+  const allMessagesOverview = {
+    total: combTotal,
+    breakdown: [
+      { name: 'Delivered', pct: combDelPct, count: totalDelivered, color: '#10b981' },
+      { name: 'Sent', pct: combSentPct, count: inTransit, color: '#3b82f6' },
+      { name: 'Received', pct: combRecPct, count: totalReceived, color: '#8b5cf6' },
+      { name: 'Failed', pct: combFailPct, count: totalFailed, color: '#ef4444' }
+    ]
+  };
+
+  // Contact Growth for Agent
+  let contactGrowth = [];
+  try {
+    const monthlyRows = await executeQuery(
+      `SELECT 
+         DATE_FORMAT(c.created_at, '%b') as month_name,
+         DATE_FORMAT(c.created_at, '%Y-%m') as ym,
+         COUNT(*) as cnt
+       FROM contacts c
+       WHERE c.business_id = ? AND (
+         c.assigned_user_id = ? OR EXISTS (
+           SELECT 1 FROM whatsapp_conversations wc 
+           WHERE wc.business_id = c.business_id 
+             AND (wc.contact_id = c.id OR wc.customer_phone = c.phone) 
+             AND wc.assigned_user_id = ?
+         )
+       )
+       GROUP BY ym, month_name
+       ORDER BY ym ASC`,
+      [numBusinessId, agentId, agentId]
+    );
+    const targetMonths = [];
+    for (let m = 3; m >= 0; m--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const name = d.toLocaleDateString('en-US', { month: 'short' });
+      targetMonths.push({ ym, name });
+    }
+    contactGrowth = targetMonths.map(tm => {
+      let cum = 0;
+      if (Array.isArray(monthlyRows)) {
+        for (const r of monthlyRows) {
+          if (r.ym <= tm.ym) cum += Number(r.cnt || 0);
+        }
+      }
+      return { month: tm.name, contacts: cum };
+    });
+  } catch (e) {
+    console.error('Agent contact growth error:', e);
+  }
+
+  return {
+    timeRange: normalizedRange,
+    isAgent: true,
+    kpi: {
+      totalContacts,
+      contactsGrowth: periodContacts > 0 ? `+${periodContacts}` : '+0',
+      messagesSent: totalSent,
+      messagesSentGrowth: totalSent > 0 ? `+${totalSent}` : '+0',
+      totalCampaigns: totalConvs,
+      campaignsGrowth: openConvs > 0 ? `${openConvs} Open` : '0 Open',
+      activeAutomations: closedConvs,
+      failedMessages: totalFailed,
+      failedMessagesGrowth: totalFailed > 0 ? `${totalFailed}` : '+0',
+      openChats: openConvs,
+      closedChats: closedConvs,
+      unreadChats: unreadConvs,
+      windowActiveChats: windowActive
+    },
+    deliveryTrend,
+    allMessagesTrend,
+    deliveryOverview,
+    allMessagesOverview,
+    contactGrowth,
+    whatsappAccounts: {
+      summary: `${agentAccounts.length} Channels`,
+      list: agentAccounts
+    },
+    automations: [],
+    scheduledCampaigns: [],
+    recentCampaigns: [],
+    recentConversations: recentConvs,
+    systemHealth: {
+      operational: true,
+      whatsapp: agentAccounts.length > 0 ? 'Connected' : 'Disconnected',
+      automation: 'Idle',
+      system: 'All Good'
+    }
   };
 }
 
