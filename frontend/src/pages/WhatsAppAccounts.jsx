@@ -526,7 +526,7 @@ export default function WhatsAppAccounts() {
                         <strong className="small">Meta Test Messenger</strong>
                       </div>
                       <p className="text-secondary small mb-3">
-                        Test karein official <code>hello_world</code> template ya custom text message kisi bhi mobile number par bina Meta console khole.
+                        Test the official <code>hello_world</code> template or custom text message on any mobile number without opening the Meta Developer Console.
                       </p>
                     </div>
                     <button
@@ -600,7 +600,7 @@ export default function WhatsAppAccounts() {
                         <strong className="small">WhatsApp Operations Suite</strong>
                       </div>
                       <p className="text-secondary small mb-3">
-                        Marketing campaigns bhejein, live 2-way inbox me chat karein, aur approved Meta templates sync karein.
+                        Launch marketing broadcast campaigns, chat in real-time 2-way inbox, and sync approved Meta templates.
                       </p>
                     </div>
                     <div className="d-grid gap-1">
@@ -642,7 +642,7 @@ export default function WhatsAppAccounts() {
                           Connect {detectedMeta.displayName} ({detectedMeta.phoneNumber})
                         </h3>
                         <p className="text-secondary mb-4" style={{ maxWidth: '640px' }}>
-                          Aapka Meta WhatsApp Business account aur Cloud API credentials already active hain (WABA ID: <code>{detectedMeta.wabaId}</code>). Developers Facebook par jakar manual setup karne ki zaroorat nahi hai. Seedhe 1-click me connect karein!
+                          Your Meta WhatsApp Business account and Cloud API credentials are active (WABA ID: <code>{detectedMeta.wabaId}</code>). No manual setup required in Facebook Developer Console. Connect directly with 1 click!
                         </p>
                         <div className="d-flex flex-wrap align-items-center gap-3">
                           <button
@@ -755,7 +755,7 @@ export default function WhatsAppAccounts() {
               </div>
               <h4 className="fw-bold mb-2 text-dark">WhatsApp Channel Managed by Administrator</h4>
               <p className="text-secondary mx-auto mb-0" style={{ maxWidth: '540px' }}>
-                Aapke workspace ke liye WhatsApp accounts aur phone numbers Platform Administrator dwara manage kiye jaate hain. Jaise hi Admin aapke business ke liye number allocate karega, woh automatic yahan dikhne lagega.
+                WhatsApp accounts and phone numbers for your workspace are managed by the Platform Administrator. As soon as the Administrator allocates a number to your business, it will appear here automatically.
               </p>
             </div>
           )
@@ -1213,7 +1213,7 @@ export default function WhatsAppAccounts() {
                 <form onSubmit={handleSendTestMessage}>
                   <div className="modal-body p-4 bg-white">
                     <p className="text-secondary small mb-3">
-                      Bina Meta Developer Console khole, CampaignFlow se direct official Meta Cloud API test message send karein aur live delivery status verify karein.
+                      Send a direct official Meta Cloud API test message and verify real-time delivery status without opening the Meta Developer Console.
                     </p>
 
                     {testModal.error && (
@@ -1286,7 +1286,7 @@ export default function WhatsAppAccounts() {
                         />
                       </div>
                       <div className="form-text small" style={{ fontSize: '0.74rem' }}>
-                        Country code ke sath enter karein (e.g. India ke liye 91XXXXXXXXXX).
+                        Enter with international country code without plus sign (e.g., 91XXXXXXXXXX for India).
                       </div>
                     </div>
 
@@ -1306,7 +1306,7 @@ export default function WhatsAppAccounts() {
                           <label className="form-check-label small" htmlFor="typeTemplate">
                             <strong>Approved WhatsApp Template (Recommended)</strong>
                             <div className="text-muted" style={{ fontSize: '0.74rem' }}>
-                              Kisi bhi number par deliver hota hai (Real Indian numbers ke liye <code>welcome_msg</code> use karein).
+                              Delivers to any verified destination number (for live numbers, use approved templates like <code>welcome_msg</code>).
                             </div>
                           </label>
                         </div>

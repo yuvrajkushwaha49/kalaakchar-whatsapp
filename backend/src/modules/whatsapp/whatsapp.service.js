@@ -21,8 +21,8 @@ export async function getConnectConfig(businessId) {
     version = platformConfig?.graphApiVersion;
   } catch (_) {}
 
-  if (!appId) appId = process.env.META_APP_ID || '1165054629187576';
-  if (!configId) configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
+  if (!appId) appId = process.env.META_APP_ID || '1504824461464867';
+  if (!configId) configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '1162753462966713';
   if (!version) version = process.env.WHATSAPP_API_VERSION || 'v21.0';
 
   return {
@@ -2161,9 +2161,9 @@ export async function autoConnectMetaAccount(businessId, payload = {}) {
     if (!isUsingFallback()) {
       await executeQuery(
         `INSERT INTO tenant_meta_integrations (business_id, integration_mode, meta_app_id, configuration_status, last_validation_at, updated_at)
-         VALUES (?, 'client_owned', ?, 'configured', NOW(), NOW())
-         ON DUPLICATE KEY UPDATE configuration_status = 'configured', last_validation_at = NOW(), updated_at = NOW()`,
-        [numBusinessId, process.env.META_APP_ID || null]
+         VALUES (?, 'platform_managed', ?, 'configured', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE integration_mode = 'platform_managed', meta_app_id = VALUES(meta_app_id), configuration_status = 'configured', last_validation_at = NOW(), updated_at = NOW()`,
+        [numBusinessId, process.env.META_APP_ID || '1504824461464867']
       );
     }
   } catch (err) {

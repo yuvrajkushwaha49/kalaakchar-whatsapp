@@ -102,12 +102,17 @@ export async function getSetupStatus(businessId) {
     platformConfig = await platformMetaService.getPlatformMetaConfig();
   } catch (_) {}
 
-  const platformAppId = platformConfig?.metaAppId || process.env.META_APP_ID || '1165054629187576';
-  const platformConfigId = platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null;
+  const platformAppId = platformConfig?.metaAppId || process.env.META_APP_ID || '1504824461464867';
+  const platformConfigId = platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '1162753462966713';
   const platformApiVersion = platformConfig?.graphApiVersion || META_API_VERSION;
 
+  const isClientWithCredentials = integration.integration_mode === 'client_owned' &&
+    Boolean(integration.meta_app_id && integration.meta_app_id !== '1165054629187576' && integration.encrypted_meta_app_secret);
+
+  const effectiveMode = isClientWithCredentials ? 'client_owned' : 'platform_managed';
+
   return {
-    integrationMode: integration.integration_mode || 'platform_managed',
+    integrationMode: effectiveMode,
     setupStep: integration.setup_step || 1,
     configurationStatus: integration.configuration_status || 'pending',
     hasConnectedAccount: accounts.length > 0,
@@ -120,7 +125,7 @@ export async function getSetupStatus(businessId) {
       configId: platformConfigId
     },
     clientApp: {
-      appId: integration.meta_app_id || null,
+      appId: integration.meta_app_id && integration.meta_app_id !== '1165054629187576' ? integration.meta_app_id : null,
       hasSecret: Boolean(integration.encrypted_meta_app_secret),
       configId: integration.embedded_signup_config_id || null
     },
@@ -261,7 +266,8 @@ export async function validateSetup(businessId) {
 
   if (!isClientOwned) {
     // Validate platform managed app
-    const platformAppId = process.env.META_APP_ID || '1165054629187576';
+    const platformConfig = await platformMetaService.getPlatformMetaConfig();
+    const platformAppId = platformConfig?.metaAppId || process.env.META_APP_ID || '1504824461464867';
     return {
       success: true,
       mode: 'platform_managed',
@@ -435,15 +441,20 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
   const numBusinessId = Number(businessId);
   const platformConfig = await platformMetaService.getPlatformMetaConfig();
   const status = await getSetupStatus(numBusinessId);
-  const isClientOwned = status.integrationMode === 'client_owned';
 
-  const appId = isClientOwned && status.clientApp?.appId
+  // Client-owned credentials apply ONLY IF client explicitly saved their own custom app + secret
+  // AND platform is not forcing server env fallback
+  const isCustomClientApp = status.integrationMode === 'client_owned' &&
+    Boolean(status.clientApp?.appId && status.clientApp?.hasSecret && status.clientApp.appId !== '1165054629187576') &&
+    !platformConfig?.useEnvFallback;
+
+  const appId = isCustomClientApp && status.clientApp?.appId
     ? status.clientApp.appId
-    : (platformConfig?.metaAppId || process.env.META_APP_ID || '1165054629187576');
+    : (platformConfig?.metaAppId || process.env.META_APP_ID || '1504824461464867');
 
-  const configId = isClientOwned && status.clientApp?.configId
+  const configId = isCustomClientApp && status.clientApp?.configId
     ? status.clientApp.configId
-    : (platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null);
+    : (platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '1162753462966713');
 
   const apiVersion = platformConfig?.graphApiVersion || META_API_VERSION;
   const redirectUri = `${redirectOrigin || process.env.FRONTEND_URL || 'http://localhost:5173'}/whatsapp/callback`;
@@ -454,8 +465,8 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
 
   await recordOnboardingSession(numBusinessId, stateToken, redirectOrigin, expiresAt);
 
-  let oauthUrl = `https://www.facebook.com/${apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${stateToken}`;
   const effectiveConfigId = configId || '';
+  let oauthUrl = `https://www.facebook.com/${apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${stateToken}`;
   if (effectiveConfigId && effectiveConfigId !== 'your_embedded_signup_config_id') {
     oauthUrl += `&config_id=${encodeURIComponent(effectiveConfigId)}`;
   }
@@ -466,7 +477,7 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
 
   return {
     success: true,
-    mode: status.integrationMode,
+    mode: isCustomClientApp ? 'client_owned' : 'platform_managed',
     appId,
     configId: effectiveConfigId,
     hasConfigId: Boolean(effectiveConfigId && effectiveConfigId !== 'your_embedded_signup_config_id'),

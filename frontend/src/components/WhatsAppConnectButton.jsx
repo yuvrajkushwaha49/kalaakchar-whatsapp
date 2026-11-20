@@ -78,7 +78,7 @@ export default function WhatsAppConnectButton({ onSuccess, onError, className = 
 
     window.fbAsyncInit = function () {
       window.FB.init({
-        appId: appId || '1165054629187576',
+        appId: appId || '1504824461464867',
         cookie: true,
         xfbml: true,
         version: version || 'v21.0'
@@ -102,7 +102,7 @@ export default function WhatsAppConnectButton({ onSuccess, onError, className = 
   const handleLaunchSignup = () => {
     setLoading(true);
 
-    const appId = fbConfig?.appId || '1165054629187576';
+    const appId = fbConfig?.appId || '1504824461464867';
     const configId = fbConfig?.configId;
     const hasConfig = fbConfig?.hasConfigId;
     const redirectUri = window.location.origin + '/whatsapp/callback';

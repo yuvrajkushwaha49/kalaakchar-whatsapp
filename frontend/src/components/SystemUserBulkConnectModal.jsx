@@ -433,7 +433,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                       style={activeTab === 'facebook' ? { backgroundColor: '#1877F2' } : {}}
                     >
                       <i className="bi bi-facebook fs-5"></i>
-                      <span>Tareeqa 2: Log in with Facebook (0% Token - No Copy-Paste)</span>
+                      <span>Option 1: Log in with Facebook (Zero-Token Automatic Scan)</span>
                       <span className="badge bg-warning text-dark ms-1">Recommended</span>
                     </button>
                   </li>
@@ -444,7 +444,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                       onClick={() => { setActiveTab('token'); setScanError(null); }}
                     >
                       <i className="bi bi-key-fill"></i>
-                      <span>Tareeqa 1: System User Permanent Token</span>
+                      <span>Option 2: System User Permanent Token</span>
                     </button>
                   </li>
                 </ul>
@@ -458,7 +458,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
 
                     <h4 className="fw-bold mb-2">1-Click Meta Business Portfolio Scan</h4>
                     <p className="text-muted mx-auto mb-4" style={{ maxWidth: '580px' }}>
-                      Koi bhi token copy-paste karne ki zaroorat nahi hai. Niche diye gaye button par click karein, official Facebook popup me login karein, aur aapke sabhi Apps aur WABAs ke saare WhatsApp numbers automatic screen par aa jayenge!
+                      No manual token copy-paste required. Click the button below, log in through the official Facebook authentication popup, and all WhatsApp phone numbers across your Meta Business Apps and WABAs will be automatically discovered.
                     </p>
 
                     <div className="d-flex justify-content-center mb-4">
@@ -509,7 +509,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                         <div>
                           <strong className="d-block mb-1">System User Permanent Token:</strong>
                           <span className="small text-muted">
-                            Agar aapke paas Meta Business Manager ka Permanent System User Token hai, toh yahan paste karein. Yeh token kabhi expire nahi hota aur sabhi Apps ke numbers ko scan karta hai.
+                            If you already possess a Permanent System User Token from Meta Business Settings, paste it here. This token does not expire and scans numbers across all authorized WhatsApp Business Accounts.
                           </span>
                         </div>
                       </div>
@@ -590,19 +590,19 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                       <div className="mt-4 p-3 bg-light rounded-3 border">
                         <h6 className="fw-bold mb-2">
                           <i className="bi bi-book-half me-1 text-primary"></i>
-                          System User Token Kaise Banayein:
+                          How to Generate a System User Token:
                         </h6>
                         <ol className="small mb-0 ps-3">
                           <li className="mb-1">
-                            Meta Business Settings me jayein: 
+                            Navigate to Meta Business Settings: 
                             <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noreferrer" className="ms-1 fw-semibold text-decoration-none">
                               business.facebook.com/settings/system-users <i className="bi bi-box-arrow-up-right"></i>
                             </a>
                           </li>
-                          <li className="mb-1"><strong>Add System User</strong> par click karein aur Role <strong>Admin</strong> chunein.</li>
-                          <li className="mb-1"><strong>Assign Assets</strong> me WhatsApp Accounts ko <strong>Full Control</strong> dein.</li>
-                          <li className="mb-1"><strong>Generate New Token</strong> me Never Expiration aur permissions select karein.</li>
-                          <li>Token copy karke yahan upar paste karein aur Scan karein!</li>
+                          <li className="mb-1">Click <strong>Add System User</strong> and select the <strong>Admin</strong> role.</li>
+                          <li className="mb-1">Under <strong>Assign Assets</strong>, grant <strong>Full Control</strong> for your WhatsApp Business Accounts.</li>
+                          <li className="mb-1">Click <strong>Generate New Token</strong>, choose <strong>Never Expiration</strong>, and select the required permissions.</li>
+                          <li>Copy the generated token, paste it in the field above, and click Scan.</li>
                         </ol>
                       </div>
                     )}

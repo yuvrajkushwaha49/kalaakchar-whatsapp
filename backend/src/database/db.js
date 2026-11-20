@@ -179,7 +179,7 @@ async function initFallbackStore() {
       if (!memoryStore.platform_meta_configs) {
         memoryStore.platform_meta_configs = [{
           id: 1,
-          meta_app_id: process.env.META_APP_ID || '1165054629187576',
+          meta_app_id: process.env.META_APP_ID || '1504824461464867',
           encrypted_meta_app_secret: process.env.META_APP_SECRET ? encryptToken(process.env.META_APP_SECRET) : '',
           embedded_signup_config_id: process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '',
           graph_api_version: process.env.WHATSAPP_API_VERSION || 'v21.0',

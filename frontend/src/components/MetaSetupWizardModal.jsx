@@ -107,17 +107,19 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
       });
 
       const initData = initRes.data?.data;
-      const appId = initData?.appId || '1165054629187576';
-      const configId = initData?.configId || '';
+      const appId = initData?.appId || readiness?.appId || '1504824461464867';
+      const configId = initData?.configId || readiness?.configId || '1162753462966713';
       const state = initData?.state || '';
       const redirectUri = `${window.location.origin}/whatsapp/callback`;
       const scopes = 'whatsapp_business_management,whatsapp_business_messaging';
 
-      let oauthUrl = '';
-      if (configId && configId !== 'your_embedded_signup_config_id') {
-        oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&state=${encodeURIComponent(state)}`;
-      } else {
-        oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${encodeURIComponent(state)}`;
+      let oauthUrl = initData?.oauthUrl;
+      if (!oauthUrl) {
+        if (configId && configId !== 'your_embedded_signup_config_id') {
+          oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&state=${encodeURIComponent(state)}`;
+        } else {
+          oauthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${encodeURIComponent(state)}`;
+        }
       }
 
       setVerificationLogs(prev => prev.map(l => l.id === 1 ? { ...l, status: 'done' } : (l.id === 2 ? { ...l, status: 'active' } : l)));
@@ -251,12 +253,14 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
         redirectOrigin: window.location.origin
       });
       const initData = initRes.data?.data;
-      const appId = initData?.appId || '1165054629187576';
-      const configId = initData?.configId || '1153688433853632';
+      const appId = initData?.appId || readiness?.appId || '1504824461464867';
+      const configId = initData?.configId || readiness?.configId || '1162753462966713';
       const metaHostedUrl = initData?.metaHostedUrl || `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${appId}&config_id=${configId}&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D`;
       window.open(metaHostedUrl, '_blank', 'noopener,noreferrer');
     } catch (e) {
-      const fallbackUrl = 'https://business.facebook.com/messaging/whatsapp/onboard/?app_id=1165054629187576&config_id=1153688433853632&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D';
+      const fallbackAppId = readiness?.appId || '1504824461464867';
+      const fallbackConfigId = readiness?.configId || '1162753462966713';
+      const fallbackUrl = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${fallbackAppId}&config_id=${fallbackConfigId}&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D`;
       window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
     }
   };
@@ -574,19 +578,19 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                   <div className="card border-warning-subtle text-start p-3 mx-auto mt-3 shadow-xs" style={{ maxWidth: '520px', backgroundColor: '#fffbeb', borderRadius: '12px' }}>
                     <div className="d-flex align-items-center gap-2 mb-2">
                       <i className="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
-                      <strong className="text-dark small">Facebook popup me "This content isn't available at the moment" dikh raha hai?</strong>
+                      <strong className="text-dark small">Seeing "This content isn't available at the moment" in the Facebook popup?</strong>
                     </div>
                     <p className="small text-muted mb-2">
-                      Yeh Meta ka standard error hai. Iska matlab aapka Meta Developer App (<code>{readiness?.appId || '1165054629187576'}</code>)
-                      abhi <strong>"In development"</strong> mode me hai aur jis Facebook ID se aap login hain wo Meta App me registered nahi hai.
+                      This is a standard Meta error message. It indicates that your Meta Developer App (<code>{readiness?.appId || '1504824461464867'}</code>)
+                      is currently in <strong>"In development"</strong> mode and your logged-in Facebook account is not yet registered as a tester or developer on the App.
                     </p>
-                    <div className="small fw-semibold text-dark mb-1">Isko 2 minute me kaise theek karein:</div>
+                    <div className="small fw-semibold text-dark mb-1">How to resolve this in 2 minutes:</div>
                     <ul className="small text-muted ps-3 mb-3">
                       <li className="mb-1">
-                        <strong>Solution 1 (Live Mode - Recommended):</strong> Meta Developer Console me sabse upar App Mode ko <strong>"In development"</strong> se <strong>"Live"</strong> toggle karein. Uske baad koi bhi Facebook user 1-click connect kar sakega!
+                        <strong>Solution 1 (Live Mode - Recommended):</strong> In Meta Developer Console, switch the App Mode toggle at the top from <strong>"In development"</strong> to <strong>"Live"</strong>. Once Live, any Facebook user can connect instantly with 1 click.
                       </li>
                       <li>
-                        <strong>Solution 2 (Testing Roles):</strong> Meta Console me <strong>App roles → Roles</strong> me jakar apna Facebook profile <strong>Tester / Developer</strong> me Add kar lein.
+                        <strong>Solution 2 (Testing Roles):</strong> In Meta Developer Console, navigate to <strong>App roles &rarr; Roles</strong> and add your Facebook profile as a <strong>Tester</strong> or <strong>Developer</strong>.
                       </li>
                     </ul>
                     <div className="d-flex flex-wrap align-items-center gap-2 pt-2 border-top">
@@ -598,7 +602,7 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                         <i className="bi bi-x-circle me-1"></i> Close Popup & Reset
                       </button>
                       <a
-                        href="https://developers.facebook.com/apps/1165054629187576/roles/"
+                        href={`https://developers.facebook.com/apps/${readiness?.appId || '1504824461464867'}/roles/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn btn-sm btn-outline-primary"

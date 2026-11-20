@@ -711,7 +711,7 @@ export default function SuperAdminDashboard() {
                     <input
                       type="text"
                       className="form-control font-monospace"
-                      placeholder="e.g. 1165054629187576"
+                      placeholder="e.g. 1504824461464867"
                       value={metaConfig.metaAppId}
                       onChange={(e) => setMetaConfig({ ...metaConfig, metaAppId: e.target.value })}
                       required

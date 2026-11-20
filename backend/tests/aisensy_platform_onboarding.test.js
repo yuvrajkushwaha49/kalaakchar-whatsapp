@@ -32,17 +32,17 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
 
   test('1. Super Admin: Save & Encrypt Platform Meta Developer App Configuration', async () => {
     const platformConfig = {
-      metaAppId: '1165054629187576',
+      metaAppId: '1504824461464867',
       metaAppSecret: 'sec_test_platform_secret_1234567890abcdef',
-      embeddedSignupConfigId: '887766554433221',
+      embeddedSignupConfigId: '1162753462966713',
       graphApiVersion: 'v21.0',
       webhookVerifyToken: 'campaignflow_secure_webhook_token_2026',
       isEnabled: true
     };
 
     const saved = await platformMetaService.savePlatformMetaConfig(platformConfig, 1);
-    assert.strictEqual(saved.metaAppId, '1165054629187576', 'Platform Meta App ID must match');
-    assert.strictEqual(saved.embeddedSignupConfigId, '887766554433221');
+    assert.strictEqual(saved.metaAppId, '1504824461464867', 'Platform Meta App ID must match');
+    assert.strictEqual(saved.embeddedSignupConfigId, '1162753462966713');
     assert.strictEqual(saved.graphApiVersion, 'v21.0');
     assert.strictEqual(saved.readinessStatus, 'ready');
 
@@ -140,7 +140,7 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
 
   test('8. Monitoring: Aggregated Platform Metrics for Super Admin', async () => {
     const monitoring = await platformMetaService.getMetaIntegrationMonitoring();
-    assert.strictEqual(monitoring.platformAppId, '1165054629187576');
+    assert.strictEqual(monitoring.platformAppId, '1504824461464867');
     assert.strictEqual(monitoring.readinessStatus, 'ready');
     assert.ok(monitoring.totalConnectedPhoneNumbers >= 2, 'Should reflect connected phone numbers');
     assert.ok(monitoring.totalConnectedWABAs >= 2, 'Should reflect unique client WABAs');
