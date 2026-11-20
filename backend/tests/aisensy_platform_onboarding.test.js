@@ -148,10 +148,9 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
 
   after(async () => {
     try {
-      if (!isUsingFallback() && initialSecret) {
+      if (!isUsingFallback()) {
         await executeQuery(
-          'UPDATE platform_meta_configs SET embedded_signup_config_id = NULL, encrypted_meta_app_secret = ? WHERE id = 1',
-          [initialSecret]
+          'UPDATE platform_meta_configs SET meta_app_id = "1504824461464867", embedded_signup_config_id = "1162753462966713", use_env_fallback = 1 WHERE id = 1'
         );
       }
     } catch (_) {}

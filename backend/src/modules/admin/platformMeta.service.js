@@ -79,14 +79,13 @@ export async function getPlatformMetaConfig() {
     verifyToken = dbVerifyToken || 'campaignflow_secure_webhook_token_2026';
     activeSource = dbAppId ? 'database' : 'none';
   } else {
-    // FALLBACK / DEFAULT .ENV MODE:
-    // Use DB credentials if saved; if missing, automatically fallback to server .env
-    appId = dbAppId || envAppId || '1504824461464867';
-    rawSecret = dbSecret || (isEnvSecretValid ? envSecret : '');
-    configId = dbConfigId || envConfigId;
-    apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
-    verifyToken = dbVerifyToken || envVerifyToken;
-    activeSource = dbSecret ? 'database' : (isEnvSecretValid ? 'env' : 'database');
+    // DEFAULT .ENV MODE: Always prioritize server .env credentials by default
+    appId = envAppId || dbAppId || '1504824461464867';
+    rawSecret = (isEnvSecretValid ? envSecret : '') || dbSecret;
+    configId = envConfigId || dbConfigId;
+    apiVersion = envVersion || dbVersion || DEFAULT_API_VERSION;
+    verifyToken = envVerifyToken || dbVerifyToken;
+    activeSource = (envAppId || isEnvSecretValid) ? 'env' : 'database';
   }
 
   const hasSecret = Boolean(rawSecret && rawSecret.length >= 10);
