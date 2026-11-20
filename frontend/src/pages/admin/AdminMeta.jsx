@@ -215,19 +215,19 @@ export default function AdminMeta() {
                         onChange={(e) => setMetaConfig({ ...metaConfig, useEnvFallback: e.target.checked })}
                       />
                       <label className="form-check-label small fw-bold" htmlFor="useEnvFallbackToggle">
-                        By Default .env Credentials Use Karein (Environment Fallback)
+                        Use Server .env Credentials by Default (Environment Fallback)
                       </label>
                     </div>
                     <div className="form-text small">
                       {metaConfig.useEnvFallback ? (
                         <span className="text-success d-flex align-items-center gap-1 mt-1">
                           <i className="bi bi-check-circle-fill"></i>
-                          <span><strong>ON:</strong> Agar Database me credentials na hon ya koi field missing ho, to system <code>backend/.env</code> file se default values uthayega.</span>
+                          <span><strong>ON:</strong> System automatically falls back to server <code>backend/.env</code> file if credentials are not configured in the database.</span>
                         </span>
                       ) : (
                         <span className="text-secondary d-flex align-items-center gap-1 mt-1">
                           <i className="bi bi-slash-circle-fill"></i>
-                          <span><strong>OFF:</strong> System strictly sirf yahan Database me save kiye gaye credentials use karega (.env ignore rahega).</span>
+                          <span><strong>OFF:</strong> Strictly use database credentials only. Server <code>.env</code> file will be ignored.</span>
                         </span>
                       )}
                     </div>
@@ -235,7 +235,7 @@ export default function AdminMeta() {
                       <div className="mt-2 pt-2 border-top d-flex align-items-center gap-2">
                         <span className="text-muted small">Current Active Source:</span>
                         <span className={`badge ${metaConfigStatus.activeSource === 'database' ? 'bg-primary' : 'bg-info text-dark'}`}>
-                          {metaConfigStatus.activeSource === 'database' ? '🗄️ Database (Saved Here)' : '⚙️ Server .env File'}
+                          {metaConfigStatus.activeSource === 'database' ? 'Database (Saved Here)' : 'Server .env File'}
                         </span>
                       </div>
                     )}
