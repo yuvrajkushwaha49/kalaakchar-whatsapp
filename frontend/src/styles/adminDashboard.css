@@ -803,13 +803,51 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
+.admin-sidebar-workspace-card,
+.admin-sidebar-workspace-card * {
+  color: #0866FF;
+}
+
+.admin-sidebar-workspace-icon {
+  color: #0866FF !important;
+}
+
+.admin-sidebar-workspace-title {
+  color: #0866FF !important;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 .admin-sidebar-workspace-sub {
   font-size: 0.72rem;
+  color: #0866FF !important;
+  opacity: 0.8;
 }
 
 .admin-sidebar-workspace-btn {
   font-size: 0.75rem;
-  border-color: rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+  color: #0866FF !important;
+  border: 1px solid #0866FF !important;
+  background-color: #F0F6FF;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar-workspace-btn i,
+.admin-sidebar-workspace-btn span {
+  color: #0866FF !important;
+}
+
+.admin-sidebar-workspace-btn:hover {
+  background-color: #0866FF !important;
+  color: #FFFFFF !important;
+  border-color: #0866FF !important;
+}
+
+.admin-sidebar-workspace-btn:hover i,
+.admin-sidebar-workspace-btn:hover span {
+  color: #FFFFFF !important;
 }
 
 .admin-sidebar-user-avatar {

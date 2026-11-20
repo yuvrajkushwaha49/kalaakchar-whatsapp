@@ -121,17 +121,17 @@ export default function AdminSidebar({ isOpen, onClose, onToggle }) {
         <div className="mt-auto p-3">
           <div className="p-3 rounded-3 admin-sidebar-workspace-card">
             <div className="d-flex align-items-center gap-2 mb-2">
-              <i className="bi bi-person-workspace text-info fs-5"></i>
+              <i className="bi bi-person-workspace fs-5 admin-sidebar-workspace-icon"></i>
               {isOpen && (
                 <div>
-                  <div className="text-white small fw-bold">Client Workspace</div>
-                  <div className="text-white-50 admin-sidebar-workspace-sub">Switch to Owner / User view</div>
+                  <div className="small fw-bold admin-sidebar-workspace-title">Client Workspace</div>
+                  <div className="admin-sidebar-workspace-sub">Switch to Owner / User view</div>
                 </div>
               )}
             </div>
             <button
               onClick={() => setShowSwitchModal(true)}
-              className="btn btn-outline-light btn-sm w-100 d-flex align-items-center justify-content-center gap-2 admin-sidebar-workspace-btn"
+              className="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-2 admin-sidebar-workspace-btn"
               title="Switch to Client Workspace (Owner View)"
             >
               <i className="bi bi-box-arrow-up-right"></i>
