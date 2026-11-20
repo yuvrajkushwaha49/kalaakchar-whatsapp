@@ -12,7 +12,8 @@ export default function AdminMeta() {
     embeddedSignupConfigId: '',
     graphApiVersion: 'v21.0',
     webhookVerifyToken: 'campaignflow_secure_webhook_token_2026',
-    isEnabled: true
+    isEnabled: true,
+    useEnvFallback: true
   });
   const [metaConfigStatus, setMetaConfigStatus] = useState(null);
   const [savingMeta, setSavingMeta] = useState(false);
@@ -33,7 +34,8 @@ export default function AdminMeta() {
           embeddedSignupConfigId: d.embeddedSignupConfigId || '',
           graphApiVersion: d.graphApiVersion || 'v21.0',
           webhookVerifyToken: d.webhookVerifyToken || 'campaignflow_secure_webhook_token_2026',
-          isEnabled: d.isEnabled !== undefined ? d.isEnabled : true
+          isEnabled: d.isEnabled !== undefined ? d.isEnabled : true,
+          useEnvFallback: d.useEnvFallback !== undefined ? d.useEnvFallback : true
         });
       }
     } catch (err) {
@@ -186,7 +188,7 @@ export default function AdminMeta() {
                     </div>
                   </div>
 
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <div className="form-check form-switch">
                       <input
                         className="form-check-input"
@@ -200,6 +202,43 @@ export default function AdminMeta() {
                         Enable Platform Meta Integration for Clients
                       </label>
                     </div>
+                  </div>
+
+                  <div className="mb-4 p-3 rounded-3 border bg-light-subtle">
+                    <div className="form-check form-switch mb-1">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="useEnvFallbackToggle"
+                        checked={metaConfig.useEnvFallback}
+                        onChange={(e) => setMetaConfig({ ...metaConfig, useEnvFallback: e.target.checked })}
+                      />
+                      <label className="form-check-label small fw-bold" htmlFor="useEnvFallbackToggle">
+                        By Default .env Credentials Use Karein (Environment Fallback)
+                      </label>
+                    </div>
+                    <div className="form-text small">
+                      {metaConfig.useEnvFallback ? (
+                        <span className="text-success d-flex align-items-center gap-1 mt-1">
+                          <i className="bi bi-check-circle-fill"></i>
+                          <span><strong>ON:</strong> Agar Database me credentials na hon ya koi field missing ho, to system <code>backend/.env</code> file se default values uthayega.</span>
+                        </span>
+                      ) : (
+                        <span className="text-secondary d-flex align-items-center gap-1 mt-1">
+                          <i className="bi bi-slash-circle-fill"></i>
+                          <span><strong>OFF:</strong> System strictly sirf yahan Database me save kiye gaye credentials use karega (.env ignore rahega).</span>
+                        </span>
+                      )}
+                    </div>
+                    {metaConfigStatus?.activeSource && (
+                      <div className="mt-2 pt-2 border-top d-flex align-items-center gap-2">
+                        <span className="text-muted small">Current Active Source:</span>
+                        <span className={`badge ${metaConfigStatus.activeSource === 'database' ? 'bg-primary' : 'bg-info text-dark'}`}>
+                          {metaConfigStatus.activeSource === 'database' ? '🗄️ Database (Saved Here)' : '⚙️ Server .env File'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="d-flex gap-2">

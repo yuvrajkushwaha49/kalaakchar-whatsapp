@@ -24,32 +24,72 @@ export async function getPlatformMetaConfig() {
     }
   }
 
-  // Fallback to environment variables if no DB record exists
-  const appId = record?.meta_app_id || process.env.META_APP_ID || '1165054629187576';
-  const envSecret = process.env.META_APP_SECRET || '';
-  const isEnvValid = Boolean(
+  // Toggle: Whether to allow falling back to server .env variables
+  const useEnvFallback = record?.use_env_fallback !== undefined ? Boolean(record.use_env_fallback) : true;
+
+  // DB Values
+  const dbAppId = (record?.meta_app_id || '').trim();
+  let dbSecret = '';
+  if (record?.encrypted_meta_app_secret) {
+    const dbDecrypted = decryptToken(record.encrypted_meta_app_secret);
+    if (dbDecrypted && !dbDecrypted.startsWith('sec_test_') && !dbDecrypted.includes(':')) {
+      dbSecret = dbDecrypted.trim();
+    }
+  }
+  const dbConfigId = (record?.embedded_signup_config_id || '').trim();
+  const dbVersion = (record?.graph_api_version || '').trim();
+  const dbVerifyToken = (record?.webhook_verify_token || '').trim();
+
+  // Env Values
+  const envAppId = (process.env.META_APP_ID || '').trim();
+  const envSecret = (process.env.META_APP_SECRET || '').trim();
+  const isEnvSecretValid = Boolean(
     envSecret && 
     !envSecret.includes('yahan_') && 
     !envSecret.includes('paste_karein') && 
     envSecret !== 'your_meta_app_secret' && 
-    envSecret.length >= 16
+    envSecret.length >= 16 &&
+    !envSecret.includes(':')
   );
+  const envConfigId = (process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '').trim();
+  const envVersion = (process.env.WHATSAPP_API_VERSION || DEFAULT_API_VERSION).trim();
+  const envVerifyToken = (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026').trim();
 
+  let appId = '';
   let rawSecret = '';
-  if (record?.encrypted_meta_app_secret) {
-    const dbDecrypted = decryptToken(record.encrypted_meta_app_secret);
-    if (dbDecrypted && !dbDecrypted.startsWith('sec_test_')) {
-      rawSecret = dbDecrypted;
+  let configId = '';
+  let apiVersion = DEFAULT_API_VERSION;
+  let verifyToken = 'campaignflow_secure_webhook_token_2026';
+  let activeSource = 'database';
+
+  if (!useEnvFallback) {
+    // STRICT MODE: Strictly use Database values only! Ignore .env
+    appId = dbAppId;
+    rawSecret = dbSecret;
+    configId = dbConfigId;
+    apiVersion = dbVersion || DEFAULT_API_VERSION;
+    verifyToken = dbVerifyToken || 'campaignflow_secure_webhook_token_2026';
+    activeSource = dbAppId ? 'database' : 'none';
+  } else {
+    // FALLBACK MODE: Use DB if set, otherwise fallback to .env
+    if (dbAppId && dbSecret) {
+      appId = dbAppId;
+      rawSecret = dbSecret;
+      configId = dbConfigId || envConfigId;
+      apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
+      verifyToken = dbVerifyToken || envVerifyToken;
+      activeSource = 'database';
+    } else {
+      appId = dbAppId || envAppId || '1165054629187576';
+      rawSecret = dbSecret || (isEnvSecretValid ? envSecret : '');
+      configId = dbConfigId || envConfigId;
+      apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
+      verifyToken = dbVerifyToken || envVerifyToken;
+      activeSource = (envAppId || isEnvSecretValid) ? 'env' : 'database';
     }
-  }
-  if (!rawSecret && isEnvValid) {
-    rawSecret = envSecret;
   }
 
   const hasSecret = Boolean(rawSecret && rawSecret.length >= 10);
-  const configId = record?.embedded_signup_config_id || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
-  const apiVersion = record?.graph_api_version || process.env.WHATSAPP_API_VERSION || DEFAULT_API_VERSION;
-  const verifyToken = record?.webhook_verify_token || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026';
   const isEnabled = record?.is_enabled !== undefined ? Boolean(record.is_enabled) : true;
 
   // Evaluate missing fields
@@ -77,6 +117,8 @@ export async function getPlatformMetaConfig() {
     webhookVerifyToken: verifyToken,
     webhookCallbackUrl,
     isEnabled,
+    useEnvFallback,
+    activeSource,
     readinessStatus,
     missingFields,
     lastTestedAt: record?.last_tested_at || null,
@@ -98,7 +140,8 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
     embeddedSignupConfigId,
     graphApiVersion = DEFAULT_API_VERSION,
     webhookVerifyToken,
-    isEnabled = true
+    isEnabled = true,
+    useEnvFallback = true
   } = payload;
 
   if (!metaAppId || !/^\d{10,24}$/.test(String(metaAppId).trim())) {
@@ -137,6 +180,7 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
       current.graph_api_version = cleanVersion;
       current.webhook_verify_token = cleanVerifyToken;
       current.is_enabled = isEnabled ? 1 : 0;
+      current.use_env_fallback = useEnvFallback ? 1 : 0;
       current.readiness_status = readinessStatus;
       current.updated_at = now;
     } else {
@@ -148,6 +192,7 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
         graph_api_version: cleanVersion,
         webhook_verify_token: cleanVerifyToken,
         is_enabled: isEnabled ? 1 : 0,
+        use_env_fallback: useEnvFallback ? 1 : 0,
         readiness_status: readinessStatus,
         created_at: now,
         updated_at: now
@@ -165,26 +210,55 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
     const readinessStatus = (cleanAppId && encryptedSecret) ? 'ready' : 'incomplete';
 
     if (existing) {
-      await executeQuery(
-        `UPDATE platform_meta_configs 
-         SET meta_app_id = ?, 
-             encrypted_meta_app_secret = COALESCE(?, encrypted_meta_app_secret), 
-             embedded_signup_config_id = ?, 
-             graph_api_version = ?, 
-             webhook_verify_token = ?, 
-             is_enabled = ?, 
-             readiness_status = ?, 
-             updated_at = NOW() 
-         WHERE id = ?`,
-        [cleanAppId, encryptedSecret, cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, readinessStatus, existing.id]
-      );
+      try {
+        await executeQuery(
+          `UPDATE platform_meta_configs 
+           SET meta_app_id = ?, 
+               encrypted_meta_app_secret = COALESCE(?, encrypted_meta_app_secret), 
+               embedded_signup_config_id = ?, 
+               graph_api_version = ?, 
+               webhook_verify_token = ?, 
+               is_enabled = ?, 
+               use_env_fallback = ?,
+               readiness_status = ?, 
+               updated_at = NOW() 
+           WHERE id = ?`,
+          [cleanAppId, encryptedSecret, cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, useEnvFallback ? 1 : 0, readinessStatus, existing.id]
+        );
+      } catch (colErr) {
+        // Fallback for legacy DB table missing use_env_fallback column
+        await executeQuery('ALTER TABLE platform_meta_configs ADD COLUMN use_env_fallback TINYINT(1) DEFAULT 1 AFTER is_enabled').catch(() => {});
+        await executeQuery(
+          `UPDATE platform_meta_configs 
+           SET meta_app_id = ?, 
+               encrypted_meta_app_secret = COALESCE(?, encrypted_meta_app_secret), 
+               embedded_signup_config_id = ?, 
+               graph_api_version = ?, 
+               webhook_verify_token = ?, 
+               is_enabled = ?, 
+               readiness_status = ?, 
+               updated_at = NOW() 
+           WHERE id = ?`,
+          [cleanAppId, encryptedSecret, cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, readinessStatus, existing.id]
+        );
+      }
     } else {
-      await executeQuery(
-        `INSERT INTO platform_meta_configs 
-         (meta_app_id, encrypted_meta_app_secret, embedded_signup_config_id, graph_api_version, webhook_verify_token, is_enabled, readiness_status, created_at, updated_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [cleanAppId, encryptedSecret || '', cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, readinessStatus]
-      );
+      try {
+        await executeQuery(
+          `INSERT INTO platform_meta_configs 
+           (meta_app_id, encrypted_meta_app_secret, embedded_signup_config_id, graph_api_version, webhook_verify_token, is_enabled, use_env_fallback, readiness_status, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [cleanAppId, encryptedSecret || '', cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, useEnvFallback ? 1 : 0, readinessStatus]
+        );
+      } catch (colErr) {
+        await executeQuery('ALTER TABLE platform_meta_configs ADD COLUMN use_env_fallback TINYINT(1) DEFAULT 1 AFTER is_enabled').catch(() => {});
+        await executeQuery(
+          `INSERT INTO platform_meta_configs 
+           (meta_app_id, encrypted_meta_app_secret, embedded_signup_config_id, graph_api_version, webhook_verify_token, is_enabled, readiness_status, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          [cleanAppId, encryptedSecret || '', cleanConfigId, cleanVersion, cleanVerifyToken, isEnabled ? 1 : 0, readinessStatus]
+        );
+      }
     }
   }
 
@@ -302,6 +376,34 @@ export async function checkClientPlatformReadiness() {
  * Internal helper: Get decrypted platform secret for server-side operations
  */
 export async function getDecryptedPlatformSecret() {
+  let rec = null;
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    rec = store.platform_meta_configs?.[0];
+  } else {
+    try {
+      const [row] = await executeQuery('SELECT encrypted_meta_app_secret, use_env_fallback FROM platform_meta_configs LIMIT 1');
+      rec = row;
+    } catch (_) {}
+  }
+
+  const useEnvFallback = rec?.use_env_fallback !== undefined ? Boolean(rec.use_env_fallback) : true;
+  let dbSecret = null;
+  if (rec?.encrypted_meta_app_secret) {
+    dbSecret = decryptToken(rec.encrypted_meta_app_secret);
+    if (dbSecret) dbSecret = String(dbSecret).trim();
+  }
+
+  // If DB secret is valid real secret (e.g. 32-hex characters), use it
+  if (dbSecret && !dbSecret.includes(':') && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder') && dbSecret.length >= 16) {
+    return dbSecret;
+  }
+
+  // If SuperAdmin disabled .env fallback, DO NOT use .env!
+  if (!useEnvFallback) {
+    return '';
+  }
+
   const envSecret = (process.env.META_APP_SECRET || '').trim();
   const isEnvValid = Boolean(
     envSecret && 
@@ -312,30 +414,7 @@ export async function getDecryptedPlatformSecret() {
     !envSecret.includes(':')
   );
 
-  let dbSecret = null;
-  if (isUsingFallback()) {
-    const store = getMemoryStore();
-    const rec = store.platform_meta_configs?.[0];
-    if (rec?.encrypted_meta_app_secret) {
-      dbSecret = decryptToken(rec.encrypted_meta_app_secret);
-    }
-  } else {
-    try {
-      const [row] = await executeQuery('SELECT encrypted_meta_app_secret FROM platform_meta_configs LIMIT 1');
-      if (row?.encrypted_meta_app_secret) {
-        dbSecret = decryptToken(row.encrypted_meta_app_secret);
-      }
-    } catch (_) {}
-  }
-
-  if (dbSecret) dbSecret = String(dbSecret).trim();
-
-  // If DB secret is valid real secret (e.g. 32-hex characters), use it
-  if (dbSecret && !dbSecret.includes(':') && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder') && dbSecret.length >= 16) {
-    return dbSecret;
-  }
-
-  // Otherwise, if .env has a real secret, use .env!
+  // Otherwise, if .env has a real secret and fallback is enabled, use .env!
   if (isEnvValid) {
     return envSecret;
   }

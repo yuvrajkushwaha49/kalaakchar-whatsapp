@@ -185,6 +185,7 @@
   background: #fbf9ff;
   border: 1px solid #ebdcfc;
 }
+
 .admin-kpi-card-purple:hover {
   border-color: #d8b4fe;
   box-shadow: 0 4px 14px rgba(147, 51, 234, 0.08);
@@ -194,6 +195,7 @@
   background: #f6fef8;
   border: 1px solid #c7f4d5;
 }
+
 .admin-kpi-card-green:hover {
   border-color: #86efac;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.08);
@@ -203,6 +205,7 @@
   background: #f3f9fe;
   border: 1px solid #c2e8fc;
 }
+
 .admin-kpi-card-blue:hover {
   border-color: #7dd3fc;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
@@ -212,6 +215,7 @@
   background: #f3fdf8;
   border: 1px solid #bbf2da;
 }
+
 .admin-kpi-card-mint:hover {
   border-color: #6ee7b7;
   box-shadow: 0 4px 14px rgba(5, 150, 105, 0.08);
@@ -221,6 +225,7 @@
   background: #faf8ff;
   border: 1px solid #ebdcfc;
 }
+
 .admin-kpi-card-violet:hover {
   border-color: #d8b4fe;
   box-shadow: 0 4px 14px rgba(147, 51, 234, 0.08);
@@ -230,6 +235,7 @@
   background: #fffdf5;
   border: 1px solid #fee8a2;
 }
+
 .admin-kpi-card-amber:hover {
   border-color: #fcd34d;
   box-shadow: 0 4px 14px rgba(217, 119, 6, 0.08);

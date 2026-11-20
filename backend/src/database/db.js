@@ -186,6 +186,7 @@ async function initFallbackStore() {
           webhook_verify_token: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'campaignflow_secure_webhook_token_2026',
           encrypted_webhook_app_secret: null,
           is_enabled: 1,
+          use_env_fallback: 1,
           readiness_status: 'ready',
           last_tested_at: new Date(),
           created_at: new Date(),
