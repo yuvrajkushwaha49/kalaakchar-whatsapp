@@ -92,7 +92,7 @@ export default function AdminSidebar({ isOpen, onClose, onToggle }) {
       {/* Body: SuperAdmin Menus */}
       <div className="sidebar-body">
         <div className="px-3 pt-2 pb-1">
-          <small className="text-uppercase fw-bold admin-sidebar-section-heading">
+          <small className="text-white-50 text-uppercase fw-bold admin-sidebar-section-heading">
             {isOpen ? 'Platform Administration' : 'ADMIN'}
           </small>
         </div>
@@ -140,14 +140,14 @@ export default function AdminSidebar({ isOpen, onClose, onToggle }) {
           </div>
 
           {/* Current Logged In Admin */}
-          <div className="d-flex align-items-center justify-content-between mt-3 pt-3 admin-sidebar-user-footer">
+          <div className="d-flex align-items-center justify-content-between mt-3 pt-3 admin-sidebar-user-card">
             <div className="d-flex align-items-center gap-2 overflow-hidden">
-              <div className="rounded-circle fw-bold d-flex align-items-center justify-content-center flex-shrink-0 admin-sidebar-user-avatar">
+              <div className="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center flex-shrink-0 admin-sidebar-user-avatar">
                 SA
               </div>
               {isOpen && (
                 <div className="overflow-hidden">
-                  <div className="small text-truncate fw-bold admin-sidebar-user-name">SuperAdmin</div>
+                  <div className="small text-truncate admin-sidebar-user-name">SuperAdmin</div>
                   <div className="text-truncate admin-sidebar-user-email">{user?.email}</div>
                 </div>
               )}

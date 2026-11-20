@@ -850,43 +850,40 @@
   color: #FFFFFF !important;
 }
 
-.admin-sidebar-section-heading {
-  font-size: 0.65rem;
-  letter-spacing: 0.5px;
-  color: #64748B !important;
-}
-
-.admin-sidebar-user-footer {
-  border-top: 1px solid #E5EAF2;
+.admin-sidebar-user-card {
+  border-top: 1px solid #E5EAF2 !important;
+  color: #172033 !important;
 }
 
 .admin-sidebar-user-avatar {
-  width: 32px;
-  height: 32px;
-  background-color: #F0F6FF;
-  color: #0866FF;
-  border: 1px solid #0866FF;
-  font-size: 0.75rem;
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
 }
 
 .admin-sidebar-user-name {
-  color: #0866FF !important;
-  font-size: 0.85rem;
+  color: #172033 !important;
+  font-weight: 600;
+  font-size: 0.82rem;
 }
 
 .admin-sidebar-user-email {
-  color: #64748B;
   font-size: 0.72rem;
+  color: #64748B !important;
 }
 
 .admin-sidebar-logout-btn {
-  color: #0866FF !important;
   text-decoration: none;
-  opacity: 0.85;
-  transition: all 0.2s ease;
+  color: #172033 !important;
+  transition: color 0.2s ease;
 }
 
-.admin-sidebar-logout-btn:hover {
+.admin-sidebar-logout-btn i {
+  color: #172033 !important;
+  transition: color 0.2s ease;
+}
+
+.admin-sidebar-logout-btn:hover,
+.admin-sidebar-logout-btn:hover i {
   color: #EF4444 !important;
-  opacity: 1;
 }
