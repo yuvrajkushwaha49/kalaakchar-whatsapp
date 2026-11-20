@@ -97,6 +97,15 @@ export async function getSetupStatus(businessId) {
     }
   ];
 
+  let platformConfig = null;
+  try {
+    platformConfig = await platformMetaService.getPlatformMetaConfig();
+  } catch (_) {}
+
+  const platformAppId = platformConfig?.metaAppId || process.env.META_APP_ID || '1165054629187576';
+  const platformConfigId = platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null;
+  const platformApiVersion = platformConfig?.graphApiVersion || META_API_VERSION;
+
   return {
     integrationMode: integration.integration_mode || 'platform_managed',
     setupStep: integration.setup_step || 1,
@@ -105,10 +114,10 @@ export async function getSetupStatus(businessId) {
     accountsCount: accounts.length,
     primaryAccount,
     platformApp: {
-      appId: process.env.META_APP_ID || '1165054629187576',
-      version: META_API_VERSION,
-      hasConfigId: Boolean(process.env.META_EMBEDDED_SIGNUP_CONFIG_ID && process.env.META_EMBEDDED_SIGNUP_CONFIG_ID !== 'your_embedded_signup_config_id'),
-      configId: process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null
+      appId: platformAppId,
+      version: platformApiVersion,
+      hasConfigId: Boolean(platformConfigId && platformConfigId !== 'your_embedded_signup_config_id'),
+      configId: platformConfigId
     },
     clientApp: {
       appId: integration.meta_app_id || null,
@@ -430,12 +439,13 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
 
   const appId = isClientOwned && status.clientApp?.appId
     ? status.clientApp.appId
-    : (platformConfig.metaAppId || process.env.META_APP_ID || '1165054629187576');
+    : (platformConfig?.metaAppId || process.env.META_APP_ID || '1165054629187576');
 
   const configId = isClientOwned && status.clientApp?.configId
     ? status.clientApp.configId
-    : (platformConfig.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null);
+    : (platformConfig?.embeddedSignupConfigId || process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || null);
 
+  const apiVersion = platformConfig?.graphApiVersion || META_API_VERSION;
   const redirectUri = `${redirectOrigin || process.env.FRONTEND_URL || 'http://localhost:5173'}/whatsapp/callback`;
   const scopes = 'whatsapp_business_management,whatsapp_business_messaging';
 
@@ -444,13 +454,15 @@ export async function initiateSignup(businessId, redirectOrigin = '') {
 
   await recordOnboardingSession(numBusinessId, stateToken, redirectOrigin, expiresAt);
 
-  let oauthUrl = `https://www.facebook.com/${META_API_VERSION}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${stateToken}`;
-  const effectiveConfigId = configId || '1153688433853632';
+  let oauthUrl = `https://www.facebook.com/${apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&response_type=code&state=${stateToken}`;
+  const effectiveConfigId = configId || '';
   if (effectiveConfigId && effectiveConfigId !== 'your_embedded_signup_config_id') {
-    oauthUrl += `&config_id=${effectiveConfigId}`;
+    oauthUrl += `&config_id=${encodeURIComponent(effectiveConfigId)}`;
   }
 
-  const metaHostedUrl = `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${appId}&config_id=${encodeURIComponent(effectiveConfigId)}&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D`;
+  const metaHostedUrl = effectiveConfigId
+    ? `https://business.facebook.com/messaging/whatsapp/onboard/?app_id=${appId}&config_id=${encodeURIComponent(effectiveConfigId)}&extras=%7B%22sessionInfoVersion%22%3A%223%22%7D`
+    : oauthUrl;
 
   return {
     success: true,

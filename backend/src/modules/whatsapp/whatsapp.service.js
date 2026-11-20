@@ -9,9 +9,21 @@ import { emitToTenant } from '../../socket.js';
  * Return Meta Embedded Signup configuration required by the frontend Facebook JS SDK
  */
 export async function getConnectConfig(businessId) {
-  const appId = process.env.META_APP_ID || '1165054629187576';
-  const configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
-  const version = process.env.WHATSAPP_API_VERSION || 'v21.0';
+  let appId = null;
+  let configId = null;
+  let version = null;
+
+  try {
+    const { getPlatformMetaConfig } = await import('../admin/platformMeta.service.js');
+    const platformConfig = await getPlatformMetaConfig();
+    appId = platformConfig?.metaAppId;
+    configId = platformConfig?.embeddedSignupConfigId;
+    version = platformConfig?.graphApiVersion;
+  } catch (_) {}
+
+  if (!appId) appId = process.env.META_APP_ID || '1165054629187576';
+  if (!configId) configId = process.env.META_EMBEDDED_SIGNUP_CONFIG_ID || '';
+  if (!version) version = process.env.WHATSAPP_API_VERSION || 'v21.0';
 
   return {
     appId,

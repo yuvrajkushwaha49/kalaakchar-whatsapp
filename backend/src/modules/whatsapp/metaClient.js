@@ -444,19 +444,20 @@ export class MetaCloudApiClient {
       };
     }
 
-    let appId = process.env.META_APP_ID;
-    let appSecret = process.env.META_APP_SECRET;
+    let appId = null;
+    let appSecret = null;
 
-    // First attempt to load configured credentials from platform_meta_configs
+    // Load active credentials (respects useEnvFallback toggle: .env by default when ON, database when OFF)
     try {
       const { getPlatformMetaConfig, getDecryptedPlatformSecret } = await import('../admin/platformMeta.service.js');
       const platformConfig = await getPlatformMetaConfig();
       if (platformConfig?.metaAppId) appId = platformConfig.metaAppId;
-      const dbSecret = await getDecryptedPlatformSecret();
-      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret' && !dbSecret.includes(':')) {
-        appSecret = String(dbSecret).trim();
-      }
+      const secret = await getDecryptedPlatformSecret();
+      if (secret) appSecret = String(secret).trim();
     } catch (_) {}
+
+    if (!appId) appId = process.env.META_APP_ID;
+    if (!appSecret) appSecret = process.env.META_APP_SECRET;
 
     appSecret = (appSecret || '').trim();
 
@@ -586,19 +587,20 @@ export class MetaCloudApiClient {
    * Inspect access token via debug_token to extract granted WABAs from granular_scopes
    */
   static async getGranularTargetIds(accessToken) {
-    let appId = process.env.META_APP_ID;
-    let appSecret = process.env.META_APP_SECRET;
+    let appId = null;
+    let appSecret = null;
 
-    // Load credentials from database platform config if not configured in env
+    // Load active credentials (respects useEnvFallback toggle: .env by default when ON, database when OFF)
     try {
       const { getPlatformMetaConfig, getDecryptedPlatformSecret } = await import('../admin/platformMeta.service.js');
       const platformConfig = await getPlatformMetaConfig();
       if (platformConfig?.metaAppId) appId = platformConfig.metaAppId;
-      const dbSecret = await getDecryptedPlatformSecret();
-      if (dbSecret && !dbSecret.includes('yahan_') && dbSecret !== 'your_meta_app_secret') {
-        appSecret = dbSecret;
-      }
+      const secret = await getDecryptedPlatformSecret();
+      if (secret) appSecret = String(secret).trim();
     } catch (_) {}
+
+    if (!appId) appId = process.env.META_APP_ID;
+    if (!appSecret) appSecret = process.env.META_APP_SECRET;
 
     if (!appId || !appSecret || appSecret.includes('yahan_') || appSecret === 'your_meta_app_secret') {
       logger.warn('[MetaClient] Cannot inspect debug_token: Meta App Secret not configured.');
