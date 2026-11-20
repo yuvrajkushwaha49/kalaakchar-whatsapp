@@ -65,14 +65,24 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
     setScanError(null);
 
     try {
-      // 1. Get Platform Meta App ID
-      let appId = '1165054629187576';
+      // 1. Get Platform Meta App ID dynamically from backend
+      let appId = null;
       try {
         const readinessRes = await api.get('/meta/setup/client-readiness');
-        if (readinessRes.data?.data?.platformApp?.appId) {
-          appId = readinessRes.data.data.platformApp.appId;
-        }
+        const rData = readinessRes.data?.data;
+        appId = rData?.appId || rData?.platformAppId || rData?.platformApp?.appId;
       } catch (_) {}
+
+      if (!appId) {
+        try {
+          const cfgRes = await api.get('/whatsapp/accounts/connect/start');
+          appId = cfgRes.data?.data?.appId;
+        } catch (_) {}
+      }
+
+      if (!appId) {
+        appId = '1504824461464867';
+      }
 
       const redirectUri = `${window.location.origin}/whatsapp/callback`;
       const scopes = 'whatsapp_business_management,whatsapp_business_messaging,business_management';

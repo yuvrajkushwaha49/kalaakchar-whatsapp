@@ -383,8 +383,14 @@ export async function checkClientPlatformReadiness() {
 
   return {
     isReady: isConfigured,
-    appId: isConfigured ? config.metaAppId : null,
-    platformAppId: isConfigured ? config.metaAppId : null,
+    appId: config.metaAppId || (isConfigured ? config.metaAppId : null),
+    platformAppId: config.metaAppId || (isConfigured ? config.metaAppId : null),
+    platformApp: {
+      appId: config.metaAppId,
+      version: config.graphApiVersion,
+      hasConfigId: Boolean(config.embeddedSignupConfigId),
+      configId: config.embeddedSignupConfigId || null
+    },
     hasConfigId: Boolean(config.embeddedSignupConfigId),
     configId: config.embeddedSignupConfigId || null,
     clientMessage: isConfigured
