@@ -47,6 +47,25 @@ export default function AdminMeta() {
     fetchPlatformMetaConfig();
   }, []);
 
+  const handleToggleEnvFallback = async (checked) => {
+    const updated = { ...metaConfig, useEnvFallback: checked };
+    setMetaConfig(updated);
+    try {
+      const res = await api.post('/admin/meta-integration', updated);
+      if (res.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: checked
+            ? 'Server .env mode enabled: System will now use backend/.env credentials by default.'
+            : 'Database-only mode enabled: System will strictly use database credentials only.'
+        });
+        fetchPlatformMetaConfig();
+      }
+    } catch (err) {
+      setFeedback({ type: 'danger', text: err.response?.data?.message || 'Failed to update environment fallback setting.' });
+    }
+  };
+
   const handleSaveMetaConfig = async (e) => {
     e.preventDefault();
     setSavingMeta(true);
@@ -212,7 +231,7 @@ export default function AdminMeta() {
                         role="switch"
                         id="useEnvFallbackToggle"
                         checked={metaConfig.useEnvFallback}
-                        onChange={(e) => setMetaConfig({ ...metaConfig, useEnvFallback: e.target.checked })}
+                        onChange={(e) => handleToggleEnvFallback(e.target.checked)}
                       />
                       <label className="form-check-label small fw-bold" htmlFor="useEnvFallbackToggle">
                         Use Server .env Credentials by Default (Environment Fallback)
@@ -222,12 +241,12 @@ export default function AdminMeta() {
                       {metaConfig.useEnvFallback ? (
                         <span className="text-success d-flex align-items-center gap-1 mt-1">
                           <i className="bi bi-check-circle-fill"></i>
-                          <span><strong>ON:</strong> System automatically falls back to server <code>backend/.env</code> file if credentials are not configured in the database.</span>
+                          <span><strong>ON:</strong> System always prioritizes and uses server <code>backend/.env</code> credentials by default.</span>
                         </span>
                       ) : (
                         <span className="text-secondary d-flex align-items-center gap-1 mt-1">
                           <i className="bi bi-slash-circle-fill"></i>
-                          <span><strong>OFF:</strong> Strictly use database credentials only. Server <code>.env</code> file will be ignored.</span>
+                          <span><strong>OFF:</strong> Strictly use database credentials only. Server <code>.env</code> file is completely ignored.</span>
                         </span>
                       )}
                     </div>

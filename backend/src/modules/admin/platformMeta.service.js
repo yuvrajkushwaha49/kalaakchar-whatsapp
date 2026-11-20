@@ -63,7 +63,7 @@ export async function getPlatformMetaConfig() {
   let activeSource = 'database';
 
   if (!useEnvFallback) {
-    // STRICT MODE: Strictly use Database values only! Ignore .env
+    // STRICT DATABASE MODE: Strictly use Database values only! Ignore .env
     appId = dbAppId;
     rawSecret = dbSecret;
     configId = dbConfigId;
@@ -71,22 +71,13 @@ export async function getPlatformMetaConfig() {
     verifyToken = dbVerifyToken || 'campaignflow_secure_webhook_token_2026';
     activeSource = dbAppId ? 'database' : 'none';
   } else {
-    // FALLBACK MODE: Use DB if set, otherwise fallback to .env
-    if (dbAppId && dbSecret) {
-      appId = dbAppId;
-      rawSecret = dbSecret;
-      configId = dbConfigId || envConfigId;
-      apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
-      verifyToken = dbVerifyToken || envVerifyToken;
-      activeSource = 'database';
-    } else {
-      appId = dbAppId || envAppId || '1165054629187576';
-      rawSecret = dbSecret || (isEnvSecretValid ? envSecret : '');
-      configId = dbConfigId || envConfigId;
-      apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
-      verifyToken = dbVerifyToken || envVerifyToken;
-      activeSource = (envAppId || isEnvSecretValid) ? 'env' : 'database';
-    }
+    // DEFAULT .ENV MODE: Prioritize server .env by default when toggle is ON
+    appId = envAppId || dbAppId || '1165054629187576';
+    rawSecret = (isEnvSecretValid ? envSecret : '') || dbSecret;
+    configId = envConfigId || dbConfigId;
+    apiVersion = envVersion || dbVersion || DEFAULT_API_VERSION;
+    verifyToken = envVerifyToken || dbVerifyToken;
+    activeSource = (envAppId || isEnvSecretValid) ? 'env' : 'database';
   }
 
   const hasSecret = Boolean(rawSecret && rawSecret.length >= 10);
