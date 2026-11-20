@@ -62,7 +62,15 @@ export async function getPlatformMetaConfig() {
   let verifyToken = 'campaignflow_secure_webhook_token_2026';
   let activeSource = 'database';
 
-  if (!useEnvFallback) {
+  const isDbSecretValid = Boolean(
+    dbSecret && 
+    !dbSecret.includes(':') && 
+    !dbSecret.startsWith('sec_test_') && 
+    !dbSecret.includes('placeholder') && 
+    dbSecret.length >= 16
+  );
+
+  if (!useEnvFallback && isDbSecretValid) {
     // STRICT DATABASE MODE: Strictly use Database values only! Ignore .env
     appId = dbAppId;
     rawSecret = dbSecret;
@@ -71,13 +79,14 @@ export async function getPlatformMetaConfig() {
     verifyToken = dbVerifyToken || 'campaignflow_secure_webhook_token_2026';
     activeSource = dbAppId ? 'database' : 'none';
   } else {
-    // DEFAULT .ENV MODE: Prioritize server .env by default when toggle is ON
-    appId = envAppId || dbAppId || '1165054629187576';
-    rawSecret = (isEnvSecretValid ? envSecret : '') || dbSecret;
-    configId = envConfigId || dbConfigId;
-    apiVersion = envVersion || dbVersion || DEFAULT_API_VERSION;
-    verifyToken = envVerifyToken || dbVerifyToken;
-    activeSource = (envAppId || isEnvSecretValid) ? 'env' : 'database';
+    // FALLBACK / DEFAULT .ENV MODE:
+    // Use DB credentials if saved; if missing, automatically fallback to server .env
+    appId = dbAppId || envAppId || '1504824461464867';
+    rawSecret = dbSecret || (isEnvSecretValid ? envSecret : '');
+    configId = dbConfigId || envConfigId;
+    apiVersion = dbVersion || envVersion || DEFAULT_API_VERSION;
+    verifyToken = dbVerifyToken || envVerifyToken;
+    activeSource = dbSecret ? 'database' : (isEnvSecretValid ? 'env' : 'database');
   }
 
   const hasSecret = Boolean(rawSecret && rawSecret.length >= 10);
@@ -151,6 +160,16 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
     encryptedSecret = encryptToken(metaAppSecret.trim());
   }
 
+  const envSecret = (process.env.META_APP_SECRET || '').trim();
+  const isEnvSecretValid = Boolean(
+    envSecret && 
+    !envSecret.includes('yahan_') && 
+    !envSecret.includes('paste_karein') && 
+    envSecret !== 'your_meta_app_secret' && 
+    envSecret.length >= 16 &&
+    !envSecret.includes(':')
+  );
+
   const now = new Date();
 
   if (isUsingFallback()) {
@@ -196,6 +215,17 @@ export async function savePlatformMetaConfig(payload = {}, adminUserId = 1) {
     const [existing] = await executeQuery('SELECT id, encrypted_meta_app_secret FROM platform_meta_configs LIMIT 1');
     if (!encryptedSecret && existing?.encrypted_meta_app_secret) {
       encryptedSecret = existing.encrypted_meta_app_secret;
+    }
+
+    // Auto-heal if database secret is undecryptable or missing
+    if (encryptedSecret) {
+      const testDec = decryptToken(encryptedSecret);
+      if (!testDec || testDec.length < 10) {
+        encryptedSecret = null;
+      }
+    }
+    if (!encryptedSecret && isEnvSecretValid) {
+      encryptedSecret = encryptToken(envSecret);
     }
 
     const readinessStatus = (cleanAppId && encryptedSecret) ? 'ready' : 'incomplete';
@@ -385,16 +415,6 @@ export async function getDecryptedPlatformSecret() {
     if (dbSecret) dbSecret = String(dbSecret).trim();
   }
 
-  // If DB secret is valid real secret (e.g. 32-hex characters), use it
-  if (dbSecret && !dbSecret.includes(':') && !dbSecret.startsWith('sec_test_') && !dbSecret.includes('placeholder') && dbSecret.length >= 16) {
-    return dbSecret;
-  }
-
-  // If SuperAdmin disabled .env fallback, DO NOT use .env!
-  if (!useEnvFallback) {
-    return '';
-  }
-
   const envSecret = (process.env.META_APP_SECRET || '').trim();
   const isEnvValid = Boolean(
     envSecret && 
@@ -405,9 +425,24 @@ export async function getDecryptedPlatformSecret() {
     !envSecret.includes(':')
   );
 
-  // Otherwise, if .env has a real secret and fallback is enabled, use .env!
-  if (isEnvValid) {
-    return envSecret;
+  const isDbSecretValid = Boolean(
+    dbSecret && 
+    !dbSecret.includes(':') && 
+    !dbSecret.startsWith('sec_test_') && 
+    !dbSecret.includes('placeholder') && 
+    dbSecret.length >= 16
+  );
+
+  // If toggle is ON, or if Database has no valid decrypted secret: use .env!
+  if (useEnvFallback || !isDbSecretValid) {
+    if (isEnvValid) {
+      return envSecret;
+    }
+  }
+
+  // If Database has a valid secret, use it
+  if (isDbSecretValid) {
+    return dbSecret;
   }
 
   // Allow sec_test_ ONLY in test environment
