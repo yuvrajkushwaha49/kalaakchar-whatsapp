@@ -359,6 +359,51 @@ export default function AdminMeta() {
                 </div>
               </div>
             </div>
+
+            {/* Valid OAuth Redirect URIs */}
+            <div className="cf-card mb-4">
+              <div className="cf-card-header d-flex align-items-center justify-content-between">
+                <h6 className="mb-0 fw-bold">Valid OAuth Redirect URIs</h6>
+                <span className="badge bg-danger-subtle text-danger border border-danger-subtle">Required by Meta</span>
+              </div>
+              <div className="cf-card-body">
+                <div className="alert alert-warning border border-warning-subtle p-2 mb-3 small">
+                  <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                  <strong>Avoid URL Blocked Error:</strong> If Meta displays <em>"URL Blocked: This redirect failed because the redirect URI is not whitelisted"</em>, you must whitelist this URL in your Meta App.
+                </div>
+                <p className="text-muted small mb-2">
+                  Go to <strong>Meta Developer Dashboard → Products → Facebook Login for Business → Settings</strong> and add this URL to <strong>Valid OAuth Redirect URIs</strong>:
+                </p>
+                <div className="input-group mb-3">
+                  <input
+                    type="text"
+                    className="form-control font-monospace small bg-light"
+                    value={`${window.location.origin}/whatsapp/callback`}
+                    readOnly
+                  />
+                  <button
+                    className="btn btn-outline-secondary"
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/whatsapp/callback`);
+                      alert('Redirect URI copied to clipboard!');
+                    }}
+                    title="Copy Redirect URI"
+                  >
+                    <i className="bi bi-clipboard"></i>
+                  </button>
+                </div>
+
+                <div className="small text-muted border-top pt-2">
+                  <div className="fw-bold mb-1">Also verify in Meta Dashboard:</div>
+                  <ul className="ps-3 mb-0 small text-secondary">
+                    <li>Client OAuth Login: <strong className="text-success">Yes / ON</strong></li>
+                    <li>Web OAuth Login: <strong className="text-success">Yes / ON</strong></li>
+                    <li>App Domains (App Settings → Basic): <code>{window.location.hostname}</code></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

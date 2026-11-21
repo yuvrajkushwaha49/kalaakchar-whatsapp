@@ -89,6 +89,10 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
    * Launch Official Meta Facebook Login for Business / Embedded Signup
    */
   const handleContinueWithFacebook = async () => {
+    if (readiness && readiness.hasAllocatedNumbers === false) {
+      setError('No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.');
+      return;
+    }
     setError(null);
     setWaitingSeconds(0);
     isConnectingRef.current = true;
@@ -247,6 +251,10 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleOpenMetaHostedOnboarding = async () => {
+    if (readiness && readiness.hasAllocatedNumbers === false) {
+      setError('No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.');
+      return;
+    }
     setError(null);
     try {
       const initRes = await api.post('/meta/embedded-signup/initiate', {
@@ -430,15 +438,38 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                     Click <strong>Continue with Facebook</strong> to log into your Facebook account, select your Meta Business Portfolio, and link your official WhatsApp number in under 60 seconds.
                   </p>
 
+                  {readiness && readiness.hasAllocatedNumbers === false && (
+                    <div className="alert alert-warning p-3 rounded-3 text-start mb-4 border border-warning-subtle shadow-xs" style={{ backgroundColor: '#fffbeb' }}>
+                      <div className="d-flex align-items-start gap-2">
+                        <i className="bi bi-shield-lock-fill text-warning fs-3 flex-shrink-0 mt-1"></i>
+                        <div>
+                          <strong className="text-dark d-block mb-1">No WhatsApp Numbers Allocated by Super Admin</strong>
+                          <p className="small text-secondary mb-2">
+                            This business workspace does not currently have any phone numbers allotted in the <strong>Super Admin Number Allocation & Approval Matrix</strong>. Unallocated numbers cannot be connected.
+                          </p>
+                          {isSuperAdmin ? (
+                            <a href="/admin/numbers" className="btn btn-sm btn-warning text-dark fw-bold">
+                              <i className="bi bi-diagram-3-fill me-1"></i> Allocate Numbers in Admin Matrix &rarr;
+                            </a>
+                          ) : (
+                            <span className="badge bg-secondary-subtle text-dark border">
+                              Please ask your Platform Administrator to allocate your WhatsApp number.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="d-flex flex-column align-items-center justify-content-center gap-3">
                     <button
                       type="button"
-                      disabled={checkingReadiness || (readiness && !readiness.isReady)}
+                      disabled={checkingReadiness || (readiness && !readiness.isReady) || (readiness && readiness.hasAllocatedNumbers === false)}
                       onClick={handleContinueWithFacebook}
                       className="btn btn-lg d-flex align-items-center justify-content-center gap-2 px-4 py-3 fw-bold text-white shadow-sm"
                       style={{
-                        backgroundColor: '#1877F2',
-                        borderColor: '#1877F2',
+                        backgroundColor: (readiness && readiness.hasAllocatedNumbers === false) ? '#f59e0b' : '#1877F2',
+                        borderColor: (readiness && readiness.hasAllocatedNumbers === false) ? '#f59e0b' : '#1877F2',
                         borderRadius: '10px',
                         minWidth: '290px',
                         fontSize: '1.05rem'
@@ -448,6 +479,11 @@ export default function MetaSetupWizardModal({ isOpen, onClose, onSuccess }) {
                         <>
                           <span className="spinner-border spinner-border-sm" role="status"></span>
                           <span>Checking Platform Readiness...</span>
+                        </>
+                      ) : (readiness && readiness.hasAllocatedNumbers === false) ? (
+                        <>
+                          <i className="bi bi-shield-lock-fill fs-4"></i>
+                          <span>Number Allocation Required</span>
                         </>
                       ) : (
                         <>

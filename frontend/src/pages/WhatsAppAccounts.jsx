@@ -53,6 +53,7 @@ export default function WhatsAppAccounts() {
   const [pingingWebhook, setPingingWebhook] = useState(false);
   const [detectedMeta, setDetectedMeta] = useState(null);
   const [autoConnecting, setAutoConnecting] = useState(false);
+  const [readiness, setReadiness] = useState(null);
 
   const handleCopy = (text, label) => {
     if (!text) return;
@@ -148,7 +149,17 @@ export default function WhatsAppAccounts() {
 
   useEffect(() => {
     fetchAccounts();
+    fetchReadiness();
   }, []);
+
+  const fetchReadiness = async () => {
+    try {
+      const res = await api.get('/meta/setup/client-readiness');
+      if (res.data?.success) {
+        setReadiness(res.data.data);
+      }
+    } catch (_) {}
+  };
 
   const fetchAccounts = async () => {
     try {
@@ -342,6 +353,28 @@ export default function WhatsAppAccounts() {
               <div>{feedback.text}</div>
             </div>
             <button type="button" className="btn-close" onClick={() => setFeedback({ type: '', text: '' })}></button>
+          </div>
+        )}
+
+        {/* SuperAdmin Number Allocation Warning Banner */}
+        {readiness && readiness.hasAllocatedNumbers === false && (
+          <div className="alert alert-warning border border-warning-subtle shadow-sm rounded-3 p-3 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3" style={{ backgroundColor: '#fffbeb' }}>
+            <div className="d-flex align-items-center gap-3">
+              <div className="p-2 bg-warning bg-opacity-25 rounded-circle text-dark fs-4">
+                <i className="bi bi-shield-lock-fill text-warning"></i>
+              </div>
+              <div>
+                <strong className="d-block text-dark">No WhatsApp Numbers Allocated by Super Admin</strong>
+                <span className="small text-secondary">
+                  This business workspace has not been assigned any phone numbers in the <strong>Number Allocation & Approval Matrix</strong>. A Super Admin must allocate an approved number before you can connect.
+                </span>
+              </div>
+            </div>
+            {isSuperAdmin && (
+              <Link to="/admin/numbers" className="btn btn-sm btn-warning text-dark fw-bold text-nowrap">
+                <i className="bi bi-diagram-3-fill me-1"></i> Allocate Numbers in Matrix &rarr;
+              </Link>
+            )}
           </div>
         )}
 
@@ -727,15 +760,34 @@ export default function WhatsAppAccounts() {
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={handleContinueWithFacebook}
-                          className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold shadow-sm"
-                          style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
-                        >
-                          <i className="bi bi-facebook fs-5"></i>
-                          <span>Continue with Facebook</span>
-                        </button>
+                        {readiness && readiness.hasAllocatedNumbers === false ? (
+                          <div className="d-flex flex-wrap align-items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleContinueWithFacebook}
+                              className="btn btn-warning btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold text-dark shadow-sm"
+                              style={{ borderRadius: '10px' }}
+                            >
+                              <i className="bi bi-shield-lock-fill fs-5"></i>
+                              <span>Number Allocation Required</span>
+                            </button>
+                            {isSuperAdmin && (
+                              <Link to="/admin/numbers" className="btn btn-outline-dark btn-lg fw-semibold" style={{ borderRadius: '10px' }}>
+                                <i className="bi bi-diagram-3-fill me-1"></i> Allocate Numbers
+                              </Link>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleContinueWithFacebook}
+                            className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2 px-4 py-2 fw-bold shadow-sm"
+                            style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', borderRadius: '10px' }}
+                          >
+                            <i className="bi bi-facebook fs-5"></i>
+                            <span>Continue with Facebook</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="col-lg-4 text-center">

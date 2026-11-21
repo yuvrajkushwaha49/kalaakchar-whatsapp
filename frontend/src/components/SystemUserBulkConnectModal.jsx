@@ -61,6 +61,10 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
    * Tareeqa 2: Log in with Facebook (0% Token copy-paste)
    */
   const handleFacebookLoginScan = async () => {
+    if (readiness && readiness.hasAllocatedNumbers === false) {
+      setScanError('No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.');
+      return;
+    }
     setScanning(true);
     setScanError(null);
 
@@ -70,7 +74,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
       try {
         const readinessRes = await api.get('/meta/setup/client-readiness');
         const rData = readinessRes.data?.data;
-        appId = rData?.appId || rData?.platformAppId || rData?.platformApp?.appId;
+        appId = rData?.metaAppId || rData?.appId || rData?.platformAppId || rData?.platformApp?.appId;
       } catch (_) {}
 
       if (!appId) {
@@ -172,6 +176,10 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
    */
   const handleTokenScan = async (e) => {
     if (e) e.preventDefault();
+    if (readiness && readiness.hasAllocatedNumbers === false) {
+      setScanError('No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.');
+      return;
+    }
     if (!token.trim()) {
       setScanError('Please enter a valid Meta System User Permanent Access Token.');
       return;
@@ -416,6 +424,29 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
             {/* STEP 1: DISCOVER (Facebook Login vs System User Token) */}
             {step === 1 && (
               <div>
+                {readiness && readiness.hasAllocatedNumbers === false && (
+                  <div className="alert alert-warning border border-warning-subtle shadow-sm rounded-3 p-3 mb-4 text-start" style={{ backgroundColor: '#fffbeb' }}>
+                    <div className="d-flex align-items-start gap-3">
+                      <i className="bi bi-shield-lock-fill text-warning fs-3 flex-shrink-0 mt-1"></i>
+                      <div className="flex-grow-1">
+                        <strong className="text-dark d-block mb-1">No WhatsApp Numbers Allocated by Super Admin</strong>
+                        <p className="small text-secondary mb-2">
+                          This business workspace has not been allocated any WhatsApp numbers in the <strong>Super Admin Number Allocation & Approval Matrix</strong>. Only pre-approved and allocated numbers will be visible and can be connected.
+                        </p>
+                        {isSuperAdmin ? (
+                          <a href="/admin/numbers" className="btn btn-sm btn-warning text-dark fw-bold">
+                            <i className="bi bi-diagram-3-fill me-1"></i> Allocate Numbers in Admin Matrix &rarr;
+                          </a>
+                        ) : (
+                          <span className="badge bg-secondary-subtle text-dark border">
+                            Please contact your Platform Administrator to allocate your WhatsApp number.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {scanError && (
                   <div className="alert alert-danger rounded-3 mb-4 d-flex align-items-center gap-2">
                     <i className="bi bi-exclamation-triangle-fill fs-5"></i>
@@ -464,7 +495,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                     <div className="d-flex justify-content-center mb-4">
                       <button
                         type="button"
-                        disabled={scanning}
+                        disabled={scanning || readiness?.hasAllocatedNumbers === false}
                         onClick={handleFacebookLoginScan}
                         className="btn btn-primary btn-lg px-5 py-3 fw-bold shadow d-flex align-items-center gap-3 rounded-3"
                         style={{ backgroundColor: '#1877F2', borderColor: '#1877F2', fontSize: '1.15rem' }}
@@ -473,6 +504,11 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
                           <>
                             <span className="spinner-border spinner-border-sm" role="status"></span>
                             <span>Opening Facebook Login & Scanning...</span>
+                          </>
+                        ) : readiness?.hasAllocatedNumbers === false ? (
+                          <>
+                            <i className="bi bi-shield-lock-fill fs-4"></i>
+                            <span>Number Allocation Required</span>
                           </>
                         ) : (
                           <>
@@ -567,7 +603,7 @@ export default function SystemUserBulkConnectModal({ isOpen, onClose, onSuccess,
 
                         <button
                           type="submit"
-                          disabled={scanning || !token.trim()}
+                          disabled={scanning || !token.trim() || readiness?.hasAllocatedNumbers === false}
                           className="btn btn-success px-4 py-2 fw-semibold d-flex align-items-center gap-2 shadow-sm"
                         >
                           {scanning ? (

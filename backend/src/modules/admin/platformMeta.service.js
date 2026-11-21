@@ -119,6 +119,7 @@ export async function getPlatformMetaConfig() {
     useEnvFallback,
     activeSource,
     readinessStatus,
+    isReady: readinessStatus === 'ready',
     missingFields,
     lastTestedAt: record?.last_tested_at || null,
     requiredPermissions: [

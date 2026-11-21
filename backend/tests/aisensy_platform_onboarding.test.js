@@ -18,11 +18,11 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
         if (rows?.[0]?.encrypted_meta_app_secret) initialSecret = rows[0].encrypted_meta_app_secret;
 
         await executeQuery(`
-          INSERT INTO businesses (id, name, slug, timezone, status, created_at, updated_at)
+          INSERT INTO businesses (id, name, slug, timezone, status, allowed_phone_numbers, created_at, updated_at)
           VALUES 
-            (1, 'Acme Retail Tenant 1', 'acme-retail-1', 'UTC', 'active', NOW(), NOW()),
-            (2, 'Client B Healthcare Tenant 2', 'client-b-healthcare-2', 'UTC', 'active', NOW(), NOW())
-          ON DUPLICATE KEY UPDATE name = VALUES(name)
+            (1, 'Acme Retail Tenant 1', 'acme-retail-1', 'UTC', 'active', '["*"]', NOW(), NOW()),
+            (2, 'Client B Healthcare Tenant 2', 'client-b-healthcare-2', 'UTC', 'active', '["*"]', NOW(), NOW())
+          ON DUPLICATE KEY UPDATE name = VALUES(name), allowed_phone_numbers = '["*"]'
         `);
       } catch (e) {
         // Continue if already exists or constraint handles it

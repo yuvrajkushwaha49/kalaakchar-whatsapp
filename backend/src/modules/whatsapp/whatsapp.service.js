@@ -35,6 +35,34 @@ export async function getConnectConfig(businessId) {
 }
 
 /**
+ * Helper to determine if a candidate phone number / Phone Number ID is approved/allocated
+ * in the business's allowed_phone_numbers list from Super Admin Number Allocation Matrix.
+ */
+export function isNumberAllocatedToTenant(candidateId, candidatePhone, allowedList) {
+  if (!Array.isArray(allowedList) || allowedList.length === 0) return false;
+  if (allowedList.includes('*')) return true;
+
+  const normalizeDigits = (p) => String(p || '').replace(/\D/g, '');
+  const candDigits = normalizeDigits(candidatePhone);
+  const candIdStr = String(candidateId || '').trim();
+
+  return allowedList.some(item => {
+    const itemStr = String(item || '').trim();
+    if (!itemStr) return false;
+    // Direct match on Phone Number ID
+    if (candIdStr && (itemStr === candIdStr || itemStr === `+${candIdStr}`)) return true;
+    // Match normalized digits
+    const itemDigits = normalizeDigits(itemStr);
+    if (itemDigits && candDigits) {
+      if (itemDigits === candDigits) return true;
+      // Match last 10 digits
+      if (itemDigits.length >= 10 && candDigits.length >= 10 && itemDigits.slice(-10) === candDigits.slice(-10)) return true;
+    }
+    return false;
+  });
+}
+
+/**
  * Complete Meta Embedded Signup Onboarding
  * 1. Exchanges OAuth Code for System/User Access Token
  * 2. Fetches WABA & Phone details from Meta Graph API
@@ -183,14 +211,43 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   }
   const wabaDetails = await client.getWabaDetails(targetWabaId);
 
+  const displayName = phoneDetails.verified_name || phoneDetails.display_phone_number || businessName || 'Official WhatsApp Account';
+  const phoneNumber = phoneDetails.display_phone_number || (targetPhoneId ? `+${targetPhoneId}` : 'Verified WhatsApp Account');
+
+  // Security Gate: Verify this WhatsApp number is allocated to this business in the Super Admin Number Allocation Matrix
+  let allowedList = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const biz = (store.businesses || []).find(b => b.id === numBusinessId);
+    if (biz?.allowed_phone_numbers) {
+      try { allowedList = JSON.parse(biz.allowed_phone_numbers); } catch (_) { allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean); }
+    }
+  } else {
+    const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
+    const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
+    if (rawAllowed) {
+      try { allowedList = JSON.parse(rawAllowed); } catch (_) { allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean); }
+    }
+  }
+
+  const hasAllocatedNumbers = Array.isArray(allowedList) && allowedList.length > 0;
+  const isAllowed = hasAllocatedNumbers && isNumberAllocatedToTenant(targetPhoneId, phoneNumber, allowedList);
+
+  if (!isAllowed) {
+    const errMsg = !hasAllocatedNumbers
+      ? 'No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please contact your Super Admin to allocate this number first.'
+      : `The WhatsApp phone number (${phoneNumber}) has not been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix.`;
+    const err = new Error(errMsg);
+    err.statusCode = 403;
+    throw err;
+  }
+
   // 4. Subscribe App to WABA Webhooks
   await client.subscribeWabaWebhook(targetWabaId);
 
   // 5. Register Phone Number
   await client.registerPhoneNumber(targetPhoneId);
 
-  const displayName = phoneDetails.verified_name || phoneDetails.display_phone_number || businessName || 'Official WhatsApp Account';
-  const phoneNumber = phoneDetails.display_phone_number || (targetPhoneId ? `+${targetPhoneId}` : 'Verified WhatsApp Account');
   const qualityRating = phoneDetails.quality_rating || 'GREEN';
   const messagingTier = phoneDetails.messaging_limit_tier || 'TIER_10K';
   const now = new Date();
@@ -2260,9 +2317,6 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
 
   // Verification helper: Determine if a Meta discovered phone number is approved/allocated for this client
   const isNumberAllowedForTenant = (candidateId, candidatePhone) => {
-    // SuperAdmin has full discovery privileges
-    if (isSuperAdmin) return true;
-
     const candDigits = normalizeDigits(candidatePhone);
     const candId = String(candidateId || '');
 
@@ -2293,17 +2347,7 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
 
     // Rule C: Check SuperAdmin Pre-Approved allowed_phone_numbers list
     if (Array.isArray(allowedList) && allowedList.length > 0) {
-      if (allowedList.includes('*')) return true;
-      return allowedList.some(item => {
-        const itemStr = String(item || '').trim();
-        if (itemStr === candId) return true;
-        const itemDigits = normalizeDigits(itemStr);
-        if (itemDigits && candDigits) {
-          if (itemDigits === candDigits) return true;
-          if (itemDigits.length >= 10 && candDigits.length >= 10 && itemDigits.slice(-10) === candDigits.slice(-10)) return true;
-        }
-        return false;
-      });
+      return isNumberAllocatedToTenant(candId, candidatePhone, allowedList);
     }
 
     // By default, if not in allowed list and not an active account, hide from tenant
@@ -2315,10 +2359,8 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
     const rawPhones = waba.phoneNumbers || [];
     totalDiscoveredFromMeta += rawPhones.length;
 
-    // Filter numbers according to SuperAdmin Allocation Matrix for clients
-    const filteredPhones = isSuperAdmin
-      ? rawPhones
-      : rawPhones.filter(phone => isNumberAllowedForTenant(phone.id, phone.display_phone_number));
+    // Filter numbers according to SuperAdmin Allocation Matrix for this business
+    const filteredPhones = rawPhones.filter(phone => isNumberAllowedForTenant(phone.id, phone.display_phone_number));
 
     const phones = filteredPhones.map(phone => {
       const existing = existingPhoneMap.get(String(phone.id));
@@ -2348,10 +2390,9 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
     };
   });
 
-  // For clients, only keep WABAs that have at least 1 visible allowed number
-  const visibleWabas = isSuperAdmin
-    ? annotatedWabas
-    : annotatedWabas.filter(w => w.phoneNumbers.length > 0);
+  const hasAllocatedNumbers = Array.isArray(allowedList) && allowedList.length > 0;
+  // Only keep WABAs that have at least 1 visible allowed number
+  const visibleWabas = annotatedWabas.filter(w => w.phoneNumbers.length > 0);
 
   const totalPhoneNumbers = visibleWabas.reduce((sum, w) => sum + (w.phoneNumbers?.length || 0), 0);
 
@@ -2364,8 +2405,12 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
     totalWabas: visibleWabas.length,
     totalPhoneNumbers,
     totalDiscoveredFromMeta,
-    isFilteredBySuperAdmin: !isSuperAdmin,
-    allowedPhoneNumbers: isSuperAdmin ? [] : allowedList,
+    hasAllocatedNumbers,
+    isFilteredBySuperAdmin: true,
+    allowedPhoneNumbers: allowedList || [],
+    allocationWarning: !hasAllocatedNumbers
+      ? 'No WhatsApp numbers have been allocated to this business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.'
+      : (totalPhoneNumbers === 0 ? 'None of the discovered WhatsApp numbers in this Meta account match the numbers allocated to this business by the Super Admin.' : null),
     wabas: visibleWabas
   };
 }
@@ -2391,83 +2436,72 @@ export async function bulkConnectSystemUserAccounts(businessId, payload = {}, re
     throw err;
   }
 
-  // Security gate: non-superadmin clients cannot connect disallowed numbers
-  if (!isSuperAdmin) {
-    await ensureAllowedNumbersColumn();
+  // Security gate: strictly verify that selected numbers are allocated to this business in the Super Admin Number Allocation Matrix
+  await ensureAllowedNumbersColumn();
 
-    let allowedList = [];
-    if (isUsingFallback()) {
-      const store = getMemoryStore();
-      const biz = (store.businesses || []).find(b => b.id === numBusinessId);
-      if (biz?.allowed_phone_numbers) {
-        try { allowedList = JSON.parse(biz.allowed_phone_numbers); } catch (_) { allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean); }
-      }
-    } else {
-      const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
-      const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
-      if (rawAllowed) {
-        try { allowedList = JSON.parse(rawAllowed); } catch (_) { allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean); }
-      }
+  let allowedList = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const biz = (store.businesses || []).find(b => b.id === numBusinessId);
+    if (biz?.allowed_phone_numbers) {
+      try { allowedList = JSON.parse(biz.allowed_phone_numbers); } catch (_) { allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean); }
     }
-
-    let tenantAccounts = [];
-    let otherAccounts = [];
-    if (isUsingFallback()) {
-      const store = getMemoryStore();
-      tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
-      otherAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
-    } else {
-      const allAccounts = await executeQuery(
-        'SELECT id, business_id, waba_id, phone_number_id, phone_number, COALESCE(admin_status, "ACTIVE") as admin_status FROM whatsapp_accounts'
-      );
-      tenantAccounts = (allAccounts || []).filter(a => a.business_id === numBusinessId);
-      otherAccounts = (allAccounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+  } else {
+    const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
+    const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
+    if (rawAllowed) {
+      try { allowedList = JSON.parse(rawAllowed); } catch (_) { allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean); }
     }
+  }
 
-    const normalizeDigits = (p) => String(p || '').replace(/\D/g, '');
+  let tenantAccounts = [];
+  let otherAccounts = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    tenantAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id === numBusinessId);
+    otherAccounts = (store.whatsapp_accounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+  } else {
+    const allAccounts = await executeQuery(
+      'SELECT id, business_id, waba_id, phone_number_id, phone_number, COALESCE(admin_status, "ACTIVE") as admin_status FROM whatsapp_accounts'
+    );
+    tenantAccounts = (allAccounts || []).filter(a => a.business_id === numBusinessId);
+    otherAccounts = (allAccounts || []).filter(a => a.business_id && a.business_id !== numBusinessId);
+  }
 
-    const isAllowed = (candId, candPhone) => {
-      const candDigits = normalizeDigits(candPhone);
-      const idStr = String(candId || '');
+  const normalizeDigits = (p) => String(p || '').replace(/\D/g, '');
 
-      const belongsToOther = otherAccounts.some(oa => {
-        if (String(oa.phone_number_id) === idStr) return true;
-        const oDigits = normalizeDigits(oa.phone_number);
-        return oDigits && candDigits && (oDigits === candDigits || (oDigits.length >= 10 && candDigits.length >= 10 && oDigits.slice(-10) === candDigits.slice(-10)));
-      });
-      if (belongsToOther) return false;
+  const isAllowed = (candId, candPhone) => {
+    const candDigits = normalizeDigits(candPhone);
+    const idStr = String(candId || '');
 
-      const myExisting = tenantAccounts.find(ma => {
-        if (String(ma.phone_number_id) === idStr) return true;
-        const mDigits = normalizeDigits(ma.phone_number);
-        return mDigits && candDigits && (mDigits === candDigits || (mDigits.length >= 10 && candDigits.length >= 10 && mDigits.slice(-10) === candDigits.slice(-10)));
-      });
-      if (myExisting && myExisting.admin_status === 'DEACTIVE') return false;
-      if (myExisting && myExisting.admin_status !== 'DEACTIVE') return true;
+    const belongsToOther = otherAccounts.some(oa => {
+      if (String(oa.phone_number_id) === idStr) return true;
+      const oDigits = normalizeDigits(oa.phone_number);
+      return oDigits && candDigits && (oDigits === candDigits || (oDigits.length >= 10 && candDigits.length >= 10 && oDigits.slice(-10) === candDigits.slice(-10)));
+    });
+    if (belongsToOther) return false;
 
-      if (Array.isArray(allowedList) && allowedList.length > 0) {
-        if (allowedList.includes('*')) return true;
-        return allowedList.some(item => {
-          const itemStr = String(item || '').trim();
-          if (itemStr === idStr) return true;
-          const iDigits = normalizeDigits(itemStr);
-          if (iDigits && candDigits) {
-            if (iDigits === candDigits) return true;
-            if (iDigits.length >= 10 && candDigits.length >= 10 && iDigits.slice(-10) === candDigits.slice(-10)) return true;
-          }
-          return false;
-        });
-      }
-      return false;
-    };
+    const myExisting = tenantAccounts.find(ma => {
+      if (String(ma.phone_number_id) === idStr) return true;
+      const mDigits = normalizeDigits(ma.phone_number);
+      return mDigits && candDigits && (mDigits === candDigits || (mDigits.length >= 10 && candDigits.length >= 10 && mDigits.slice(-10) === candDigits.slice(-10)));
+    });
+    if (myExisting && myExisting.admin_status === 'DEACTIVE') return false;
+    if (myExisting && myExisting.admin_status !== 'DEACTIVE') return true;
 
-    const disallowed = selectedPhones.filter(p => !isAllowed(p.phoneNumberId || p.id, p.phoneNumber || p.displayPhoneNumber));
-    if (disallowed.length > 0) {
-      const rejectedPhone = disallowed[0].phoneNumber || disallowed[0].displayPhoneNumber || disallowed[0].phoneNumberId || disallowed[0].id;
-      const err = new Error(`WhatsApp number ${rejectedPhone} is not approved or allocated for your business by SuperAdmin.`);
-      err.statusCode = 403;
-      throw err;
-    }
+    return isNumberAllocatedToTenant(idStr, candPhone, allowedList);
+  };
+
+  const disallowed = selectedPhones.filter(p => !isAllowed(p.phoneNumberId || p.id, p.phoneNumber || p.displayPhoneNumber));
+  if (disallowed.length > 0) {
+    const rejectedPhone = disallowed[0].phoneNumber || disallowed[0].displayPhoneNumber || disallowed[0].phoneNumberId || disallowed[0].id;
+    const hasAllocated = Array.isArray(allowedList) && allowedList.length > 0;
+    const errMsg = !hasAllocated
+      ? 'No WhatsApp numbers have been allocated to this business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved number first.'
+      : `WhatsApp number ${rejectedPhone} is not allocated to this business in the Super Admin Number Allocation Matrix.`;
+    const err = new Error(errMsg);
+    err.statusCode = 403;
+    throw err;
   }
 
   logger.info(`⚡ [BulkConnect] Connecting ${selectedPhones.length} WhatsApp numbers concurrently for Business #${numBusinessId}...`);

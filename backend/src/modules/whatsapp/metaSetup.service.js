@@ -332,7 +332,43 @@ export async function validateSetup(businessId) {
  * Check Platform Readiness for Client Onboarding
  */
 export async function checkClientReadiness(businessId) {
-  return platformMetaService.checkClientPlatformReadiness();
+  const platformReadiness = await platformMetaService.checkClientPlatformReadiness();
+  const numBusinessId = Number(businessId);
+
+  let allowedList = [];
+  if (isUsingFallback()) {
+    const store = getMemoryStore();
+    const biz = (store.businesses || []).find(b => b.id === numBusinessId);
+    if (biz?.allowed_phone_numbers) {
+      try { allowedList = JSON.parse(biz.allowed_phone_numbers); } catch (_) { allowedList = String(biz.allowed_phone_numbers).split(',').map(s => s.trim()).filter(Boolean); }
+    }
+  } else {
+    try {
+      const bizRows = await executeQuery('SELECT allowed_phone_numbers FROM businesses WHERE id = ?', [numBusinessId]);
+      const rawAllowed = bizRows?.[0]?.allowed_phone_numbers;
+      if (rawAllowed) {
+        try { allowedList = typeof rawAllowed === 'string' ? JSON.parse(rawAllowed) : rawAllowed; } catch (_) { allowedList = String(rawAllowed).split(',').map(s => s.trim()).filter(Boolean); }
+      }
+    } catch (_) {}
+  }
+
+  const hasAllocatedNumbers = Array.isArray(allowedList) && allowedList.length > 0;
+  const appId = platformReadiness.appId || platformReadiness.metaAppId || platformReadiness.platformApp?.appId;
+  const configId = platformReadiness.configId || platformReadiness.embeddedSignupConfigId || platformReadiness.platformApp?.configId;
+
+  return {
+    ...platformReadiness,
+    appId,
+    metaAppId: appId,
+    platformAppId: appId,
+    configId,
+    embeddedSignupConfigId: configId,
+    hasAllocatedNumbers,
+    allowedPhoneNumbers: allowedList,
+    allocationWarning: !hasAllocatedNumbers
+      ? 'No WhatsApp numbers have been allocated to this business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved phone number first before connecting.'
+      : null
+  };
 }
 
 /**
@@ -439,6 +475,15 @@ export async function validateOnboardingSession(businessId, state) {
  */
 export async function initiateSignup(businessId, redirectOrigin = '') {
   const numBusinessId = Number(businessId);
+
+  // Security gate: Ensure this business has at least one allocated number in Super Admin Matrix
+  const readiness = await checkClientReadiness(numBusinessId);
+  if (!readiness.hasAllocatedNumbers) {
+    const err = new Error('No WhatsApp numbers have been allocated to your business by the Super Admin in the Number Allocation & Approval Matrix. Please allocate an approved phone number first before connecting.');
+    err.statusCode = 403;
+    throw err;
+  }
+
   const platformConfig = await platformMetaService.getPlatformMetaConfig();
   const status = await getSetupStatus(numBusinessId);
 
