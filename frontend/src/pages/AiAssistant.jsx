@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useOutletContext, Link } from 'react-router-dom';
 import api from '../services/api';
 import AiwavoHeader from '../components/AiwavoHeader';
 
@@ -18,17 +18,41 @@ export default function AiAssistant() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [planFeatures, setPlanFeatures] = useState(null);
+  const [planLockedMsg, setPlanLockedMsg] = useState('');
+
+  useEffect(() => {
+    api.get('/billing/features').then(res => {
+      if (res.data?.success) {
+        setPlanFeatures(res.data.data);
+        if (res.data.data.features && !res.data.data.features.ai_copy_generator) {
+          setPlanLockedMsg(`AI Campaign Copywriter is not included in your current "${res.data.data.planName}" plan. Upgrade to Starter or Pro to unlock AI copy generation.`);
+        }
+      }
+    }).catch(() => {});
+  }, []);
+
+  const isLocked = planFeatures?.features && !planFeatures.features.ai_copy_generator;
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+    if (isLocked) {
+      setPlanLockedMsg(`AI Campaign Assistant is locked on your current plan. Please upgrade to unlock.`);
+      return;
+    }
     setLoading(true);
+    setPlanLockedMsg('');
     try {
       const res = await api.post('/ai/generate-copy', formData);
       if (res.data?.success) {
         setResult(res.data.data);
       }
     } catch (err) {
-      alert('Failed to generate copy');
+      if (err.response?.data?.error?.code === 'PLAN_FEATURE_LOCKED') {
+        setPlanLockedMsg(err.response.data.error.message);
+      } else {
+        alert(err.response?.data?.error?.message || 'Failed to generate copy');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,6 +73,30 @@ export default function AiAssistant() {
       />
 
       <div className="p-4">
+        {planLockedMsg && (
+          <div className="alert alert-warning border-warning-subtle shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 rounded-3 p-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="bg-warning-subtle text-warning p-2 rounded-circle fs-4 d-flex align-items-center justify-content-center" style={{ width: 44, height: 44 }}>
+                <i className="bi bi-lock-fill"></i>
+              </div>
+              <div>
+                <h6 className="fw-bold mb-1 text-dark">Feature Locked on Current Plan</h6>
+                <p className="mb-0 text-secondary small">{planLockedMsg}</p>
+              </div>
+            </div>
+            <Link to="/billing" className="btn btn-warning text-dark fw-semibold px-4 py-2 rounded-pill shadow-sm">
+              <i className="bi bi-arrow-up-circle-fill me-1"></i> Upgrade to Unlock
+            </Link>
+          </div>
+        )}
+
+        {planFeatures && !isLocked && (
+          <div className="mb-3 d-flex align-items-center gap-2">
+            <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+              <i className="bi bi-patch-check-fill me-1"></i> Plan: {planFeatures.planName} (AI Copywriter Unlocked)
+            </span>
+          </div>
+        )}
 
       <div className="row g-4">
         {/* Input Form */}
@@ -131,20 +179,30 @@ export default function AiAssistant() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-cf-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2"
-                >
-                  {loading ? (
-                    <span className="spinner-border spinner-border-sm" role="status"></span>
-                  ) : (
-                    <>
-                      <i className="bi bi-stars"></i>
-                      <span>Generate Marketing Copy</span>
-                    </>
-                  )}
-                </button>
+                {isLocked ? (
+                  <Link
+                    to="/billing"
+                    className="btn btn-warning w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold text-dark shadow-sm"
+                  >
+                    <i className="bi bi-lock-fill"></i>
+                    <span>Upgrade Plan to Unlock AI</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-cf-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+                  >
+                    {loading ? (
+                      <span className="spinner-border spinner-border-sm" role="status"></span>
+                    ) : (
+                      <>
+                        <i className="bi bi-stars"></i>
+                        <span>Generate Marketing Copy</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </form>
             </div>
           </div>

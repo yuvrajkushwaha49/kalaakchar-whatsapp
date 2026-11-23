@@ -15,7 +15,11 @@ async function runSeed() {
 
   let connection;
   try {
-    connection = await mysql.createConnection({ host, port, user, password, database });
+    const connConfig = { host, port, user, password, database };
+    if (process.env.DATABASE_SSL === 'true' || process.env.DB_SSL === 'true') {
+      connConfig.ssl = { rejectUnauthorized: false };
+    }
+    connection = await mysql.createConnection(connConfig);
 
     const passwordHash = await bcrypt.hash('Password123!', 10);
 
@@ -24,11 +28,11 @@ async function runSeed() {
     await connection.query(`
       INSERT INTO subscription_plans (id, name, slug, monthly_price, max_contacts, max_campaigns_per_month, max_messages_per_month, max_team_members, features)
       VALUES 
-      (1, 'Free Trial', 'free', 0.00, 250, 2, 500, 1, '{"analytics": "basic", "ai_assistant": false, "api_access": false}'),
-      (2, 'Starter Growth', 'starter', 29.00, 2500, 15, 10000, 3, '{"analytics": "standard", "ai_assistant": true, "api_access": false}'),
-      (3, 'Pro Automation', 'pro', 79.00, 15000, 50, 75000, 10, '{"analytics": "advanced", "ai_assistant": true, "api_access": true}'),
-      (4, 'Enterprise Scale', 'enterprise', 249.00, 100000, 9999, 500000, 50, '{"analytics": "custom", "ai_assistant": true, "api_access": true, "dedicated_ip": true}')
-      ON DUPLICATE KEY UPDATE name=VALUES(name), monthly_price=VALUES(monthly_price), max_contacts=VALUES(max_contacts);
+      (1, 'Free Trial', 'free', 0.00, 250, 2, 500, 1, '{"ai_copy_generator": false, "ai_monthly_limit": 0, "scheduled_campaigns": false, "keyword_auto_replies": false, "max_auto_reply_rules": 0, "shared_team_inbox": true, "agent_assignment": false, "custom_tags_attributes": false, "webhooks": false, "api_access": false, "analytics_level": "basic", "support_level": "community", "export_reports": false}'),
+      (2, 'Starter Growth', 'starter', 2499.00, 2500, 15, 10000, 3, '{"ai_copy_generator": true, "ai_monthly_limit": 10, "scheduled_campaigns": true, "keyword_auto_replies": true, "max_auto_reply_rules": 5, "shared_team_inbox": true, "agent_assignment": true, "custom_tags_attributes": true, "webhooks": false, "api_access": false, "analytics_level": "standard", "support_level": "email", "export_reports": true}'),
+      (3, 'Pro Automation', 'pro', 6499.00, 15000, 50, 75000, 10, '{"ai_copy_generator": true, "ai_monthly_limit": 99999, "scheduled_campaigns": true, "keyword_auto_replies": true, "max_auto_reply_rules": 25, "shared_team_inbox": true, "agent_assignment": true, "custom_tags_attributes": true, "webhooks": true, "api_access": true, "analytics_level": "advanced", "support_level": "priority_whatsapp", "export_reports": true}'),
+      (4, 'Enterprise Scale', 'enterprise', 19999.00, 100000, 9999, 500000, 50, '{"ai_copy_generator": true, "ai_monthly_limit": 99999, "scheduled_campaigns": true, "keyword_auto_replies": true, "max_auto_reply_rules": 999, "shared_team_inbox": true, "agent_assignment": true, "custom_tags_attributes": true, "webhooks": true, "api_access": true, "analytics_level": "custom", "support_level": "dedicated_sla", "export_reports": true}')
+      ON DUPLICATE KEY UPDATE name=VALUES(name), monthly_price=VALUES(monthly_price), max_contacts=VALUES(max_contacts), features=VALUES(features);
     `);
 
     // 2. Seed Super Admin
@@ -249,6 +253,17 @@ async function runSeed() {
       (1, 'messages_sent', 5, DATE_FORMAT(NOW(), '%Y-%m')),
       (1, 'contacts_stored', 5, DATE_FORMAT(NOW(), '%Y-%m')),
       (1, 'campaigns_run', 1, DATE_FORMAT(NOW(), '%Y-%m'))
+    `);
+
+    // 14. Seed Keyword Auto-Replies
+    console.log('🌱 Seeding Keyword Auto-Replies...');
+    await connection.query(`
+      INSERT INTO keyword_auto_replies (id, business_id, keyword, match_type, reply_text, is_active, trigger_count)
+      VALUES 
+      (1, 1, 'OFFER', 'contains', '🎉 Welcome to Acme Retail! Use coupon code FESTIVE30 for Flat 30% OFF on all Festive Kurtas & Ethnic Wear today. Visit https://www.kalaakchar.in to order now!', 1, 14),
+      (2, 1, 'SUPPORT', 'contains', '👋 Hi! Our customer support agent has been notified and will assist you shortly. You can also write to us at support@acmeretail.com.', 1, 9),
+      (3, 1, 'PRICE', 'contains', '🏷️ Our Festive Kurta Collection starts from just ₹799! Free express delivery on orders above ₹1,999. Reply CATALOG to view items.', 1, 22)
+      ON DUPLICATE KEY UPDATE reply_text=VALUES(reply_text);
     `);
 
     console.log('🎉 [Seeder] Development database seeded successfully!');

@@ -620,6 +620,14 @@ export async function processWebhookPayload(payload) {
 
                 emitToTenant(matchedBusinessId, 'inbox:new_message', socketPayload);
                 emitToTenant(matchedBusinessId, 'inbox:conversation_updated', { conversation: socketPayload.conversation });
+
+                // Trigger keyword auto-reply if applicable
+                try {
+                  const { matchAndTriggerAutoReply } = await import('../autoReplies/autoReplies.service.js');
+                  await matchAndTriggerAutoReply(matchedBusinessId, textBody, senderPhone, matchedAccountId);
+                } catch (autoErr) {
+                  logger.warn(`[Webhook] Auto-reply trigger notice: ${autoErr.message}`);
+                }
               }
             } catch (dbErr) {
               logger.error('[Webhook] Failed to persist incoming WhatsApp message to DB:', dbErr);

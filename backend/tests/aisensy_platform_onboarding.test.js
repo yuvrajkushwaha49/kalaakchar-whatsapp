@@ -68,7 +68,7 @@ describe('AiSensy-Style WhatsApp SaaS Onboarding & Platform Architecture Suite',
   });
 
   test('4. CSRF Protection: Generate and Track Onboarding Session State', async () => {
-    const initData = await metaSetupService.initiateSignup(1, 'https://whatsapp.bhaktisong.fun');
+    const initData = await metaSetupService.initiateSignup(1, 'http://whatsapp.kalaakchar.in');
     assert.ok(initData.appId, 'Platform App ID must be present');
     assert.ok(initData.state, 'CSRF state token must be generated');
     assert.strictEqual(initData.state.length, 48, 'State token must be 24-byte hex string');

@@ -16,6 +16,7 @@ import analyticsRouter from './modules/analytics/analytics.routes.js';
 import usersRouter from './modules/users/users.routes.js';
 import adminRouter from './modules/admin/admin.routes.js';
 import aiRouter from './modules/ai/ai.routes.js';
+import autoRepliesRouter from './modules/autoReplies/autoReplies.routes.js';
 import metaRouter from './modules/whatsapp/metaSetup.routes.js';
 import logsRouter from './modules/logs/logs.routes.js';
 import notificationsRouter from './modules/notifications/notifications.routes.js';
@@ -34,7 +35,12 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
-  'https://whatsapp.bhaktisong.fun',
+  'http://whatsapp.kalaakchar.in',
+  'https://whatsapp.kalaakchar.in',
+  'http://kalaakchar.in',
+  'https://kalaakchar.in',
+  'http://www.kalaakchar.in',
+  'https://www.kalaakchar.in',
   'https://aiveexa.com',
   'https://www.aiveexa.com',
   'http://aiveexa.com',
@@ -42,16 +48,37 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 export const isCorsOriginAllowed = (origin) => {
-  if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  if (!origin) return true; // Allow server-to-server, Postman, webhooks
+  const cleanOrigin = origin.trim().replace(/\/+$/, '').toLowerCase();
+
+  // 1. Check exact configured list
+  const normalizedAllowed = allowedOrigins.map(o => o?.trim().replace(/\/+$/, '').toLowerCase());
+  if (normalizedAllowed.includes(cleanOrigin)) return true;
+
+  // 2. Allow all subdomains of kalaakchar.in (both http and https, with any port)
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*kalaakchar\.in(:\d+)?$/.test(cleanOrigin)) {
+    return true;
+  }
+
+  // 3. Allow all subdomains of aiveexa.com
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*aiveexa\.com(:\d+)?$/.test(cleanOrigin)) {
+    return true;
+  }
+
+  // 4. Allow local development origins
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+    return true;
+  }
+
   return false;
 };
 
 const app = express();
 
 // Security and utility middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (isCorsOriginAllowed(origin)) {
@@ -62,8 +89,9 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-hub-signature-256']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-hub-signature-256', 'x-requested-with', 'Accept', 'Origin']
 }));
+app.options('*', cors());
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
@@ -104,6 +132,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/auto-replies', autoRepliesRouter);
 app.use('/api/activity-logs', logsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/api/notifications', notificationsRouter);

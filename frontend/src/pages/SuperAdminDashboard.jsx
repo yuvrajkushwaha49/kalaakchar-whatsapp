@@ -828,14 +828,14 @@ export default function SuperAdminDashboard() {
                 <div className="mb-3">
                   <label className="small text-muted fw-bold">1. App Domains (Settings → Basic)</label>
                   <div className="p-2 bg-light rounded font-monospace small border">
-                    bhaktisong.fun, whatsapp.bhaktisong.fun
+                    kalaakchar.in, whatsapp.kalaakchar.in
                   </div>
                 </div>
 
                 <div className="mb-3">
                   <label className="small text-muted fw-bold">2. Valid OAuth Redirect URIs (Facebook Login → Settings)</label>
                   <div className="p-2 bg-light rounded font-monospace small border">
-                    https://whatsapp.bhaktisong.fun/whatsapp/callback
+                    http://whatsapp.kalaakchar.in/whatsapp/callback
                   </div>
                 </div>
 

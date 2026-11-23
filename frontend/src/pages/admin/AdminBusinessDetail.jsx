@@ -382,7 +382,7 @@ export default function AdminBusinessDetail() {
           </div>
           <div className="tenant-kpi-info">
             <span className="tenant-kpi-label">Monthly Billing</span>
-            <span className="tenant-kpi-value">${Number(subscription?.monthly_price || 0).toFixed(2)}</span>
+            <span className="tenant-kpi-value">₹{Number(subscription?.monthly_price || 0).toLocaleString('en-IN')}</span>
             <span className="tenant-kpi-sub">
               Status: {subscription?.status || 'active'}
             </span>
@@ -730,7 +730,7 @@ export default function AdminBusinessDetail() {
                 <div className="tenant-info-item">
                   <span className="tenant-info-label">Monthly Price</span>
                   <span className="tenant-info-value fs-5 fw-semibold text-dark">
-                    ${Number(subscription?.monthly_price || 0).toFixed(2)} / month
+                    ₹{Number(subscription?.monthly_price || 0).toLocaleString('en-IN')} / month
                   </span>
                 </div>
                 <div className="tenant-info-item">
@@ -797,7 +797,7 @@ export default function AdminBusinessDetail() {
                     {plans.map(p => (
                       <tr key={p.id}>
                         <td className="fw-semibold text-dark">{p.name}</td>
-                        <td className="fw-bold">${Number(p.monthly_price).toFixed(2)}</td>
+                        <td className="fw-bold">₹{Number(p.monthly_price).toLocaleString('en-IN')}</td>
                         <td className="small text-muted">{Number(p.max_messages_per_month).toLocaleString()}</td>
                         <td className="small text-muted">{Number(p.max_contacts).toLocaleString()}</td>
                         <td>
@@ -1044,7 +1044,7 @@ export default function AdminBusinessDetail() {
                     <option value="">-- Choose Subscription Plan --</option>
                     {plans.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — ${Number(p.monthly_price).toFixed(2)}/mo ({Number(p.max_messages_per_month).toLocaleString()} msgs)
+                        {p.name} — ₹{Number(p.monthly_price).toLocaleString('en-IN')}/mo ({Number(p.max_messages_per_month).toLocaleString()} msgs)
                       </option>
                     ))}
                   </select>

@@ -88,6 +88,7 @@ export default function CampaignBuilder() {
   const [scheduleMode, setScheduleMode] = useState('immediate'); // 'immediate' | 'scheduled'
   const [scheduleDate, setScheduleDate] = useState(getTodayString());
   const [scheduleTime, setScheduleTime] = useState(getDefaultTimeString());
+  const [planFeatures, setPlanFeatures] = useState(null);
 
   // Resources
   const [accounts, setAccounts] = useState([]);
@@ -116,13 +117,18 @@ export default function CampaignBuilder() {
     try {
       setLoadingContacts(true);
       setLoadingGroups(true);
-      const [accRes, tagRes, tplRes, contactRes, groupRes] = await Promise.all([
+      const [accRes, tagRes, tplRes, contactRes, groupRes, featRes] = await Promise.all([
         api.get('/whatsapp/accounts'),
         api.get('/contacts/tags'),
         api.get('/whatsapp/templates?status=APPROVED&limit=100'),
         api.get('/contacts?limit=500'),
-        api.get('/contact-groups')
+        api.get('/contact-groups'),
+        api.get('/billing/features').catch(() => ({ data: { success: false } }))
       ]);
+
+      if (featRes.data?.success) {
+        setPlanFeatures(featRes.data.data);
+      }
 
       let initialAccountId = 1;
       if (accRes.data?.success && accRes.data.data.length > 0) {
@@ -2558,7 +2564,13 @@ export default function CampaignBuilder() {
                     {/* Schedule for Later Option */}
                     <div className="col-12 col-md-6">
                       <div
-                        onClick={() => setScheduleMode('scheduled')}
+                        onClick={() => {
+                          if (planFeatures?.features && !planFeatures.features.scheduled_campaigns) {
+                            showToast('warning', `Campaign scheduling is locked on your ${planFeatures.planName} plan. Upgrade to Starter or Pro to schedule broadcasts.`);
+                            return;
+                          }
+                          setScheduleMode('scheduled');
+                        }}
                         className={`p-3 rounded-3 border h-100 ${scheduleMode === 'scheduled'
                           ? 'border-primary bg-white shadow-sm'
                           : 'border-light-subtle bg-white text-muted'
@@ -2574,14 +2586,27 @@ export default function CampaignBuilder() {
                             <i className="bi bi-calendar-event-fill fs-5"></i>
                           </div>
                           <div className="flex-grow-1">
-                            <div className="fw-bold text-dark">Schedule for Later</div>
+                            <div className="d-flex align-items-center gap-2">
+                              <span className="fw-bold text-dark">Schedule for Later</span>
+                              {planFeatures?.features && !planFeatures.features.scheduled_campaigns && (
+                                <span className="badge bg-warning-subtle text-dark border border-warning-subtle small px-2 py-0">
+                                  <i className="bi bi-lock-fill me-1"></i> Starter & Pro
+                                </span>
+                              )}
+                            </div>
                             <div className="small text-muted">Automate broadcast for a specific date and time</div>
                           </div>
                           <input
                             type="radio"
                             name="dispatch_mode"
                             checked={scheduleMode === 'scheduled'}
-                            onChange={() => setScheduleMode('scheduled')}
+                            onChange={() => {
+                              if (planFeatures?.features && !planFeatures.features.scheduled_campaigns) {
+                                showToast('warning', `Campaign scheduling requires a Starter or Pro plan.`);
+                                return;
+                              }
+                              setScheduleMode('scheduled');
+                            }}
                             className="form-check-input ms-2"
                           />
                         </div>

@@ -21,7 +21,11 @@ async function runMigrations() {
   let connection;
   try {
     // Connect without database first to ensure database exists
-    connection = await mysql.createConnection({ host, port, user, password });
+    const connConfig = { host, port, user, password };
+    if (process.env.DATABASE_SSL === 'true' || process.env.DB_SSL === 'true') {
+      connConfig.ssl = { rejectUnauthorized: false };
+    }
+    connection = await mysql.createConnection(connConfig);
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
     await connection.changeUser({ database });
     console.log(`✅ [Migration] Using database "${database}"`);

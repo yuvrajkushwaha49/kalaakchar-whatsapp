@@ -15,9 +15,45 @@ export async function listPlans() {
 export async function getSubscription(businessId) {
   if (isUsingFallback()) {
     const store = getMemoryStore();
-    const sub = store.subscriptions.find(s => s.business_id === Number(businessId));
-    const plan = sub ? store.subscription_plans.find(p => p.id === sub.plan_id) : null;
-    return { subscription: sub, plan };
+    const sub = store.subscriptions?.find(s => s.business_id === Number(businessId));
+    const plan = sub 
+      ? store.subscription_plans?.find(p => p.id === sub.plan_id) 
+      : (store.subscription_plans?.[0] || null);
+
+    if (!sub) {
+      return {
+        id: 0,
+        business_id: Number(businessId),
+        plan_id: plan ? plan.id : 1,
+        plan_name: plan ? plan.name : 'Free Trial',
+        plan_slug: plan ? plan.slug : 'free',
+        monthly_price: plan ? plan.monthly_price : 0,
+        max_contacts: plan ? plan.max_contacts : 250,
+        max_campaigns_per_month: plan ? plan.max_campaigns_per_month : 2,
+        max_messages_per_month: plan ? plan.max_messages_per_month : 500,
+        max_team_members: plan ? plan.max_team_members : 1,
+        features: plan ? (typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features) : {},
+        status: 'active',
+        plan
+      };
+    }
+
+    const parsedFeatures = plan?.features 
+      ? (typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features)
+      : {};
+
+    return {
+      ...sub,
+      plan_name: plan?.name || 'Pro Automation',
+      plan_slug: plan?.slug || 'pro',
+      monthly_price: plan?.monthly_price || 0,
+      max_contacts: plan?.max_contacts || 15000,
+      max_campaigns_per_month: plan?.max_campaigns_per_month || 50,
+      max_messages_per_month: plan?.max_messages_per_month || 75000,
+      max_team_members: plan?.max_team_members || 10,
+      features: parsedFeatures,
+      plan
+    };
   }
 
   const rows = await executeQuery(
@@ -33,6 +69,22 @@ export async function getSubscription(businessId) {
   return {
     ...sub,
     features: typeof sub.features === 'string' ? JSON.parse(sub.features) : sub.features
+  };
+}
+
+export async function getTenantPlanFeatures(businessId) {
+  const sub = await getSubscription(businessId);
+  return {
+    planId: sub?.plan_id || 1,
+    planName: sub?.plan_name || 'Free Trial',
+    planSlug: sub?.plan_slug || 'free',
+    features: sub?.features || {},
+    limits: {
+      maxContacts: sub?.max_contacts || 250,
+      maxCampaigns: sub?.max_campaigns_per_month || 2,
+      maxMessages: sub?.max_messages_per_month || 500,
+      maxTeamMembers: sub?.max_team_members || 1
+    }
   };
 }
 
@@ -106,6 +158,7 @@ export async function changePlan(businessId, planId) {
 export default {
   listPlans,
   getSubscription,
+  getTenantPlanFeatures,
   getUsage,
   changePlan
 };

@@ -54,13 +54,13 @@ This is the most critical step for the one-click "Continue with Facebook" popup:
 ### Step D: Allowed Domains & Webhooks
 1. In the App Dashboard ➔ **App Settings** ➔ **Basic**:
    * Add your live production domain in **App Domains**:  
-     `whatsapp.bhaktisong.fun`
+     `whatsapp.kalaakchar.in`
    * Add your Privacy Policy URL and Terms of Service URL.
 2. In **Facebook Login for Business** ➔ **Settings**:
-   * Add your live HTTPS domain to **Valid OAuth Redirect URIs**:  
-     `https://whatsapp.bhaktisong.fun`
+   * Add your live domain to **Valid OAuth Redirect URIs**:  
+     `http://whatsapp.kalaakchar.in/whatsapp/callback`
 3. In **WhatsApp** ➔ **Configuration**:
-   * **Callback URL**: `https://whatsapp.bhaktisong.fun/api/webhooks/whatsapp`
+   * **Callback URL**: `http://whatsapp.kalaakchar.in/api/webhooks/whatsapp`
    * **Verify Token**: `campaignflow_secure_webhook_token_2026`
    * Subscribe to the **`messages`** and **`message_template_status_update`** fields.
 

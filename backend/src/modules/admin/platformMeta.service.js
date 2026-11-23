@@ -104,7 +104,7 @@ export async function getPlatformMetaConfig() {
     readinessStatus = 'disabled';
   }
 
-  const backendUrl = process.env.BACKEND_URL || 'https://whatsapp.bhaktisong.fun';
+  const backendUrl = process.env.BACKEND_URL || 'http://whatsapp.kalaakchar.in';
   const webhookCallbackUrl = `${backendUrl}/api/webhooks/whatsapp`;
 
   return {

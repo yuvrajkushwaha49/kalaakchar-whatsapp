@@ -2,13 +2,14 @@ import { Router } from 'express';
 import * as campaignsController from './campaigns.controller.js';
 import { authenticate } from '../../middleware/auth.js';
 import { requireTenant, requireRole } from '../../middleware/tenant.js';
+import { requireScheduledBroadcastAccess } from '../../middleware/planLimits.js';
 
 const router = Router();
 
 router.use(authenticate, requireTenant);
 
 router.get('/', campaignsController.list);
-router.post('/', requireRole(['owner', 'admin', 'marketer']), campaignsController.create);
+router.post('/', requireRole(['owner', 'admin', 'marketer']), requireScheduledBroadcastAccess, campaignsController.create);
 router.post('/preview', campaignsController.preview);
 router.post('/preflight', campaignsController.preflight);
 router.get('/:id', campaignsController.details);

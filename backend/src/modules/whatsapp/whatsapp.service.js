@@ -100,7 +100,7 @@ export async function completeEmbeddedSignup(businessId, payload = {}) {
   }
 
   if (!effectiveRedirectUri) {
-    effectiveRedirectUri = `${process.env.FRONTEND_URL || 'https://whatsapp.bhaktisong.fun'}/whatsapp/callback`;
+    effectiveRedirectUri = `${process.env.FRONTEND_URL || 'http://whatsapp.kalaakchar.in'}/whatsapp/callback`;
   }
 
   // 1. Resolve Meta Access Token (from OAuth code or direct token)
@@ -2249,7 +2249,7 @@ export async function discoverSystemUserAccounts(businessId, payload = {}, reque
   const { code, redirectUri, redirect_uri } = payload;
 
   if (!token && code) {
-    const effectiveRedirectUri = redirectUri || redirect_uri || `${process.env.FRONTEND_URL || 'https://whatsapp.bhaktisong.fun'}/whatsapp/callback`;
+    const effectiveRedirectUri = redirectUri || redirect_uri || `${process.env.FRONTEND_URL || 'http://whatsapp.kalaakchar.in'}/whatsapp/callback`;
     logger.info(`🔄 [Discover] Exchanging Facebook Login OAuth code for Access Token...`);
     const tokenData = await MetaCloudApiClient.exchangeCodeForToken(code, effectiveRedirectUri);
     token = tokenData.access_token;

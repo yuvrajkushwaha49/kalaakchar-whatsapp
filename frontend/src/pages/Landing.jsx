@@ -529,17 +529,19 @@ export default function Landing() {
                   <h4 className="fw-bold text-dark mb-1">Starter</h4>
                   <p className="text-muted small mb-3">Perfect for solopreneurs & small businesses</p>
                   <div className="d-flex align-items-baseline mb-4">
-                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '$29' : '$39'}</span>
+                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '₹1,999' : '₹2,499'}</span>
                     <span className="text-muted ms-1">/month</span>
                   </div>
 
                   <ul className="list-unstyled text-secondary small d-flex flex-column gap-2 mb-4">
                     <li><i className="bi bi-check-circle-fill text-success me-2"></i> 1 Connected WhatsApp Number</li>
                     <li><i className="bi bi-check-circle-fill text-success me-2"></i> 3 Team Agent Seats</li>
-                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Up to 15,000 Monthly Broadcasts</li>
-                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Shared Team Inbox & Tags</li>
+                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Up to 10,000 Monthly Messages (15 Campaigns)</li>
+                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Scheduled Broadcasts & Auto-Dispatch</li>
+                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> AI Campaign Copywriter (10/mo)</li>
+                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Keyword Auto-Replies (Up to 5 Rules)</li>
+                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Shared Team Inbox & Agent Assignment</li>
                     <li><i className="bi bi-check-circle-fill text-success me-2"></i> Excel/CSV Contact Manager</li>
-                    <li><i className="bi bi-check-circle-fill text-success me-2"></i> Meta Template Studio Access</li>
                   </ul>
                 </div>
                 <Link to="/register" className="btn btn-outline-primary w-100 py-2">
@@ -556,16 +558,17 @@ export default function Landing() {
                   <h4 className="fw-bold text-primary mb-1">Pro Growth</h4>
                   <p className="text-muted small mb-3">For scaling brands & high-volume broadcasts</p>
                   <div className="d-flex align-items-baseline mb-4">
-                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '$69' : '$89'}</span>
+                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '₹5,499' : '₹6,499'}</span>
                     <span className="text-muted ms-1">/month</span>
                   </div>
 
                   <ul className="list-unstyled text-secondary small d-flex flex-column gap-2 mb-4">
                     <li><i className="bi bi-check-circle-fill text-primary me-2"></i> <strong>Up to 3 Connected Numbers</strong></li>
                     <li><i className="bi bi-check-circle-fill text-primary me-2"></i> <strong>10 Team Agent Seats</strong></li>
-                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Unlimited Broadcast Campaigns</li>
-                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> AI Auto-Replies & Chatbot Builder</li>
-                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Advanced Audience Segmentation</li>
+                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> 75,000 Messages (50 Campaigns /mo)</li>
+                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> <strong>Unlimited AI Copywriter (Hindi, Hinglish, English)</strong></li>
+                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Keyword Auto-Replies (Up to 25 Rules)</li>
+                    <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Scheduled & Recurring Broadcasts</li>
                     <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Webhooks & Full REST API</li>
                     <li><i className="bi bi-check-circle-fill text-primary me-2"></i> Priority WhatsApp Support</li>
                   </ul>
@@ -583,7 +586,7 @@ export default function Landing() {
                   <h4 className="fw-bold text-dark mb-1">Enterprise</h4>
                   <p className="text-muted small mb-3">For large corporations, franchises & agencies</p>
                   <div className="d-flex align-items-baseline mb-4">
-                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '$199' : '$249'}</span>
+                    <span className="h1 fw-bold text-dark mb-0">{billingCycle === 'yearly' ? '₹16,999' : '₹19,999'}</span>
                     <span className="text-muted ms-1">/month</span>
                   </div>
 

@@ -126,6 +126,8 @@ export default function AdminBilling() {
     let featText = '';
     if (Array.isArray(plan.features)) {
       featText = plan.features.join(', ');
+    } else if (plan.features?.display_features && Array.isArray(plan.features.display_features)) {
+      featText = plan.features.display_features.join(', ');
     } else if (plan.features && typeof plan.features === 'object') {
       featText = Object.keys(plan.features).map(k => `${k}: ${plan.features[k]}`).join(', ');
     }
@@ -256,7 +258,7 @@ export default function AdminBilling() {
               </div>
               <div>
                 <div className="stat-label">Estimated Monthly MRR</div>
-                <div className="stat-value">${totalMonthlyMRR.toFixed(2)}</div>
+                <div className="stat-value">₹{totalMonthlyMRR.toLocaleString('en-IN')}</div>
                 <div className="small text-success">From active paid subscriptions</div>
               </div>
             </div>
@@ -417,7 +419,7 @@ export default function AdminBilling() {
                         </td>
                         <td>
                           <span className="fw-bold text-dark">
-                            ${Number(t.monthly_price).toFixed(2)}
+                            ₹{Number(t.monthly_price).toLocaleString('en-IN')}
                           </span>
                           <span className="text-muted small">/mo</span>
                         </td>
@@ -481,7 +483,7 @@ export default function AdminBilling() {
 
                     <div className="p-3 flex-grow-1">
                       <div className="d-flex align-items-baseline gap-1 mb-3">
-                        <span className="fs-3 fw-bold text-dark">${Number(p.monthly_price).toFixed(2)}</span>
+                        <span className="fs-3 fw-bold text-dark">₹{Number(p.monthly_price).toLocaleString('en-IN')}</span>
                         <span className="text-muted small">/ month</span>
                       </div>
 
@@ -508,7 +510,7 @@ export default function AdminBilling() {
                         <div className="pt-2 border-top">
                           <small className="text-muted fw-bold d-block mb-1">Key Features:</small>
                           <div className="d-flex flex-wrap gap-1">
-                            {(Array.isArray(p.features) ? p.features : Object.keys(p.features || {})).slice(0, 3).map((f, i) => (
+                            {(Array.isArray(p.features) ? p.features : (p.features?.display_features || Object.keys(p.features || {}))).slice(0, 4).map((f, i) => (
                               <span key={i} className="badge bg-light text-dark border small" style={{ fontSize: '0.68rem' }}>
                                 {typeof f === 'string' ? f : String(f)}
                               </span>
@@ -570,7 +572,7 @@ export default function AdminBilling() {
                       <tr key={p.id}>
                         <td className="fw-bold text-dark">{p.name}</td>
                         <td><code>{p.slug}</code></td>
-                        <td className="fw-bold">${Number(p.monthly_price).toFixed(2)}/mo</td>
+                        <td className="fw-bold">₹{Number(p.monthly_price).toLocaleString('en-IN')}/mo</td>
                         <td>{Number(p.max_contacts).toLocaleString()}</td>
                         <td>{Number(p.max_messages_per_month).toLocaleString()}</td>
                         <td>{p.max_campaigns_per_month}</td>
@@ -645,7 +647,7 @@ export default function AdminBilling() {
                     >
                       {plans.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name} — ${Number(p.monthly_price).toFixed(2)}/mo ({Number(p.max_messages_per_month).toLocaleString()} msgs)
+                          {p.name} — ₹{Number(p.monthly_price).toLocaleString('en-IN')}/mo ({Number(p.max_messages_per_month).toLocaleString()} msgs)
                         </option>
                       ))}
                     </select>

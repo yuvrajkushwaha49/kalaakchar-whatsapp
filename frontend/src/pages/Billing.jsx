@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 import AiwavoHeader from '../components/AiwavoHeader';
 import '../styles/billing.css';
 
 export default function Billing() {
+  const { user, business } = useAuth();
   const outletContext = useOutletContext();
   const onToggleSidebar = outletContext?.onToggleSidebar;
   const [plans, setPlans] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [upgradingId, setUpgradingId] = useState(null);
   const [feedback, setFeedback] = useState({ type: '', text: '' });
+  const [razorpayOrderModal, setRazorpayOrderModal] = useState(null);
 
   useEffect(() => {
     fetchBillingData();
@@ -21,10 +25,11 @@ export default function Billing() {
   const fetchBillingData = async () => {
     try {
       setLoading(true);
-      const [plansRes, subRes, usageRes] = await Promise.all([
+      const [plansRes, subRes, usageRes, txRes] = await Promise.all([
         api.get('/billing/plans').catch(() => ({ data: { success: false } })),
         api.get('/billing/subscription').catch(() => ({ data: { success: false } })),
-        api.get('/billing/usage').catch(() => ({ data: { success: false } }))
+        api.get('/billing/usage').catch(() => ({ data: { success: false } })),
+        api.get('/billing/transactions').catch(() => ({ data: { success: false, data: [] } }))
       ]);
 
       if (plansRes.data?.success && Array.isArray(plansRes.data.data)) {
@@ -35,6 +40,9 @@ export default function Billing() {
       }
       if (usageRes.data?.success && usageRes.data.data) {
         setUsage(usageRes.data.data);
+      }
+      if (txRes.data?.success && Array.isArray(txRes.data.data)) {
+        setTransactions(txRes.data.data);
       }
     } catch (err) {
       console.error('Failed to load billing details', err);
@@ -47,12 +55,117 @@ export default function Billing() {
     setUpgradingId(planId);
     setFeedback({ type: '', text: '' });
 
+    // Plan 1: Free Trial (no payment needed)
+    if (planId === 1) {
+      try {
+        await api.post('/billing/upgrade', { planId: 1 });
+        setFeedback({ type: 'success', text: 'Switched to Free Trial plan successfully!' });
+        await fetchBillingData();
+      } catch (err) {
+        setFeedback({ type: 'danger', text: err.response?.data?.error?.message || 'Failed to change plan' });
+      } finally {
+        setUpgradingId(null);
+      }
+      return;
+    }
+
+    // Paid Plan: Create Razorpay Order
     try {
-      await api.post('/billing/upgrade', { planId });
-      setFeedback({ type: 'success', text: 'Plan updated successfully!' });
-      fetchBillingData();
+      const orderRes = await api.post('/billing/create-order', { planId });
+      if (!orderRes.data?.success) {
+        throw new Error(orderRes.data?.error?.message || 'Failed to initialize payment');
+      }
+
+      const orderData = orderRes.data.data;
+
+      // If Razorpay Checkout JS SDK is loaded on window and live keys configured
+      if (window.Razorpay && !orderData.isMock) {
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || 'INR',
+          name: 'CampaignFlow SaaS',
+          description: `Subscription Upgrade to ${orderData.planName} (${orderData.amountFormatted}/month)`,
+          order_id: orderData.orderId,
+          handler: async function (response) {
+            try {
+              setUpgradingId(planId);
+              setFeedback({ type: 'info', text: 'Verifying payment with Razorpay...' });
+              const verifyRes = await api.post('/billing/verify-payment', {
+                planId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              });
+              if (verifyRes.data?.success) {
+                setFeedback({ type: 'success', text: `Payment verified! You are now upgraded to ${orderData.planName}.` });
+                await fetchBillingData();
+              }
+            } catch (vErr) {
+              setFeedback({ type: 'danger', text: vErr.response?.data?.error?.message || 'Payment verification failed' });
+            } finally {
+              setUpgradingId(null);
+            }
+          },
+          prefill: {
+            name: user?.name || business?.name || 'Workspace Owner',
+            email: user?.email || 'owner@acmeretail.com'
+          },
+          theme: {
+            color: '#2563eb'
+          },
+          modal: {
+            ondismiss: function () {
+              setUpgradingId(null);
+            }
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (failRes) {
+          setFeedback({ type: 'danger', text: `Payment failed: ${failRes.error?.description || 'Transaction declined'}` });
+          setUpgradingId(null);
+        });
+        rzp.open();
+      } else {
+        // Razorpay Test / Sandbox Order Modal
+        setRazorpayOrderModal({
+          orderId: orderData.orderId,
+          amount: orderData.amount,
+          amountFormatted: orderData.amountFormatted,
+          planId,
+          planName: orderData.planName,
+          isMock: Boolean(orderData.isMock)
+        });
+        setUpgradingId(null);
+      }
     } catch (err) {
-      setFeedback({ type: 'danger', text: 'Failed to change plan' });
+      setFeedback({ type: 'danger', text: err.response?.data?.error?.message || err.message || 'Payment failed to initiate' });
+      setUpgradingId(null);
+    }
+  };
+
+  const handleCompleteTestPayment = async () => {
+    if (!razorpayOrderModal) return;
+    setUpgradingId(razorpayOrderModal.planId);
+    try {
+      const mockPaymentId = `pay_mock_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const verifyRes = await api.post('/billing/verify-payment', {
+        planId: razorpayOrderModal.planId,
+        razorpay_order_id: razorpayOrderModal.orderId,
+        razorpay_payment_id: mockPaymentId,
+        razorpay_signature: 'mock_signature'
+      });
+      if (verifyRes.data?.success) {
+        setFeedback({
+          type: 'success',
+          text: `Payment successful! Upgraded to ${razorpayOrderModal.planName}. (Tx ID: ${mockPaymentId})`
+        });
+        setRazorpayOrderModal(null);
+        await fetchBillingData();
+      }
+    } catch (err) {
+      setFeedback({ type: 'danger', text: err.response?.data?.error?.message || 'Payment simulation failed' });
     } finally {
       setUpgradingId(null);
     }
@@ -79,7 +192,7 @@ export default function Billing() {
       id: 1,
       slug: 'free',
       name: 'Free Trial',
-      price: '$0.00',
+      price: '₹0',
       iconType: 'sprout',
       iconBg: '#e8f8f0',
       iconColor: '#10b981',
@@ -93,7 +206,7 @@ export default function Billing() {
       id: 2,
       slug: 'starter',
       name: 'Starter Growth',
-      price: '$29.00',
+      price: '₹2,499',
       iconType: 'rocket',
       iconBg: '#eff6ff',
       iconColor: '#3b82f6',
@@ -107,7 +220,7 @@ export default function Billing() {
       id: 3,
       slug: 'pro',
       name: 'Pro Automation',
-      price: '$79.00',
+      price: '₹6,499',
       iconType: 'crown',
       iconBg: '#fef3c7',
       iconColor: '#f59e0b',
@@ -121,7 +234,7 @@ export default function Billing() {
       id: 4,
       slug: 'enterprise',
       name: 'Enterprise Scale',
-      price: '$249.00',
+      price: '₹19,999',
       iconType: 'layers',
       iconBg: '#f3e8ff',
       iconColor: '#9333ea',
@@ -140,15 +253,28 @@ export default function Billing() {
     );
     if (!apiPlan) return def;
 
+    const rawFeats = apiPlan.features;
+    let parsedFeats = {};
+    if (typeof rawFeats === 'string') {
+      try { parsedFeats = JSON.parse(rawFeats); } catch (_) {}
+    } else if (rawFeats && typeof rawFeats === 'object') {
+      parsedFeats = rawFeats;
+    }
+
+    const inrPrice = Number(apiPlan.monthly_price || 0);
+    const formattedPrice = inrPrice === 0 ? '₹0' : `₹${inrPrice.toLocaleString('en-IN')}`;
+
     return {
       ...def,
       id: apiPlan.id,
       name: apiPlan.name || def.name,
-      price: `$${Number(apiPlan.monthly_price).toFixed(2)}`,
+      price: formattedPrice,
       contacts: `${Number(apiPlan.max_contacts || 250).toLocaleString()} Contacts`,
       messages: `${Number(apiPlan.max_messages_per_month || 500).toLocaleString()} WhatsApp Messages`,
       campaigns: `${apiPlan.max_campaigns_per_month || 2} Campaigns`,
-      team: `${apiPlan.max_team_members || 1} Team Seats`
+      team: `${apiPlan.max_team_members || 1} Team Seats`,
+      max_whatsapp_numbers: apiPlan.max_whatsapp_numbers || (def.slug === 'pro' ? 3 : (def.slug === 'enterprise' ? 10 : 1)),
+      features: parsedFeats
     };
   });
 
@@ -372,92 +498,120 @@ export default function Billing() {
                   {/* Features List */}
                   <ul className="billing-features-list">
                     <li className="billing-feature-item">
-                      <svg
-                        className="billing-feature-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Up to <strong>{p.contacts}</strong></span>
+                    </li>
+                    <li className="billing-feature-item">
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span><strong>{p.messages}</strong> /mo</span>
+                    </li>
+                    <li className="billing-feature-item">
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span><strong>{p.campaigns}</strong> /mo</span>
+                    </li>
+                    <li className="billing-feature-item">
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span><strong>{p.team}</strong></span>
+                    </li>
+                    <li className="billing-feature-item">
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span><strong>{p.max_whatsapp_numbers || 1}</strong> WhatsApp Number{p.max_whatsapp_numbers > 1 ? 's' : ''}</span>
+                    </li>
+
+                    {/* Scheduled Campaigns */}
+                    <li className={`billing-feature-item ${!p.features?.scheduled_campaigns ? 'text-muted' : ''}`}>
+                      {p.features?.scheduled_campaigns ? (
+                        <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      )}
+                      <span>{p.features?.scheduled_campaigns ? 'Scheduled & Recurring Broadcasts' : <del className="text-muted">Scheduled Broadcasts</del>}</span>
+                    </li>
+
+                    {/* AI Campaign Copywriter */}
+                    <li className={`billing-feature-item ${!p.features?.ai_copy_generator ? 'text-muted' : ''}`}>
+                      {p.features?.ai_copy_generator ? (
+                        <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      )}
+                      <span>
+                        {p.features?.ai_copy_generator ? (
+                          <>AI Copywriter <strong>({p.features?.ai_monthly_limit > 100 ? 'Unlimited' : '10/mo'})</strong></>
+                        ) : (
+                          <del className="text-muted">AI Copywriter</del>
+                        )}
+                      </span>
+                    </li>
+
+                    {/* Keyword Auto-Replies */}
+                    <li className={`billing-feature-item ${!p.features?.keyword_auto_replies ? 'text-muted' : ''}`}>
+                      {p.features?.keyword_auto_replies ? (
+                        <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      )}
+                      <span>
+                        {p.features?.keyword_auto_replies ? (
+                          <>Auto-Replies <strong>({p.features?.max_auto_reply_rules} Rules)</strong></>
+                        ) : (
+                          <del className="text-muted">Keyword Auto-Replies</del>
+                        )}
+                      </span>
+                    </li>
+
+                    {/* Webhooks & REST API */}
+                    <li className={`billing-feature-item ${!p.features?.api_access ? 'text-muted' : ''}`}>
+                      {p.features?.api_access ? (
+                        <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      )}
+                      <span>
+                        {p.features?.api_access ? (
+                          'Webhooks & REST API'
+                        ) : (
+                          <del className="text-muted">Webhooks & REST API</del>
+                        )}
+                      </span>
+                    </li>
+
+                    {/* Support Level */}
+                    <li className="billing-feature-item">
+                      <svg className="billing-feature-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                       <span>
-                        Up to <strong>{p.contacts}</strong>
+                        {p.features?.support_level === 'dedicated_sla' ? 'Dedicated SLA & Manager' : 
+                         p.features?.support_level === 'priority_whatsapp' ? 'Priority WhatsApp Support' : 
+                         p.features?.support_level === 'email' ? 'Email Support' : 'Community Support'}
                       </span>
-                    </li>
-                    <li className="billing-feature-item">
-                      <svg
-                        className="billing-feature-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>
-                        <strong>{p.messages}</strong> /mo
-                      </span>
-                    </li>
-                    <li className="billing-feature-item">
-                      <svg
-                        className="billing-feature-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>
-                        <strong>{p.campaigns}</strong> /mo
-                      </span>
-                    </li>
-                    <li className="billing-feature-item">
-                      <svg
-                        className="billing-feature-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>
-                        <strong>{p.team}</strong>
-                      </span>
-                    </li>
-                    <li className="billing-feature-item">
-                      <svg
-                        className="billing-feature-check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      <span>{p.metaApi}</span>
                     </li>
                   </ul>
 
@@ -471,7 +625,19 @@ export default function Billing() {
                       disabled={upgradingId === p.id}
                       onClick={() => handleUpgrade(p.id)}
                     >
-                      {upgradingId === p.id ? 'Switching...' : 'Switch Plan'}
+                      {upgradingId === p.id ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                          <span>Processing...</span>
+                        </>
+                      ) : p.id === 1 ? (
+                        <span>Switch to Free</span>
+                      ) : (
+                        <>
+                          <i className="bi bi-credit-card-fill me-1"></i>
+                          <span>Pay with Razorpay</span>
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -502,8 +668,333 @@ export default function Billing() {
               Meta Payment Method as per Meta's rate cards.
             </div>
           </div>
+
+          {/* 4. Complete Side-by-Side Feature Comparison Matrix */}
+          <div className="card shadow-sm border-0 mt-5 rounded-4 overflow-hidden">
+            <div className="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div>
+                <h4 className="fw-bold mb-1 text-dark">Full Feature & Quota Comparison Matrix</h4>
+                <p className="text-muted small mb-0">Compare limits, AI features, and automation capabilities across all four tiers</p>
+              </div>
+              <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill small fw-semibold">
+                <i className="bi bi-shield-check me-1"></i> Meta Cloud API Verified
+              </span>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{ width: '28%' }} className="ps-4 py-3 text-secondary text-uppercase small">Features & Capabilities</th>
+                    <th style={{ width: '18%' }} className="text-center py-3">
+                      <div className="fw-bold text-dark">Free Trial</div>
+                      <div className="text-muted small">₹0/mo</div>
+                    </th>
+                    <th style={{ width: '18%' }} className="text-center py-3">
+                      <div className="fw-bold text-primary">Starter Growth</div>
+                      <div className="text-muted small">₹2,499/mo</div>
+                    </th>
+                    <th style={{ width: '18%' }} className="text-center py-3 bg-primary-subtle border-start border-end">
+                      <div className="fw-bold text-primary">Pro Automation ★</div>
+                      <div className="text-muted small">₹6,499/mo</div>
+                    </th>
+                    <th style={{ width: '18%' }} className="text-center py-3">
+                      <div className="fw-bold text-dark">Enterprise Scale</div>
+                      <div className="text-muted small">₹19,999/mo</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Category: Audience & Contacts */}
+                  <tr className="table-secondary">
+                    <td colSpan="5" className="ps-4 py-2 fw-bold small text-uppercase text-secondary">
+                      <i className="bi bi-people-fill me-2"></i> Audience & Contact Management
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Audience Contacts Stored</td>
+                    <td className="text-center">250</td>
+                    <td className="text-center fw-semibold">2,500</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">15,000</td>
+                    <td className="text-center fw-bold text-purple">100,000+</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Excel / CSV Bulk Import</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Audience Tags & Segmentation</td>
+                    <td className="text-center text-muted">Basic Tags</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Advanced Tags</td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i> Smart Groups</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Custom Attributes</td>
+                  </tr>
+
+                  {/* Category: Messaging & Broadcasts */}
+                  <tr className="table-secondary">
+                    <td colSpan="5" className="ps-4 py-2 fw-bold small text-uppercase text-secondary">
+                      <i className="bi bi-megaphone-fill me-2"></i> WhatsApp Broadcasts & Sending
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Monthly WhatsApp Messages</td>
+                    <td className="text-center">500</td>
+                    <td className="text-center fw-semibold">10,000</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">75,000</td>
+                    <td className="text-center fw-bold text-purple">500,000+</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Broadcast Campaigns / Month</td>
+                    <td className="text-center">2</td>
+                    <td className="text-center fw-semibold">15</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">50</td>
+                    <td className="text-center fw-bold text-success">Unlimited</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Automated Campaign Scheduler</td>
+                    <td className="text-center text-muted"><i className="bi bi-x-circle text-secondary"></i> Instant only</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Date & Time</td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i> Recurring & Queued</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Priority Queue</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Sending Speed Throttle</td>
+                    <td className="text-center text-muted">5 msg/sec</td>
+                    <td className="text-center">10 msg/sec</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">25 msg/sec</td>
+                    <td className="text-center fw-bold text-success">50+ msg/sec (Tier 4)</td>
+                  </tr>
+
+                  {/* Category: Numbers & Team */}
+                  <tr className="table-secondary">
+                    <td colSpan="5" className="ps-4 py-2 fw-bold small text-uppercase text-secondary">
+                      <i className="bi bi-phone-fill me-2"></i> WhatsApp Accounts & Collaboration
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Connected WhatsApp Phone Numbers</td>
+                    <td className="text-center">1</td>
+                    <td className="text-center">1</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">Up to 3</td>
+                    <td className="text-center fw-bold text-purple">Up to 10 (or Custom)</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Team Member Seats</td>
+                    <td className="text-center">1 Seat</td>
+                    <td className="text-center">3 Seats</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">10 Seats</td>
+                    <td className="text-center fw-bold text-purple">50+ Seats</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Shared Team Live Inbox (24h Window)</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i></td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i></td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Agent Assignment & Internal Notes</td>
+                    <td className="text-center text-muted"><i className="bi bi-x-circle text-secondary"></i></td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Included</td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i> Included</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Full RBAC</td>
+                  </tr>
+
+                  {/* Category: AI & Automation */}
+                  <tr className="table-secondary">
+                    <td colSpan="5" className="ps-4 py-2 fw-bold small text-uppercase text-secondary">
+                      <i className="bi bi-stars me-2"></i> AI & Smart Automation
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">AI Campaign Copywriter (Multilingual)</td>
+                    <td className="text-center text-muted"><i className="bi bi-lock-fill text-secondary"></i> Locked</td>
+                    <td className="text-center fw-semibold">10 Generations/mo</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-success"><i className="bi bi-check-circle-fill"></i> Unlimited</td>
+                    <td className="text-center fw-bold text-success"><i className="bi bi-check-circle-fill"></i> Unlimited + Custom Models</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Languages (Hindi, Hinglish, English)</td>
+                    <td className="text-center text-muted">—</td>
+                    <td className="text-center">English only</td>
+                    <td className="text-center fw-semibold bg-primary-subtle border-start border-end text-primary">Hindi, Hinglish, English</td>
+                    <td className="text-center fw-semibold">All Global Languages</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4 fw-medium">Keyword Auto-Replies & Bot Rules</td>
+                    <td className="text-center text-muted"><i className="bi bi-lock-fill text-secondary"></i> Locked</td>
+                    <td className="text-center fw-semibold">Up to 5 Rules</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">Up to 25 Rules</td>
+                    <td className="text-center fw-bold text-purple">Unlimited Bot Rules</td>
+                  </tr>
+
+                  {/* Category: Analytics & Developer */}
+                  <tr className="table-secondary">
+                    <td colSpan="5" className="ps-4 py-2 fw-bold small text-uppercase text-secondary">
+                      <i className="bi bi-code-slash me-2"></i> Analytics, Integrations & Support
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Delivery & Read Status Analytics</td>
+                    <td className="text-center">Basic</td>
+                    <td className="text-center">Standard Reports</td>
+                    <td className="text-center fw-semibold bg-primary-subtle border-start border-end text-primary">Advanced Analytics & Export</td>
+                    <td className="text-center fw-semibold">Custom BI & Raw Logs</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Webhooks & REST API Access</td>
+                    <td className="text-center text-muted"><i className="bi bi-lock-fill text-secondary"></i></td>
+                    <td className="text-center text-muted"><i className="bi bi-lock-fill text-secondary"></i></td>
+                    <td className="text-center text-success bg-primary-subtle border-start border-end"><i className="bi bi-check-circle-fill"></i> Full REST API</td>
+                    <td className="text-center text-success"><i className="bi bi-check-circle-fill"></i> Dedicated API Keys</td>
+                  </tr>
+                  <tr>
+                    <td className="ps-4">Customer Support Level</td>
+                    <td className="text-center text-muted">Community</td>
+                    <td className="text-center">Standard Email</td>
+                    <td className="text-center fw-bold bg-primary-subtle border-start border-end text-primary">Priority WhatsApp</td>
+                    <td className="text-center fw-bold text-purple">Dedicated Account Manager & SLA</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 5. Razorpay Invoices & Payment History */}
+          <div className="card shadow-sm border-0 mt-5 rounded-4 overflow-hidden">
+            <div className="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div>
+                <h5 className="fw-bold mb-1 text-dark">Payment History & Invoices</h5>
+                <p className="text-muted small mb-0">Records of subscription transactions processed through Razorpay</p>
+              </div>
+              <span className="badge bg-light text-secondary border px-3 py-2 rounded-pill small">
+                <i className="bi bi-receipt me-1"></i> {transactions.length} Transactions
+              </span>
+            </div>
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th className="ps-4 py-3 small text-uppercase text-secondary">Transaction ID</th>
+                    <th className="py-3 small text-uppercase text-secondary">Date & Time</th>
+                    <th className="py-3 small text-uppercase text-secondary">Plan</th>
+                    <th className="py-3 small text-uppercase text-secondary">Amount</th>
+                    <th className="py-3 small text-uppercase text-secondary">Gateway</th>
+                    <th className="pe-4 py-3 small text-uppercase text-secondary text-end">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-4 text-muted small">
+                        No prior payments recorded yet. Active subscription is running on trial/developer mode.
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.map((tx) => (
+                      <tr key={tx.id}>
+                        <td className="ps-4 font-monospace small text-primary fw-medium">{tx.payment_id || tx.id}</td>
+                        <td className="small text-muted">{new Date(tx.created_at).toLocaleString()}</td>
+                        <td className="fw-semibold text-dark">{tx.plan_name || 'Pro Automation'}</td>
+                        <td className="fw-bold text-dark">{tx.amount_formatted || '₹6,499'}</td>
+                        <td>
+                          <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                            Razorpay
+                          </span>
+                        </td>
+                        <td className="pe-4 text-end">
+                          <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                            <i className="bi bi-check-circle-fill me-1"></i> Paid
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </div>
+
+      {/* Razorpay Sandbox / Test Payment Modal */}
+      {razorpayOrderModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+              <div className="modal-header bg-primary text-white py-3 px-4">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-credit-card-fill fs-5"></i>
+                  <h5 className="modal-title fw-bold mb-0">Razorpay Checkout</h5>
+                </div>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setRazorpayOrderModal(null)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <div className="text-center mb-4">
+                  <div className="bg-primary-subtle text-primary d-inline-flex p-3 rounded-circle fs-3 mb-2">
+                    <i className="bi bi-shield-check"></i>
+                  </div>
+                  <h5 className="fw-bold text-dark mb-1">Confirm Subscription Upgrade</h5>
+                  <p className="text-muted small">Secure Razorpay Indian Payment Gateway</p>
+                </div>
+
+                <div className="card bg-light border rounded-3 p-3 mb-3">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted small">Plan Selected:</span>
+                    <span className="fw-bold text-dark">{razorpayOrderModal.planName}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted small">Order ID:</span>
+                    <span className="font-monospace small text-primary">{razorpayOrderModal.orderId}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted small">Currency:</span>
+                    <span className="fw-semibold">INR (₹)</span>
+                  </div>
+                  <hr className="my-2" />
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="fw-bold text-dark">Total Amount Due:</span>
+                    <span className="fs-5 fw-bold text-primary">{razorpayOrderModal.amountFormatted}</span>
+                  </div>
+                </div>
+
+                <div className="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 rounded-2 mb-0">
+                  <i className="bi bi-info-circle-fill text-primary flex-shrink-0"></i>
+                  <span>
+                    In development/sandbox mode, clicking below simulates instant payment capture and plan activation.
+                  </span>
+                </div>
+              </div>
+              <div className="modal-footer bg-light border-top px-4 py-3">
+                <button type="button" className="btn btn-outline-secondary px-3" onClick={() => setRazorpayOrderModal(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={upgradingId === razorpayOrderModal.planId}
+                  className="btn btn-primary px-4 fw-semibold d-flex align-items-center gap-2"
+                  onClick={handleCompleteTestPayment}
+                >
+                  {upgradingId === razorpayOrderModal.planId ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status"></span>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-lock-fill"></i>
+                      <span>Confirm & Pay {razorpayOrderModal.amountFormatted}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

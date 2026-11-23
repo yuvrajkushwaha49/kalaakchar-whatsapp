@@ -47,6 +47,9 @@ const memoryStore = {
   whatsapp_conversation_assignments: [],
   whatsapp_conversation_notes: [],
   whatsapp_conversation_events: [],
+  keyword_auto_replies: [],
+  payment_orders: [],
+  payment_transactions: [],
   password_resets: []
 };
 
@@ -150,6 +153,202 @@ const realApprovedMetaTemplates = [
   }
 ];
 
+export const defaultSubscriptionPlans = [
+  {
+    id: 1,
+    name: 'Free Trial',
+    slug: 'free',
+    monthly_price: 0,
+    max_contacts: 250,
+    max_campaigns_per_month: 2,
+    max_messages_per_month: 500,
+    max_team_members: 1,
+    max_whatsapp_numbers: 1,
+    features: {
+      ai_copy_generator: false,
+      ai_monthly_limit: 0,
+      scheduled_campaigns: false,
+      keyword_auto_replies: false,
+      max_auto_reply_rules: 0,
+      shared_team_inbox: true,
+      agent_assignment: false,
+      custom_tags_attributes: false,
+      webhooks: false,
+      api_access: false,
+      analytics_level: 'basic',
+      support_level: 'community',
+      export_reports: false,
+      display_features: [
+        'Up to 250 Audience Contacts',
+        '500 WhatsApp Messages /mo',
+        '2 Broadcast Campaigns /mo',
+        '1 Team Agent Seat',
+        '1 Connected WhatsApp Number',
+        'Instant Broadcast Dispatch',
+        'Basic Contact Management',
+        'Community Support'
+      ]
+    }
+  },
+  {
+    id: 2,
+    name: 'Starter Growth',
+    slug: 'starter',
+    monthly_price: 2499,
+    max_contacts: 2500,
+    max_campaigns_per_month: 15,
+    max_messages_per_month: 10000,
+    max_team_members: 3,
+    max_whatsapp_numbers: 1,
+    features: {
+      ai_copy_generator: true,
+      ai_monthly_limit: 10,
+      scheduled_campaigns: true,
+      keyword_auto_replies: true,
+      max_auto_reply_rules: 5,
+      shared_team_inbox: true,
+      agent_assignment: true,
+      custom_tags_attributes: true,
+      webhooks: false,
+      api_access: false,
+      analytics_level: 'standard',
+      support_level: 'email',
+      export_reports: true,
+      display_features: [
+        'Up to 2,500 Audience Contacts',
+        '10,000 WhatsApp Messages /mo',
+        '15 Broadcast Campaigns /mo',
+        '3 Team Agent Seats',
+        '1 Connected WhatsApp Number',
+        'Scheduled Broadcasts & Auto-Dispatch',
+        'AI Campaign Copywriter (10/mo)',
+        'Keyword Auto-Replies (Up to 5 Rules)',
+        'Shared Team Inbox & Agent Assignment',
+        'Contact Tags & CSV/Excel Import',
+        'Standard Delivery Reports & Export',
+        'Email Support'
+      ]
+    }
+  },
+  {
+    id: 3,
+    name: 'Pro Automation',
+    slug: 'pro',
+    monthly_price: 6499,
+    max_contacts: 15000,
+    max_campaigns_per_month: 50,
+    max_messages_per_month: 75000,
+    max_team_members: 10,
+    max_whatsapp_numbers: 3,
+    features: {
+      ai_copy_generator: true,
+      ai_monthly_limit: 99999,
+      scheduled_campaigns: true,
+      keyword_auto_replies: true,
+      max_auto_reply_rules: 25,
+      shared_team_inbox: true,
+      agent_assignment: true,
+      custom_tags_attributes: true,
+      webhooks: true,
+      api_access: true,
+      analytics_level: 'advanced',
+      support_level: 'priority_whatsapp',
+      export_reports: true,
+      display_features: [
+        'Up to 15,000 Audience Contacts',
+        '75,000 WhatsApp Messages /mo',
+        '50 Broadcast Campaigns /mo',
+        '10 Team Agent Seats',
+        'Up to 3 Connected WhatsApp Numbers',
+        'Scheduled & Recurring Broadcasts',
+        'Unlimited AI Campaign Copywriter',
+        'Multilingual AI (Hindi, Hinglish, English)',
+        'Keyword Auto-Replies (Up to 25 Rules)',
+        'Shared Live Inbox with Internal Notes',
+        'Advanced Delivery & Read Analytics',
+        'Webhooks & Full REST API Access',
+        'Priority WhatsApp Support'
+      ]
+    }
+  },
+  {
+    id: 4,
+    name: 'Enterprise Scale',
+    slug: 'enterprise',
+    monthly_price: 19999,
+    max_contacts: 100000,
+    max_campaigns_per_month: 9999,
+    max_messages_per_month: 500000,
+    max_team_members: 50,
+    max_whatsapp_numbers: 10,
+    features: {
+      ai_copy_generator: true,
+      ai_monthly_limit: 99999,
+      scheduled_campaigns: true,
+      keyword_auto_replies: true,
+      max_auto_reply_rules: 999,
+      shared_team_inbox: true,
+      agent_assignment: true,
+      custom_tags_attributes: true,
+      webhooks: true,
+      api_access: true,
+      analytics_level: 'custom',
+      support_level: 'dedicated_sla',
+      export_reports: true,
+      display_features: [
+        '100,000+ Audience Contacts',
+        '500,000 WhatsApp Messages /mo',
+        'Unlimited Broadcast Campaigns',
+        '50+ Team Agent Seats',
+        'Up to 10 Connected WhatsApp Numbers',
+        'High-Throughput Meta Queue (Tier 4)',
+        'Unlimited Keyword Auto-Replies',
+        'Unlimited AI Copywriting & Fine-tuning',
+        'Multi-Tenant Role-Based Access Control',
+        'Real-time Webhook Streaming & REST API',
+        'Audit Log History (1 Year)',
+        'Dedicated Account Manager & SLA Guarantee'
+      ]
+    }
+  }
+];
+
+export const defaultKeywordAutoReplies = [
+  {
+    id: 1,
+    business_id: 1,
+    keyword: 'OFFER',
+    match_type: 'contains',
+    reply_text: '🎉 Welcome to Acme Retail! Use coupon code FESTIVE30 for Flat 30% OFF on all Festive Kurtas & Ethnic Wear today. Visit https://www.kalaakchar.in to order now!',
+    is_active: 1,
+    trigger_count: 14,
+    created_at: new Date('2026-11-10T10:00:00Z'),
+    updated_at: new Date('2026-11-10T10:00:00Z')
+  },
+  {
+    id: 2,
+    business_id: 1,
+    keyword: 'SUPPORT',
+    match_type: 'contains',
+    reply_text: '👋 Hi! Our customer support agent has been notified and will assist you shortly. You can also write to us at support@acmeretail.com.',
+    is_active: 1,
+    trigger_count: 9,
+    created_at: new Date('2026-11-12T14:30:00Z'),
+    updated_at: new Date('2026-11-12T14:30:00Z')
+  },
+  {
+    id: 3,
+    business_id: 1,
+    keyword: 'PRICE',
+    match_type: 'contains',
+    reply_text: '🏷️ Our Festive Kurta Collection starts from just ₹799! Free express delivery on orders above ₹1,999. Reply CATALOG to view items.',
+    is_active: 1,
+    trigger_count: 22,
+    created_at: new Date('2026-11-15T09:15:00Z'),
+    updated_at: new Date('2026-11-15T09:15:00Z')
+  }
+];
+
 async function initFallbackStore() {
   if (fallbackInitialized) return;
 
@@ -163,6 +362,17 @@ async function initFallbackStore() {
       });
       // Always guarantee real Meta templates are present
       memoryStore.templates = realApprovedMetaTemplates;
+      // Always guarantee up-to-date subscription plans and features
+      memoryStore.subscription_plans = defaultSubscriptionPlans;
+      if (!Array.isArray(memoryStore.keyword_auto_replies) || memoryStore.keyword_auto_replies.length === 0) {
+        memoryStore.keyword_auto_replies = defaultKeywordAutoReplies;
+      }
+      if (!Array.isArray(memoryStore.payment_transactions)) {
+        memoryStore.payment_transactions = [];
+      }
+      if (!Array.isArray(memoryStore.payment_orders)) {
+        memoryStore.payment_orders = [];
+      }
 
       const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';
       const liveWabaId = '1618945099958602';
@@ -247,12 +457,8 @@ async function initFallbackStore() {
 
   const hash = await bcrypt.hash('Password123!', 10);
 
-  memoryStore.subscription_plans = [
-    { id: 1, name: 'Free Trial', slug: 'free', monthly_price: 0.00, max_contacts: 250, max_campaigns_per_month: 2, max_messages_per_month: 500, max_team_members: 1, features: { analytics: 'basic', ai_assistant: false } },
-    { id: 2, name: 'Starter Growth', slug: 'starter', monthly_price: 29.00, max_contacts: 2500, max_campaigns_per_month: 15, max_messages_per_month: 10000, max_team_members: 3, features: { analytics: 'standard', ai_assistant: true } },
-    { id: 3, name: 'Pro Automation', slug: 'pro', monthly_price: 79.00, max_contacts: 15000, max_campaigns_per_month: 50, max_messages_per_month: 75000, max_team_members: 10, features: { analytics: 'advanced', ai_assistant: true, api_access: true } },
-    { id: 4, name: 'Enterprise Scale', slug: 'enterprise', monthly_price: 249.00, max_contacts: 100000, max_campaigns_per_month: 9999, max_messages_per_month: 500000, max_team_members: 50, features: { analytics: 'custom', ai_assistant: true, api_access: true } }
-  ];
+  memoryStore.subscription_plans = defaultSubscriptionPlans;
+  memoryStore.keyword_auto_replies = defaultKeywordAutoReplies;
 
   memoryStore.businesses = [
     { id: 1, name: 'Acme Retail India', slug: 'acme-retail', timezone: 'Asia/Kolkata', status: 'active', created_at: new Date('2026-10-31T06:00:00Z') },
@@ -848,7 +1054,7 @@ export function getPool() {
     const password = process.env.DATABASE_PASSWORD || process.env.DB_PASSWORD || 'cf_password';
     const database = process.env.DATABASE_NAME || process.env.DB_NAME || 'campaignflow';
 
-    pool = mysql.createPool({
+    const poolOptions = {
       host,
       port,
       user,
@@ -859,7 +1065,13 @@ export function getPool() {
       queueLimit: 0,
       charset: 'utf8mb4',
       timezone: 'Z'
-    });
+    };
+
+    if (process.env.DATABASE_SSL === 'true' || process.env.DB_SSL === 'true') {
+      poolOptions.ssl = { rejectUnauthorized: false };
+    }
+
+    pool = mysql.createPool(poolOptions);
   }
   return pool;
 }

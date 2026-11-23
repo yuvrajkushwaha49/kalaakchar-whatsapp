@@ -88,6 +88,8 @@ export default function Sidebar({ isOpen, onClose, onToggle }) {
       badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
     },
     { to: '/templates', icon: 'bi-chat-square-text-fill', name: 'Message Templates', shortName: 'Templates', roles: ['owner', 'admin', 'marketer'] },
+    { to: '/auto-replies', icon: 'bi-robot', name: 'Auto-Replies & Bot', shortName: 'Bots', roles: ['owner', 'admin', 'marketer'] },
+    { to: '/ai-assistant', icon: 'bi-stars', name: 'AI Copywriter', shortName: 'AI', roles: ['owner', 'admin', 'marketer'] },
     { to: '/whatsapp', icon: 'bi-whatsapp', name: 'WhatsApp Accounts', shortName: 'Accounts', roles: ['owner', 'admin', 'marketer'] },
     { to: '/contacts', icon: 'bi-people-fill', name: 'Contacts', shortName: 'Contacts' },
     { to: '/team', icon: 'bi-people-fill', name: 'Team & Users', shortName: 'Team', roles: ['owner', 'admin'] },

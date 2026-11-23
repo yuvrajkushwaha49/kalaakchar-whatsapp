@@ -25,6 +25,7 @@ import CampaignBuilder from './pages/CampaignBuilder';
 import CampaignDetail from './pages/CampaignDetail';
 import CampaignReport from './pages/CampaignReport';
 import AiAssistant from './pages/AiAssistant';
+import AutoReplies from './pages/AutoReplies';
 import TeamManagement from './pages/TeamManagement';
 import Billing from './pages/Billing';
 import ActivityLogs from './pages/ActivityLogs';
@@ -197,6 +198,7 @@ export default function App() {
           }
         />
         <Route path="/ai-assistant" element={<AiAssistant />} />
+        <Route path="/auto-replies" element={<AutoReplies />} />
         <Route
           path="/team"
           element={

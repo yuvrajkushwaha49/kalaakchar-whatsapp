@@ -14,6 +14,10 @@ const poolConfig = {
   charset: 'utf8mb4'
 };
 
+if (process.env.DATABASE_SSL === 'true' || process.env.DB_SSL === 'true') {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+
 let pool = null;
 
 export function getPool() {
