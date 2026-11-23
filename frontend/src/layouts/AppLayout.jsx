@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import FloatingLiveProgress from '../components/FloatingLiveProgress';
+import AIChatWidget from '../components/chatbot/AIChatWidget';
 import '../styles/switchClientModal.css';
 
 export default function AppLayout() {
@@ -61,6 +62,9 @@ export default function AppLayout() {
     <div className={`app-wrapper ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
       {/* Global Real-time Floating Live Progress Bar (Campaign & Import) */}
       <FloatingLiveProgress />
+
+      {/* Reusable WhatsApp SaaS AI Support Chatbot Widget */}
+      <AIChatWidget />
 
       {/* Mobile Backdrop overlay */}
       {sidebarOpen && (

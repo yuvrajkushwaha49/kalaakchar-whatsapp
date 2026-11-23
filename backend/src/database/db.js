@@ -50,7 +50,14 @@ const memoryStore = {
   keyword_auto_replies: [],
   payment_orders: [],
   payment_transactions: [],
-  password_resets: []
+  password_resets: [],
+  ai_conversations: [],
+  ai_messages: [],
+  ai_knowledge_documents: [],
+  ai_knowledge_chunks: [],
+  ai_feedback: [],
+  ai_settings: [],
+  ai_usage_logs: []
 };
 
 // Real Meta Approved Templates for live Cloud API sending
@@ -372,6 +379,23 @@ async function initFallbackStore() {
       }
       if (!Array.isArray(memoryStore.payment_orders)) {
         memoryStore.payment_orders = [];
+      }
+      if (!Array.isArray(memoryStore.ai_conversations)) memoryStore.ai_conversations = [];
+      if (!Array.isArray(memoryStore.ai_messages)) memoryStore.ai_messages = [];
+      if (!Array.isArray(memoryStore.ai_knowledge_documents)) memoryStore.ai_knowledge_documents = [];
+      if (!Array.isArray(memoryStore.ai_knowledge_chunks)) memoryStore.ai_knowledge_chunks = [];
+      if (!Array.isArray(memoryStore.ai_feedback)) memoryStore.ai_feedback = [];
+      if (!Array.isArray(memoryStore.ai_usage_logs)) memoryStore.ai_usage_logs = [];
+      if (!Array.isArray(memoryStore.ai_settings) || memoryStore.ai_settings.length === 0) {
+        memoryStore.ai_settings = [
+          { id: 1, setting_key: 'ai_chat_enabled', setting_value: 'true', updated_at: new Date() },
+          { id: 2, setting_key: 'gemini_model', setting_value: process.env.GEMINI_MODEL || 'gemini-1.5-flash', updated_at: new Date() },
+          { id: 3, setting_key: 'gemini_temperature', setting_value: '0.3', updated_at: new Date() },
+          { id: 4, setting_key: 'max_output_tokens', setting_value: '1000', updated_at: new Date() },
+          { id: 5, setting_key: 'request_timeout_ms', setting_value: '30000', updated_at: new Date() },
+          { id: 6, setting_key: 'input_cost_per_million', setting_value: '0.075', updated_at: new Date() },
+          { id: 7, setting_key: 'output_cost_per_million', setting_value: '0.30', updated_at: new Date() }
+        ];
       }
 
       const liveToken = 'EAAQjnGtRDZCgBS1tjbT3HB636ZArmfxy00RUrQLYzujvPZBN1sU0yDZClKaiBAQAhxiiECwnCp1k2YDlL9s6Ff3ZAZBGA4DvySmfnWutocges1MV3eIjW9bciSoNHfojmwcRcVizsWZCwMzDolQBQJfK9yXp6VsOFuabsnVn92TnosYP6AZBXGoRJob5J9STih1qfgZDZD';

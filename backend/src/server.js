@@ -5,6 +5,7 @@ import { initSocketServer } from './socket.js';
 import { startCampaignScheduler, stopCampaignScheduler } from './services/campaignScheduler.js';
 import { startImportWorker } from './workers/importWorker.js';
 import { startCampaignWorker } from './workers/campaignWorker.js';
+import { indexKnowledgeBase } from './modules/ai/knowledgeBase.service.js';
 import logger from './utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -35,6 +36,11 @@ async function startServer() {
   } else {
     logger.info('ℹ️ [Server] Running in standalone worker mode (Workers handled via dedicated PM2 processes)');
   }
+
+  // Initialize AI Support Knowledge Base indexing
+  indexKnowledgeBase().catch(err => {
+    logger.warn('⚠️ [Server] Knowledge Base indexing notice:', err.message);
+  });
 
   httpServer.listen(PORT, () => {
     logger.info(`✨ CampaignFlow Backend API listening on port ${PORT}`);

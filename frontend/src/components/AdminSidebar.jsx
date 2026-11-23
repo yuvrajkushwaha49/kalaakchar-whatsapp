@@ -17,6 +17,7 @@ export default function AdminSidebar({ isOpen, onClose, onToggle }) {
     { to: '/admin/tenants', icon: 'bi-buildings-fill', name: 'Businesses & Owners', shortName: 'Businesses' },
     { to: '/admin/numbers', icon: 'bi-diagram-3-fill', name: 'Number Allocation', shortName: 'Numbers' },
     { to: '/admin/billing', icon: 'bi-credit-card-2-front-fill', name: 'Global Billing & Plans', shortName: 'Billing' },
+    { to: '/admin/ai-support', icon: 'bi-robot', name: 'AI Support Management', shortName: 'AI Support' },
     { to: '/admin/logs', icon: 'bi-clock-history', name: 'Global Activity Logs', shortName: 'Audit Logs' },
     { to: '/admin/meta', icon: 'bi-gear-wide-connected', name: 'Meta Platform App', shortName: 'Meta App' },
     { to: '/admin/meta-monitoring', icon: 'bi-activity', name: 'Meta Monitoring', shortName: 'Health' },

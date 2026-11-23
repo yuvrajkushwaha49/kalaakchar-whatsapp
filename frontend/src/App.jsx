@@ -42,6 +42,7 @@ import AdminLogs from './pages/admin/AdminLogs';
 import AdminMeta from './pages/admin/AdminMeta';
 import AdminMetaMonitoring from './pages/admin/AdminMetaMonitoring';
 import AdminAccounts from './pages/admin/AdminAccounts';
+import AdminAiSupport from './pages/admin/AdminAiSupport';
 
 import WhatsAppOAuthCallback from './pages/WhatsAppOAuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -261,6 +262,7 @@ export default function App() {
         <Route path="business-list" element={<AdminTenants />} />
         <Route path="numbers" element={<AdminNumbers />} />
         <Route path="billing" element={<AdminBilling />} />
+        <Route path="ai-support" element={<AdminAiSupport />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="meta" element={<AdminMeta />} />
         <Route path="meta-monitoring" element={<AdminMetaMonitoring />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
+import AIChatWidget from '../components/chatbot/AIChatWidget';
 import '../styles/adminDashboard.css';
 
 export default function AdminLayout() {
@@ -35,6 +36,9 @@ export default function AdminLayout() {
 
   return (
     <div className={`app-wrapper ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+      {/* Reusable WhatsApp SaaS AI Support Chatbot Widget */}
+      <AIChatWidget />
+
       {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
